@@ -9,8 +9,9 @@ from scipy import linalg as la
 
 # Abstract functions are here for initiation / listing
 # We name them and pass for later use
+
+# Specify abstractmethod whenever the task should be specified later
 class Abstract_vector(ABC):
-    
     
     @abstractmethod
     def copy(self):
@@ -27,4 +28,7 @@ class Abstract_vector(ABC):
     @abstractmethod
     def dot(self):
         pass
-
+    
+    @abstractmethod
+    def orthogonal():
+        pass
