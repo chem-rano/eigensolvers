@@ -1,0 +1,30 @@
+from abc import ABC, abstractmethod
+import numpy as np
+from scipy import linalg as la
+
+# file1: abs_funcs.py holding these abstract functions list
+# file2: myNdarray.py :: specifications of the tasks for each functions defined earlier for ndarray
+# file2: listTTNS.py  :: same as file2 for TTNS
+# main.py: utilizing these class for main purpose, such as inexact_Lanczos.py
+
+# Abstract functions are here for initiation / listing
+# We name them and pass for later use
+class Abstract_vector(ABC):
+    
+    
+    @abstractmethod
+    def copy(self):
+        pass
+    
+    @abstractmethod
+    def linearCombination(self):
+        pass
+    
+    @abstractmethod
+    def norm(self) -> float:  
+        pass
+
+    @abstractmethod
+    def dot(self):
+        pass
+
