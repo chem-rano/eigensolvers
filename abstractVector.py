@@ -11,7 +11,7 @@ from scipy import linalg as la
 # We name them and pass for later use
 
 # Specify abstractmethod whenever the task should be specified later
-class Abstract_vector(ABC):
+class AbstractVector(ABC):
     
     @abstractmethod
     def copy(self):
@@ -29,6 +29,6 @@ class Abstract_vector(ABC):
     def dot(self):
         pass
     
-    @abstractmethod
+    @staticmethod
     def orthogonal():
         pass
