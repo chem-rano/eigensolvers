@@ -1,6 +1,6 @@
 import numpy as np
 from scipy import linalg as la
-from abstract import AbstractVector
+from abstractVector import abstractVector
 import warnings
 
 ####################################################################
@@ -10,12 +10,12 @@ import warnings
 
 
 # file1: abs_funcs.py holding these abstract functions list
-# file2: NumpyVector.py :: specifications of the tasks for each functions defined earlier for ndarray
+# file2: numpyVector.py :: specifications of the tasks for each functions defined earlier for ndarray
 # file2: listTTNS.py  :: same as file2 for TTNS
 # main.py: utilizing these class for main purpose, such as inexact_Lanczos.py
 
 # Assign the task for the functions initiated in abstract class
-class NumpyVector(AbstractVector):
+class numpyVector(abstractVector):
     def __init__(self,array):
         self.array = array
         self.dtype = array.dtype
@@ -96,14 +96,14 @@ class NumpyVector(AbstractVector):
 
         nv = 0
         for i in range(nvec):
-            xi = NumpyVector(xs[i].copy())    #  <class '__main__.myVector'>
+            xi = numpyVector(xs[i].copy())    #  <class '__main__.myVector'>
             #print(xi.arrayIn)    # [ 1. -1.  1.] 
             #print(len(xi.arrayIn)) # 3
             for j in range(nv):
-                qsj = NumpyVector(qs[j])
+                qsj = numpyVector(qs[j])
                 prod = qsj.dot(xi,conjugate=True)
                 xi -= qsj.array*prod
-                xi = NumpyVector(xi)
+                xi = numpyVector(xi)
             innerprod = xi.dot(xi,True)   #.real
             norm = np.sqrt(innerprod)
             if innerprod > lindep:
@@ -136,7 +136,7 @@ if __name__ == "__main__":
     Y0  = np.array([1.0,2.0,3.0,4.0])
     copyY0 = np.array(Y0,copy =True)
     d = len(Y0)
-    Y0 = NumpyVector(Y0)
+    Y0 = numpyVector(Y0)
 
     print("Multiplication with a number",Y0*2)
     print("Multiplication with an array",Y0@np.ones(d))
@@ -159,13 +159,13 @@ if __name__ == "__main__":
     print("dot product",Y0.dot(np.ones(d),conjugate=True))
     # --------------------------------------------------
     xs = []
-    Y0  = NumpyVector(np.array([1.0,-1.0,1.0]))
+    Y0  = numpyVector(np.array([1.0,-1.0,1.0]))
     xs.append(Y0)
-    Y0  = NumpyVector(np.array([1.0,0.0,1.0]))
+    Y0  = numpyVector(np.array([1.0,0.0,1.0]))
     xs.append(Y0)
-    Y0  = NumpyVector(np.array([1.0,1.0,2.0]))
+    Y0  = numpyVector(np.array([1.0,1.0,2.0]))
     xs.append(Y0)
    
     #print(type(xs))
-    Q = NumpyVector.orthogonal(xs)    
+    Q = numpyVector.orthogonal(xs)    
     print(Q)
