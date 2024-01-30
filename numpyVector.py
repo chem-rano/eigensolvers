@@ -1,20 +1,22 @@
 import numpy as np
+import scipy
 from scipy import linalg as la
 from abstractVector import abstractVector
+from scipy.sparse.linalg import LinearOperator
+import warnings
 
 ####################################################################
 # Creates a numpyyVector class, which have defined elementary operations
-# Obj.arguments will be used in the util functions
 ####################################################################
 
-
-# file1: abs_funcs.py holding these abstract functions list
-# file2: numpyVector.py :: specifications of the tasks for each functions defined earlier for ndarray
-# file2: listTTNS.py  :: same as file2 for TTNS
+# file1:   abs_funcs.py holding these abstract functions list
+# file2:   numpyVector.py :: specifications of the tasks for each functions 
+#          defined earlier for ndarray
 # main.py: utilizing these class for main purpose, such as inexact_Lanczos.py
 
 # Assign the task for the functions initiated in abstract class
-class numpyVector(abstractVector):
+# -------------------------------------------------------------
+class NumpyVector(abstractVector):
     def __init__(self,array):
         self.array = array
         self.dtype = array.dtype
@@ -22,57 +24,59 @@ class numpyVector(abstractVector):
         self.shape = array.shape
     
     def __add__(self, other):
-        return self.array + other
+        return NumpyVector(self.array + other.array)
 
     def __sub__(self,other):
-        return self.array - other
+        return NumpyVector(self.array - other.array)
 
     def __mul__(self,other):
-        return self.array*other
+        return NumpyVector(self.array*other)
 
     def __truediv__(self,other):
-        return self.array/other
+        return NumpyVector(self.array/other)
+    
+    
+    #def __rmatmul__(self,other):
+    #    return NumpyVector(other@self.array)
 
-    def __matmul__(self,other):
-        return self.array @ other 
+    def applyOp(self,other):
+        return NumpyVector(other@self.array)
+    
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.array)
     
     def copy(self):
-        copyArray = self.array
-        return copyArray
+        return NumpyVector(self.array.copy())
 
-    def linearCombination(self, other:list,coeff:list) -> np.array:
+    def norm(self) -> float:
+        return la.norm(self.array)
+
+    def linearCombination(other,coeff):
         '''
         Returns the linear combination of n vectors [v1, v2, ..., vn]
-        combArray = self.arrayIn + c1*v1 + c2*v2 + cn*vn 
+        combArray = c1*v1 + c2*v2 + cn*vn 
         Useful for addition, subtraction: c1 = 1.0/-1.0, respectively
 
         In:: other == list of vectors
              coeff == list of coefficients, [c1,c2,...,cn]
         '''
-        alen = len(self.array)
-        combArray = self.array
+        alen = len(other[0])
+        dtype = other[0].dtype
+        combArray = np.zeros(alen,dtype=dtype)
         for n in range(len(other)):
-            for ii in range(alen):
-                combArray[ii] += coeff[n]*other[n][ii]
-        return combArray
+            combArray += coeff[n]*other[0].array[n]
+        return NumpyVector(combArray)
 
-
-    def norm(self):
-        return la.norm(self.array)
     
-    def dot(self,other,conjugate:bool=False):
-        if not isinstance(other,np.ndarray):
-            other = np.array(other.array)
+    def dot(self,other,conjugate):
         if conjugate == False:
-            return np.dot(self.array,other)
+            return np.dot(self.array,other.array)
         elif conjugate == True:
-            return np.vdot(self.array,other)
+            return np.vdot(self.array,other.array)
     
-    #@classmethod
-    def orthogonal(self,xs,lindep=1e-14):
+    
+    def orthogonal(xs,lindep=1e-14):
         '''
         Constructs a orthogonal vector space using Gram-Schmidt algorithm
         The current vector space is checked for linear-independency
@@ -87,64 +91,35 @@ class numpyVector(abstractVector):
 
         nvec = len(xs)
         dtype = xs[0].dtype
-        qs = np.empty((nvec,xs[0].size), dtype=dtype)
-        # qs as numpy empty array or myVector empty array
+        qs_elem = NumpyVector(np.empty(xs[0].size,dtype=dtype))
+        qs = []
+        for i in range(nvec):
+            qs.append(qs_elem)
 
         nv = 0
         for i in range(nvec):
-            xi = myVector(xs[i].copy())    #  <class '__main__.myVector'>
-            #print(xi.arrayIn)    # [ 1. -1.  1.] 
-            #print(len(xi.arrayIn)) # 3
-            print(i)
+            xi = xs[i]
             for j in range(nv):
-                prod = qs[j].dot(xi,conjugate=True)
-                xi -= qs[j]*prod
-            innerprod = xi.dot(xi,conjugate=True)   #.real
-            print(innerprod)
+                qsj = qs[j]
+                prod = qsj.dot(xi,False)
+                xi -= (qsj*prod)
+            innerprod = xi.dot(xi,False)
             norm = np.sqrt(innerprod)
             if innerprod > lindep:
                 qs[nv] = xi/norm
                 nv += 1
-            return qs[:nv]
+        return qs[:nv]
 
+    def solve(H, b, sigma, x0=None, shift=0.0, gcrot_tol=1e-5,gcrot_iter=1000):
 
-# ---------------------------------------------------
-if __name__ == "__main__":
-    #np.random.seed(10)
-    #Y0  = np.random.random((10))
-    Y0  = np.array([1.0,2.0,3.0,4.0])
-    copyY0 = np.array(Y0,copy =True)
-    d = len(Y0)
-    Y0 = numpyVector(Y0)
+        n = H.shape[0]
+        sigma = sigma*np.eye(n)
+        linOp = LinearOperator((n,n),lambda x, sigma=sigma, H=H:(sigma@x - H@x))
+        wk,conv = scipy.sparse.linalg.gcrotmk(linOp,b.array,x0, tol=gcrot_tol,atol=gcrot_tol,maxiter = gcrot_iter)
 
-    print("Multiplication with a number",Y0*2)
-    print("Multiplication with an array",Y0@np.ones(d))
-    
-    # ---------- check linearCombination() -------------
-    make_combine = []
-    make_combine.append(np.ones(d))
-    make_combine.append(np.ones(d))
+        if conv != 0:
+            warnings.simplefilter('error', UserWarning)
+            warnings.warn("Warning:: Iterative solver is not converged ")
+        return NumpyVector(wk)
 
-    dlist = len(make_combine)
-    coeff = [1.0 for i in range(dlist)]
-
-    main_combine = copyY0 + coeff[0]*np.ones(d) + coeff[1]*np.ones(d) 
-    func_combine = Y0.linearCombination(make_combine,coeff)
-    #print(str(main_combine) == str(func_combine))
-    # --------------------------------------------------
-    
-
-    #print("Norm", Y0.norm())
-    #print("dot product",Y0.dot(np.ones(d),conjugate=True))
-    # --------------------------------------------------
-    xs = []
-    Y0  = numpyVector(np.array([1.0,-1.0,1.0]))
-    xs.append(Y0)
-    Y0  = numpyVector(np.array([1.0,0.0,1.0]))
-    xs.append(Y0)
-    Y0  = numpyVector(np.array([1.0,1.0,2.0]))
-    xs.append(Y0)
-   
-    #print(type(xs))
-    Q = NumpyVector.orthogonal(xs)    
-    #print(Q)
+    # -----------------------------------------------------

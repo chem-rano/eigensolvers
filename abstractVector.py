@@ -17,10 +17,6 @@ class abstractVector(ABC):
     def copy(self):
         pass
     
-    @abstractmthod
-    def linearCombination(self):
-        pass
-    
     @abstractmethod
     def norm(self) -> float:  
         pass
@@ -28,11 +24,21 @@ class abstractVector(ABC):
     @abstractmethod
     def dot(self):
         pass
+     
+    @abstractmethod
+    def applyOp(self):
+        pass
+
+    @staticmethod
+    def linearCombination():
+        pass
+    
     
     @staticmethod
     def orthogonal():
         pass
     
     @staticmethod
-    def solve_linear():
+    def solve():
         pass
+    
