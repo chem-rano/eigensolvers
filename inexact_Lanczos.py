@@ -49,7 +49,7 @@ def core_func(H,v0,sigma,L,maxit,conv_tol):
             for j in range(m):
                 ket = Ylist[j].applyOp(H)
                 for i in range(m):
-                    qtAq[i,j] = Ylist[i].dot(ket,True)
+                    qtAq[i,j] = Ylist[i].vdot(ket)
                     qtAq[j,i] = qtAq[i,j]
 
             ev, uvals = la.eigh(qtAq)

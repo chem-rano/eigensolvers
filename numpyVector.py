@@ -36,18 +36,24 @@ class NumpyVector(AbstractVector):
         return NumpyVector(self.array/other)
 
 
-    def applyOp(self,other):
-        return NumpyVector(other@self.array)
-    
-
     def __len__(self) -> int:
         return len(self.array)
+    
+    def norm(self) -> float:
+        return la.norm(self.array)
+
+    def vdot(self,other,conjugate:bool=True):
+        if conjugate:
+            return np.vdot(self.array,other.array)
+        else:
+            return np.dot(self.array.ravel(),other.array)
     
     def copy(self):
         return NumpyVector(self.array.copy())
 
-    def norm(self) -> float:
-        return la.norm(self.array)
+    def applyOp(self,other):
+        return NumpyVector(other@self.array)
+    
 
     def linearCombination(other,coeff):
         '''
@@ -66,12 +72,6 @@ class NumpyVector(AbstractVector):
         return NumpyVector(combArray)
 
     
-    def dot(self,other,conjugate):
-        if conjugate == False:
-            return np.dot(self.array,other.array)
-        elif conjugate == True:
-            return np.vdot(self.array,other.array)
-    
     
     def orthogonalize(xs,lindep=1e-14):
         '''
@@ -82,7 +82,7 @@ class NumpyVector(AbstractVector):
         In:: xs == list of vectors
          lindep (Optional) == linear dependency tolerance
          
-         dot need not to be specified; myVector has dot associated 
+         dot need not to be specified; myVector has vdot (and hence dot) associated 
         
         '''
 
@@ -98,9 +98,9 @@ class NumpyVector(AbstractVector):
             xi = xs[i]
             for j in range(nv):
                 qsj = qs[j]
-                prod = qsj.dot(xi,False)
+                prod = qsj.vdot(xi,conjugate=False)
                 xi -= (qsj*prod)
-            innerprod = xi.dot(xi,False)
+            innerprod = xi.vdot(xi,conjugate=False)
             norm = np.sqrt(innerprod)
             if innerprod > lindep:
                 qs[nv] = xi/norm

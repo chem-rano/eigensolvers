@@ -14,17 +14,17 @@ from scipy import linalg as la
 class AbstractVector(ABC):
     
     @abstractmethod
-    def copy(self):
-        pass
-    
-    @abstractmethod
     def norm(self) -> float:  
         pass
 
     @abstractmethod
-    def dot(self):
+    def vdot(self):
         pass
      
+    @abstractmethod
+    def copy(self):
+        pass
+    
     @abstractmethod
     def applyOp(self):
         pass
@@ -33,7 +33,6 @@ class AbstractVector(ABC):
     def linearCombination():
         pass
     
-    
     @staticmethod
     def orthogonalize():
         pass
@@ -41,4 +40,3 @@ class AbstractVector(ABC):
     @staticmethod
     def solve():
         pass
-    
