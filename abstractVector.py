@@ -31,12 +31,12 @@ class AbstractVector(ABC):
 
     @staticmethod
     def linearCombination():
-        pass
+        raise NotImplementedError
     
     @staticmethod
     def orthogonalize():
-        pass
+        raise NotImplementedError
     
     @staticmethod
     def solve():
-        pass
+        raise NotImplementedError
