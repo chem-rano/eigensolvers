@@ -2,84 +2,75 @@ import numpy as np
 import scipy
 from scipy import linalg as la
 from scipy.sparse.linalg import LinearOperator
-from util_funcs import _qr, find_nearest, eigRegularized_list, nearest_degenerate
+from util_funcs import find_nearest, headerBot
 import warnings
-
-from myVector import myVector
-
-# -----------------------------------------------------
-def solve_wk(sigma,H,b,gcrot_tol,gcrot_iter):
-    # Solve (EI-H)w = v with iterative solver
-    # w ==> x0; v ==> b_in; linOp ==> (EI-H)
-    # Ax =b CGS solver :: A == (n x n); x == (n x 1) and b ==> (n x 1)  
-    
-    n = H.shape[0]
-    sigma = sigma*np.eye(n)
-    linOp = LinearOperator((n,n),lambda x, sigma=sigma, H=H:(sigma@x - H@x))
-    wk,conv = scipy.sparse.linalg.gcrotmk(linOp,b,x0=None, tol=gcrot_tol,atol=gcrot_tol,maxiter = gcrot_iter)
-    #wk,conv = scipy.sparse.linalg.gmres(linOp,b,x0=None, tol=gcrot_tol,atol=gcrot_tol,maxiter = gcrot_iter)
-    #print(type(wk))
-    if conv != 0:
-        # adding a single entry into warnings filter
-        warnings.simplefilter('error', UserWarning)
-        warnings.warn("Warning:: Iterative solver is not converged ")
-    return wk
+from numpyVector import NumpyVector
+import time
 
 # -----------------------------------------------------
-def core_func(H,v0,sigma,L,maxit,conv_tol,eigTol,gcrot_tol,gcrot_iter):
+#    Inexact Lanczos with NumpyVector interface
+#------------------------------------------------------
+
+def core_func(H,v0,sigma,L,maxit,conv_tol):
     '''
     This is core function to calculate eigenvalues and eigenvectors
     Input::  H => diagonalizable input matrix or linearoperator
              sigma => eigenvalue estimate 
              v0 => eigenvector guess
              conv_tol => eigenvalue convergence tolerance
-             eigTol => tolerance to keep the eigenvectors 
 
     Output:: ev as inexact Lanczos computed eigenvalues
              uv as inexact Lanczos computed eigenvectors
     '''
     
-    print(type(v0))
     n = v0.size
+    dtype = v0.dtype
+    
     Ylist = []
-    #Ylist.append(v0/la.norm(v0))        # step 1
-    #Ylist.append(v0.divide(v0.norm()))  # step 2
-    Ylist.append(v0/v0.norm())           # step 3
+    Ylist.append(v0/v0.norm())
+    typeClass = v0.__class__
     ev_last = np.inf # for convergence check
   
   
     for it in range(maxit):
         # Krylov-space propagation:: Ax0, A^2x0, and up to basis size L
         for i in range(1,L):
-            print("it",it,"i",i)
-
-            # TODO each element in the list are now myVector, not np.array
-            # Then how to include solve_wk() and _qr() in the class? Let's go with util_funcs
-            # No, the above way is wrong. Because the _qr() is different for vector and ttns, it needs abstraction
-            # So, myVector consist _qr(), myObj._qr(list of myvectors) then returns orthogonal Gram-Schimdt myvectors
-            Ylist.append(solve_wk(sigma,H,Ylist[i-1],gcrot_tol[it],gcrot_iter))
+            #print("it",it,"i",i)
+            # each element in the list are now NumpyVector, not np.array
+            Ylist.append(typeClass.solve(H,Ylist[i-1],sigma))
             
-            # Send last Ylist vector to make new one through iterative solver
-            # If QR algorithm finds linear dependent vectors out of them, it prunes them
             # Orthogonalize the Krylov space
+            Ylist = typeClass.orthogonalize(Ylist[:i+1])
+            
+            m = len(Ylist)
+            qtAq = np.zeros((m,m),dtype=dtype)
 
-            Ylist[:i+1] = _qr(Ylist[:i+1],np.dot)[0]
-            ev, uv = eigRegularized_list(H,None,Ylist,eigTol)
+            # This matrix formation can be included as a function: formMat
+            for j in range(m):
+                ket = Ylist[j].applyOp(H)
+                for i in range(m):
+                    qtAq[i,j] = Ylist[i].dot(ket,True)
+                    qtAq[j,i] = qtAq[i,j]
+
+            ev, uvals = la.eigh(qtAq)
+            uv = []
+            for j in range(m):
+                uv.append(typeClass.linearCombination(Ylist,uvals[:,j]))
+        
             # Find closest ev and check if this value is converged
             idx, ev_nearest = find_nearest(ev,sigma)
-            
             check_ev = abs(ev_nearest-ev_last)
             if (check_ev <= conv_tol):
                 break                # Break to Krylov space expansion
             # Update the last eigenvalue for convergence check
             ev_last = ev_nearest
-            lenY = len(Ylist)
-        # If not converged, continue to next iteration with x0 guess as nearest eigenvector
+       
+
+       # If not converged, continue to next iteration with x0 guess as nearest eigenvector
         if (check_ev <= conv_tol):
             break
         else:
-            Ylist = [uv[idx,:]]
-    #print("Eigenvalue nearest to sigma, ",sigma," : is ", ev_nearest)
+            Ylist = [uv[idx]]
         
     return ev,uv
 # -----------------------------------------------------
@@ -90,17 +81,22 @@ if __name__ == "__main__":
     Q = la.qr(np.random.rand(n,n))[0]
     A = Q.T @ np.diag(ev) @ Q
 
-    Y0  = np.random.random((n))
-    Y0 = myVector(Y0)
-
-    sigma = 40
+    Y0 = NumpyVector(np.random.random((n)))
+    sigma = 100
     maxit = 4
-    L  = 20
+    L  = 8
     conv_tol = 1e-08
-    atol = 1e-12
-    eigTol = 1e-10
-    gcrot_tol = 1e-04
-    gcrot_iter = 1000
 
-    lf,xf =  core_func(A,Y0,sigma,L,maxit,conv_tol,eigTol,gcrot_tol,gcrot_iter)
-    print(lf)
+    headerBot("Inexact Lanczos")
+    print("{:50} :: {: <4}".format("Sigma",sigma))
+    print("{:50} :: {: <4}".format("Krylov space dimension",L+1))
+    print("{:50} :: {: <4}".format("Eigenvalue convergence tolarance",conv_tol))
+    print("\n")
+    t1 = time.time()
+    lf,xf =  core_func(A,Y0,sigma,L,maxit,conv_tol)
+    t2 = time.time()
+
+    print("{:50} :: {: <4}".format("Eigenvalue nearest to sigma",round(find_nearest(lf,sigma)[1],8)))
+    print("{:50} :: {: <4}".format("Actual eigenvalue nearest to sigma",round(find_nearest(ev,sigma)[1],8)))
+    print("{:50} :: {: <4}".format("Time taken (in sec)",round((t2-t1),2)))
+    headerBot("Lanczos",yesBot=True)
