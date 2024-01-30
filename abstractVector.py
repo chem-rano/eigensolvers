@@ -35,7 +35,7 @@ class AbstractVector(ABC):
     
     
     @staticmethod
-    def orthogonal():
+    def orthogonalize():
         pass
     
     @staticmethod
