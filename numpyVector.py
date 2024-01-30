@@ -1,7 +1,7 @@
 import numpy as np
 import scipy
 from scipy import linalg as la
-from abstractVector import abstractVector
+from abstractVector import AbstractVector
 from scipy.sparse.linalg import LinearOperator
 import warnings
 
@@ -34,10 +34,7 @@ class NumpyVector(abstractVector):
 
     def __truediv__(self,other):
         return NumpyVector(self.array/other)
-    
-    
-    #def __rmatmul__(self,other):
-    #    return NumpyVector(other@self.array)
+
 
     def applyOp(self,other):
         return NumpyVector(other@self.array)
@@ -76,7 +73,7 @@ class NumpyVector(abstractVector):
             return np.vdot(self.array,other.array)
     
     
-    def orthogonal(xs,lindep=1e-14):
+    def orthogonalize(xs,lindep=1e-14):
         '''
         Constructs a orthogonal vector space using Gram-Schmidt algorithm
         The current vector space is checked for linear-independency
