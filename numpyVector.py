@@ -46,7 +46,7 @@ class NumpyVector(AbstractVector):
         if conjugate:
             return np.vdot(self.array,other.array)
         else:
-            return np.dot(self.array.ravel(),other.array)
+            return np.dot(self.array.ravel(),other.array.ravel())
     
     def copy(self):
         return NumpyVector(self.array.copy())
