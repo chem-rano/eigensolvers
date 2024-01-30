@@ -2,8 +2,7 @@ import numpy as np
 import scipy
 from scipy import linalg as la
 from scipy.sparse.linalg import LinearOperator
-from util_funcs import find_nearest
-from util_funcs import headerBot
+from util_funcs import find_nearest, headerBot
 import warnings
 from numpyVector import NumpyVector
 import time
@@ -41,11 +40,12 @@ def core_func(H,v0,sigma,L,maxit,conv_tol):
             Ylist.append(typeClass.solve(H,Ylist[i-1],sigma))
             
             # Orthogonalize the Krylov space
-            Ylist = typeClass.orthogonal(Ylist[:i+1])
+            Ylist = typeClass.orthogonalize(Ylist[:i+1])
             
             m = len(Ylist)
             qtAq = np.zeros((m,m),dtype=dtype)
 
+            # This matrix formation can be included as a function: formMat
             for j in range(m):
                 ket = Ylist[j].applyOp(H)
                 for i in range(m):
