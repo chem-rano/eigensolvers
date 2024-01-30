@@ -17,17 +17,12 @@ import warnings
 # Assign the task for the functions initiated in abstract class
 # -------------------------------------------------------------
 class NumpyVector(AbstractVector):
-    def __init__(self,array):
+    def __init__(self,array,optionsDict):
         self.array = array
         self.dtype = array.dtype
         self.size = array.size
         self.shape = array.shape
-    
-    def __add__(self, other):
-        return NumpyVector(self.array + other.array)
-
-    def __sub__(self,other):
-        return NumpyVector(self.array - other.array)
+        self.optionsDict = optionsDict
 
     def __mul__(self,other):
         return NumpyVector(self.array*other)
@@ -107,7 +102,7 @@ class NumpyVector(AbstractVector):
                 nv += 1
         return qs[:nv]
 
-    def solve(H, b, sigma, x0=None, shift=0.0, gcrot_tol=1e-5,gcrot_iter=1000):
+    def solve(H, b, sigma, x0=None):
 
         n = H.shape[0]
         sigma = sigma*np.eye(n)
