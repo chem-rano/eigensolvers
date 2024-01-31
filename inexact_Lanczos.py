@@ -44,7 +44,7 @@ def core_func(H,v0,sigma,L,maxit,conv_tol):
             
             m = len(Ylist)
 
-            qtAq = typeClass.formMat(H,Ylist)
+            qtAq = typeClass.matrixRepresentation(H,Ylist)
 
             ev, uvals = la.eigh(qtAq)
             uv = []
