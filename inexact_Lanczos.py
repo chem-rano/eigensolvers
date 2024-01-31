@@ -80,7 +80,7 @@ if __name__ == "__main__":
     maxit = 4
     L  = 8
     conv_tol = 1e-08
-    optionDict = {"linearSolver":"gcrotmk","linearIter":1000,"linearTol":1e-04}
+    optionDict = {"linearSolver":"gcrotmk","linearIter":1000,"linear_tol":1e-04}
 
     Y0 = NumpyVector(np.random.random((n)),optionDict)
 
