@@ -28,8 +28,6 @@ class NumpyVector(AbstractVector):
         self.optionsDict["linearTol"] = self.optionsDict.get("linearTol",1e-4)
         
 
-    def __sub__(self,other):
-        return NumpyVector((self.array-other.array),self.optionsDict)
         
     def __mul__(self,other):
         return NumpyVector(self.array*other,self.optionsDict)
@@ -85,8 +83,8 @@ class NumpyVector(AbstractVector):
             term1 = x.vdot(qsi,conjugate=False)
             term2 = qsi.vdot(qsi,conjugate=False)
             proj = qsi*(term1/term2)
-            #x = linearCombination([x,proj],[1.0,-1.0])
-            x = x - proj
+            x = NumpyVector.linearCombination([x,proj],[1.0,-1.0])
+            #x = x - proj
         innerprod = x.vdot(x,conjugate=False)
         if innerprod > lindep:
             x = x/np.sqrt(innerprod) # normalize
