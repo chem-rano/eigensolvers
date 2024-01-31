@@ -13,6 +13,10 @@ from scipy import linalg as la
 # Specify abstractmethod whenever the task should be specified later
 class AbstractVector(ABC):
     @abstractmethod
+    def __sub__(self,other):
+        pass
+    
+    @abstractmethod
     def __mul__(self,other):
         pass
     
@@ -54,4 +58,8 @@ class AbstractVector(ABC):
     
     @staticmethod
     def solve(H, b, sigma, x0):
+        raise NotImplementedError
+
+    @staticmethod
+    def formMat(H,Ylist):
         raise NotImplementedError
