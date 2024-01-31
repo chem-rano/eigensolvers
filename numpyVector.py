@@ -125,12 +125,12 @@ class NumpyVector(AbstractVector):
 
         n = H.shape[0]
         sigma = sigma*np.eye(n)
-        tol = self.optionsDict["linearTol"]
-        maxiter = self.optionsDict["linearIter"]
+        tol = b.optionsDict["linearTol"]
+        maxiter = b.optionsDict["linearIter"]
         linOp = LinearOperator((n,n),lambda x, sigma=sigma, H=H:(sigma@x - H@x))
-        if self.optionsDict["linearSolver"] == "gcrotmk":
+        if b.optionsDict["linearSolver"] == "gcrotmk":
             wk,conv = scipy.sparse.linalg.gcrotmk(linOp,b.array,x0, tol=tol,atol=tol,maxiter=maxiter)
-        elif self.optionsDict["linearSolver"] == "minres":
+        elif b.optionsDict["linearSolver"] == "minres":
             wk,conv = cipy.sparse.linalg.minres(linOp,b.array,x0, tol=tol,atol=tol,maxiter=maxiter)
 
         if conv != 0:
