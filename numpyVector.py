@@ -6,7 +6,7 @@ from scipy.sparse.linalg import LinearOperator
 import warnings
 
 ####################################################################
-# Creates a numpyyVector class, which have defined elementary operations
+# Creates a numpyVector class, which has defined elementary operations
 ####################################################################
 
 # file1:   abs_funcs.py holding these abstract functions list
@@ -25,7 +25,8 @@ class NumpyVector(AbstractVector):
         self.optionsDict = optionsDict
         self.optionsDict["linearSolver"] = self.optionsDict.get("linearSolver","minres")
         self.optionsDict["linearIter"] = self.optionsDict.get("linearIter",1000)
-        self.optionsDict["linearTol"] = self.optionsDict.get("linearTol",1e-4)
+        self.optionsDict["linear_tol"] = self.optionsDict.get("linear_tol",1e-4)
+        self.optionsDict["linear_atol"] = self.optionsDict.get("linear_atol",1e-4)
         
 
         
@@ -52,6 +53,7 @@ class NumpyVector(AbstractVector):
         return NumpyVector(self.array.copy(), self.optionsDict)
 
     def applyOp(self,other):
+        ''' Apply rmatmul as other@self.array '''
         return NumpyVector(other@self.array,self.optionsDict)
     
 
@@ -75,7 +77,11 @@ class NumpyVector(AbstractVector):
 
     def orthogonalize_against_set(x,qs,lindep=1e-14):
         '''
-        Orthogonalizes a single vector against the set, qs.
+        Orthogonalizes a vector against the previously obtained set of 
+        orthogonalized vectors
+        x (In): vector to be orthogonalized 
+        xs (In): set of orthogonalized vector
+        lindep (optional): Parameter to check linear dependency
         '''
         nv = len(qs)
         for i in range(nv):
@@ -91,16 +97,18 @@ class NumpyVector(AbstractVector):
         return x
         
     def solve(H, b, sigma, x0=None):
-
+        ''' Linear equation ((H-sigma*I)x0 =b ) solver'''
+        
         n = H.shape[0]
         sigma = sigma*np.eye(n)
-        tol = b.optionsDict["linearTol"]
+        tol = b.optionsDict["linear_tol"]
+        atol = b.optionsDict["linear_atol"]
         maxiter = b.optionsDict["linearIter"]
         linOp = LinearOperator((n,n),lambda x, sigma=sigma, H=H:(sigma@x - H@x))
         if b.optionsDict["linearSolver"] == "gcrotmk":
-            wk,conv = scipy.sparse.linalg.gcrotmk(linOp,b.array,x0, tol=tol,atol=tol,maxiter=maxiter)
+            wk,conv = scipy.sparse.linalg.gcrotmk(linOp,b.array,x0, tol=tol,atol=atol,maxiter=maxiter)
         elif b.optionsDict["linearSolver"] == "minres":
-            wk,conv = cipy.sparse.linalg.minres(linOp,b.array,x0, tol=tol,atol=tol,maxiter=maxiter)
+            wk,conv = cipy.sparse.linalg.minres(linOp,b.array,x0, tol=tol,atol=atol,maxiter=maxiter)
 
         if conv != 0:
             warnings.simplefilter('error', UserWarning)
@@ -108,6 +116,7 @@ class NumpyVector(AbstractVector):
         return NumpyVector(wk,b.optionsDict)
 
     def matrixRepresentation(operator,vectors):
+        ''' Calculates and returns matrix in the "vectors" space '''
         m = len(vectors)
         dtype = vectors[0].dtype
         qtAq = np.zeros((m,m),dtype=dtype)
