@@ -49,5 +49,9 @@ class AbstractVector(ABC):
         raise NotImplementedError
     
     @staticmethod
+    def orthogonalize_against_set(x,xs,lindep):
+        raise NotImplementedError
+    
+    @staticmethod
     def solve(H, b, sigma, x0):
         raise NotImplementedError
