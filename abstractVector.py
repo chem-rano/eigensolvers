@@ -13,9 +13,17 @@ from scipy import linalg as la
 # Specify abstractmethod whenever the task should be specified later
 class AbstractVector(ABC):
     @abstractmethod
-    def __mult__(self):
+    def __mul__(self,other):
         pass
     
+    @abstractmethod
+    def __truediv__(self,other):
+        pass
+
+    @abstractmethod
+    def __len__(self):
+        pass
+        
     @abstractmethod
     def norm(self) -> float:  
         pass
