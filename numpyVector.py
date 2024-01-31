@@ -70,40 +70,6 @@ class NumpyVector(AbstractVector):
         return NumpyVector(combArray,other[0].optionsDict)
 
     
-    
-    def orthogonalize(xs,lindep=1e-14):
-        '''
-        Constructs a orthogonal vector space using Gram-Schmidt algorithm
-        The current vector space is checked for linear-independency
-        Defualt measure of linear-indepency check is 1e-14
-
-        In:: xs == list of vectors
-         lindep (Optional) == linear dependency tolerance
-         
-         dot need not to be specified; myVector has vdot (and hence dot) associated 
-        
-        '''
-
-        nvec = len(xs)
-        dtype = xs[0].dtype
-        qs_elem = NumpyVector(np.empty(xs[0].size,dtype=dtype))
-        qs = []
-        for i in range(nvec):
-            qs.append(qs_elem)
-
-        nv = 0
-        for i in range(nvec):
-            xi = xs[i]
-            for j in range(nv):
-                qsj = qs[j]
-                prod = qsj.vdot(xi,conjugate=False)
-                xi -= (qsj*prod)
-            innerprod = xi.vdot(xi,conjugate=False)
-            norm = np.sqrt(innerprod)
-            if innerprod > lindep:
-                qs[nv] = xi/norm
-                nv += 1
-        return qs[:nv]
 
     def orthogonalize_against_set(x,qs,lindep=1e-14):
         '''
@@ -115,6 +81,7 @@ class NumpyVector(AbstractVector):
             term1 = x.vdot(qsi,conjugate=False)
             term2 = qsi.vdot(qsi,conjugate=False)
             proj = qsi*(term1/term2)
+            #x = linearCombination([x,proj],[1.0,-1.0])
             x = x - proj
         innerprod = x.vdot(x,conjugate=False)
         if innerprod > lindep:
