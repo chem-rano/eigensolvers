@@ -112,7 +112,7 @@ class NumpyVector(AbstractVector):
         nv = len(qs)
         for i in range(nv):
             qsi = qs[i]
-            term1 = v.vdot(qsi,conjugate=False)
+            term1 = x.vdot(qsi,conjugate=False)
             term2 = qsi.vdot(qsi,conjugate=False)
             proj = (term1/term2)*qsi
             x = x - proj
