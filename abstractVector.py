@@ -29,7 +29,7 @@ class AbstractVector(ABC):
         pass
 
     @abstractmethod
-    def vdot(self):
+    def vdot(self,other,conjugate):
         pass
      
     @abstractmethod
@@ -37,17 +37,17 @@ class AbstractVector(ABC):
         pass
     
     @abstractmethod
-    def applyOp(self):
+    def applyOp(self,other):
         pass
 
     @staticmethod
-    def linearCombination():
+    def linearCombination(other,coeff):
         raise NotImplementedError
     
     @staticmethod
-    def orthogonalize():
+    def orthogonalize(xs,lindep):
         raise NotImplementedError
     
     @staticmethod
-    def solve():
+    def solve(H, b, sigma, x0):
         raise NotImplementedError
