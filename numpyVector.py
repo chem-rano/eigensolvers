@@ -22,7 +22,10 @@ class NumpyVector(AbstractVector):
         self.dtype = array.dtype
         self.size = array.size
         self.shape = array.shape
-        self.optionsDict = optionsDict
+        self.optionDict["linearSolver"] = self.optionsDict.get("linearSolver","minres")
+        self.optionDict["linearIter"] = self.optionsDict.get("linearIter",1000)
+        self.optionsDict["linearTol"] = self.optionsDict.get("linearTol",1e-4)
+        
 
     def __sub__(self,other):
         return NumpyVector((self.array-other.array),self.optionsDict)
