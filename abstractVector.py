@@ -4,10 +4,9 @@ from scipy import linalg as la
 
 # file1: abstractVector.py holding these abstract functions list
 # file2: numpyVector.py :: specifications of the tasks for each functions defined earlier for ndarray
-# file2: listTTNS.py  :: same as file2 for TTNS
 # main.py: utilizing these class for main purpose, such as inexact_Lanczos.py
 
-# Abstract functions are here for initiation / listing
+# Abstract functions are here for initiation/listing
 # We name them and pass for later use
 
 # Specify abstractmethod whenever the task should be specified later
@@ -39,10 +38,19 @@ class AbstractVector(ABC):
     
     @abstractmethod
     def applyOp(self,other):
+        ''' Apply rmatmul as other@self.array '''
         pass
 
     @staticmethod
     def linearCombination(other,coeff):
+        '''
+        Returns the linear combination of n vectors [v1, v2, ..., vn]
+        combArray = c1*v1 + c2*v2 + cn*vn 
+        Useful for addition, subtraction: c1 = 1.0/-1.0, respectively
+
+        In:: other == list of vectors
+             coeff == list of coefficients, [c1,c2,...,cn]
+        '''
         raise NotImplementedError
 
     
@@ -59,8 +67,10 @@ class AbstractVector(ABC):
     
     @staticmethod
     def solve(H, b, sigma, x0):
+        ''' Linear equation ((H-sigma*I)x0 =b ) solver'''
         raise NotImplementedError
 
     @staticmethod
     def matrixRepresentation(operator,vectors):
+        ''' Calculates and returns matrix in the "vectors" space '''
         raise NotImplementedError
