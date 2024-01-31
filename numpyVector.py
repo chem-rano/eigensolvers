@@ -17,7 +17,7 @@ import warnings
 # Assign the task for the functions initiated in abstract class
 # -------------------------------------------------------------
 class NumpyVector(AbstractVector):
-    def __init__(self,array,optionsDict):
+    def __init__(self,array,optionsDict=None):
         self.array = array
         self.dtype = array.dtype
         self.size = array.size
