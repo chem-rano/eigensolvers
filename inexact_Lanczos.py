@@ -81,11 +81,14 @@ if __name__ == "__main__":
     Q = la.qr(np.random.rand(n,n))[0]
     A = Q.T @ np.diag(ev) @ Q
 
-    Y0 = NumpyVector(np.random.random((n)))
+    
     sigma = 100
     maxit = 4
     L  = 8
     conv_tol = 1e-08
+    optionDict = {"linearSolver":"gcrotmk","linearIter":1000,"linearTol":1e-04}
+
+    Y0 = NumpyVector(np.random.random((n)),optionDict)
 
     headerBot("Inexact Lanczos")
     print("{:50} :: {: <4}".format("Sigma",sigma))
