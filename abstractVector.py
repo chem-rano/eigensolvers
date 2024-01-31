@@ -33,7 +33,7 @@ class AbstractVector(ABC):
         pass
 
     @abstractmethod
-    def vdot(self,other,conjugate):
+    def vdot(self,other,conjugate=True):
         pass
      
     @abstractmethod
