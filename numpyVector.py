@@ -28,7 +28,7 @@ class NumpyVector(AbstractVector):
         return NumpyVector((self.array-other.array),self.optionsDict)
         
     def __mul__(self,other):
-        return NumpyVector(self.array*other,self.optionsDic)
+        return NumpyVector(self.array*other,self.optionsDict)
 
     def __truediv__(self,other):
         return NumpyVector(self.array/other,self.optionsDict)
