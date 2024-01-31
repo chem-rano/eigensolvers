@@ -22,8 +22,9 @@ class NumpyVector(AbstractVector):
         self.dtype = array.dtype
         self.size = array.size
         self.shape = array.shape
-        self.optionDict["linearSolver"] = self.optionsDict.get("linearSolver","minres")
-        self.optionDict["linearIter"] = self.optionsDict.get("linearIter",1000)
+        self.optionsDict = optionsDict
+        self.optionsDict["linearSolver"] = self.optionsDict.get("linearSolver","minres")
+        self.optionsDict["linearIter"] = self.optionsDict.get("linearIter",1000)
         self.optionsDict["linearTol"] = self.optionsDict.get("linearTol",1e-4)
         
 
@@ -115,7 +116,7 @@ class NumpyVector(AbstractVector):
         for j in range(m):
             ket = vectors[j].applyOp(operator)
             for i in range(m):
-                qtAq[i,j] = Ylist[i].vdot(ket)
+                qtAq[i,j] = vectors[i].vdot(ket)
                 qtAq[j,i] = qtAq[i,j]
         return qtAq
     # -----------------------------------------------------
