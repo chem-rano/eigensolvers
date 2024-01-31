@@ -37,20 +37,14 @@ def core_func(H,v0,sigma,L,maxit,conv_tol):
         for i in range(1,L):
             #print("it",it,"i",i)
             # each element in the list are now NumpyVector, not np.array
-            Ylist.append(typeClass.solve(H,Ylist[i-1],sigma))
+            Ysolved = typeClass.solve(H,Ylist[i-1],sigma)
             
             # Orthogonalize the Krylov space
-            Ylist = typeClass.orthogonalize(Ylist[:i+1])
+            Ylist.append(typeClass.orthogonalize_against_set(Ysolved,Ylist))
             
             m = len(Ylist)
-            qtAq = np.zeros((m,m),dtype=dtype)
 
-            # This matrix formation can be included as a function: formMat
-            for j in range(m):
-                ket = Ylist[j].applyOp(H)
-                for i in range(m):
-                    qtAq[i,j] = Ylist[i].vdot(ket)
-                    qtAq[j,i] = qtAq[i,j]
+            qtAq = typeClass.formMat(H,Ylist)
 
             ev, uvals = la.eigh(qtAq)
             uv = []
