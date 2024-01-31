@@ -122,8 +122,12 @@ class NumpyVector(AbstractVector):
 
         n = H.shape[0]
         sigma = sigma*np.eye(n)
+        tol = self.optionsDict["linearTol"]
+        atol = tol
+        maxiter = self.optionsDict["linearIter"]
         linOp = LinearOperator((n,n),lambda x, sigma=sigma, H=H:(sigma@x - H@x))
-        wk,conv = scipy.sparse.linalg.gcrotmk(linOp,b.array,x0, tol=gcrot_tol,atol=gcrot_tol,maxiter = gcrot_iter)
+        if self.optionsDict["linearSolver"] == "gcrotmk":
+            wk,conv = scipy.sparse.linalg.gcrotmk(linOp,b.array,x0, tol,atol,maxiter)
 
         if conv != 0:
             warnings.simplefilter('error', UserWarning)
