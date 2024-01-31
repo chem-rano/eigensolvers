@@ -114,7 +114,7 @@ class NumpyVector(AbstractVector):
             qsi = qs[i]
             term1 = x.vdot(qsi,conjugate=False)
             term2 = qsi.vdot(qsi,conjugate=False)
-            proj = (term1/term2)*qsi
+            proj = qsi*(term1/term2)
             x = x - proj
         innerprod = x.vdot(x,conjugate=False)
         if innerprod > lindep:
