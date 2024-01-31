@@ -12,9 +12,6 @@ from scipy import linalg as la
 
 # Specify abstractmethod whenever the task should be specified later
 class AbstractVector(ABC):
-    @abstractmethod
-    def __sub__(self,other):
-        pass
     
     @abstractmethod
     def __mul__(self,other):
