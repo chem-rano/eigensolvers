@@ -47,13 +47,17 @@ class AbstractVector(ABC):
     @staticmethod
     def linearCombination(other,coeff):
         raise NotImplementedError
+
     
     @staticmethod
-    def orthogonalize(xs,lindep):
-        raise NotImplementedError
-    
-    @staticmethod
-    def orthogonalize_against_set(x,xs,lindep):
+    def orthogonalize_against_set(x,xs,lindep=1e-12):
+        '''
+        Orthogonalizes a vector against the previously obtained set of 
+        orthogonalized vectors
+        x (In): vector to be orthogonalized 
+        xs (In): set of orthogonalized vector
+        lindep (optional): Parameter to check linear dependency
+        '''
         raise NotImplementedError
     
     @staticmethod
