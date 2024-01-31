@@ -44,7 +44,7 @@ class NumpyVector(AbstractVector):
             return np.dot(self.array.ravel(),other.array.ravel())
     
     def copy(self):
-        return NumpyVector(self.array.copy())
+        return NumpyVector(self.array.copy(), self.optionsDict)
 
     def applyOp(self,other):
         return NumpyVector(other@self.array)
@@ -102,6 +102,22 @@ class NumpyVector(AbstractVector):
                 nv += 1
         return qs[:nv]
 
+    def orthogonalize_against_set(x,qs,lindep=1e-14):
+        '''
+        Orthogonalizes a single vector against the set, qs.
+        '''
+        nv = len(qs)
+        for i in range(nv):
+            qsi = qs[i]
+            term1 = v.vdot(qsi,conjugate=False)
+            term2 = qsi.vdot(qsi,conjugate=False)
+            proj = (term1/term2)*qsi
+            x = x - proj
+        innerprod = x.vdot(x,conjugate=False)
+        if innerprod > lindep:
+            x = x/np.sqrt(innerprod) # normalize
+        return x
+        
     def solve(H, b, sigma, x0=None):
 
         n = H.shape[0]
