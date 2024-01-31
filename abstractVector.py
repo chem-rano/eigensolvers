@@ -65,5 +65,5 @@ class AbstractVector(ABC):
         raise NotImplementedError
 
     @staticmethod
-    def formMat(H,Ylist):
+    def matrixRepresentation(operator,vectors):
         raise NotImplementedError
