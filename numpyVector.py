@@ -108,12 +108,12 @@ class NumpyVector(AbstractVector):
             warnings.warn("Warning:: Iterative solver is not converged ")
         return NumpyVector(wk,b.optionsDict)
 
-    def formMat(H,Ylist):
-        m = len(Ylist)
-        dtype = Ylist[0].dtype
+    def matrixRepresentation(operator,vectors):
+        m = len(vectors)
+        dtype = vectors[0].dtype
         qtAq = np.zeros((m,m),dtype=dtype)
         for j in range(m):
-            ket = Ylist[j].applyOp(H)
+            ket = vectors[j].applyOp(operator)
             for i in range(m):
                 qtAq[i,j] = Ylist[i].vdot(ket)
                 qtAq[j,i] = qtAq[i,j]
