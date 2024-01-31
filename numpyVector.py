@@ -24,11 +24,14 @@ class NumpyVector(AbstractVector):
         self.shape = array.shape
         self.optionsDict = optionsDict
 
+    def __sub__(self,other):
+        return NumpyVector((self.array-other.array),self.optionsDict)
+        
     def __mul__(self,other):
-        return NumpyVector(self.array*other)
+        return NumpyVector(self.array*other,self.optionsDic)
 
     def __truediv__(self,other):
-        return NumpyVector(self.array/other)
+        return NumpyVector(self.array/other,self.optionsDict)
 
 
     def __len__(self) -> int:
@@ -47,7 +50,7 @@ class NumpyVector(AbstractVector):
         return NumpyVector(self.array.copy(), self.optionsDict)
 
     def applyOp(self,other):
-        return NumpyVector(other@self.array)
+        return NumpyVector(other@self.array,self.optionsDict)
     
 
     def linearCombination(other,coeff):
@@ -64,7 +67,7 @@ class NumpyVector(AbstractVector):
         combArray = np.zeros(alen,dtype=dtype)
         for n in range(len(other)):
             combArray += coeff[n]*other[0].array[n]
-        return NumpyVector(combArray)
+        return NumpyVector(combArray,other[0].optionsDict)
 
     
     
@@ -123,15 +126,26 @@ class NumpyVector(AbstractVector):
         n = H.shape[0]
         sigma = sigma*np.eye(n)
         tol = self.optionsDict["linearTol"]
-        atol = tol
         maxiter = self.optionsDict["linearIter"]
         linOp = LinearOperator((n,n),lambda x, sigma=sigma, H=H:(sigma@x - H@x))
         if self.optionsDict["linearSolver"] == "gcrotmk":
-            wk,conv = scipy.sparse.linalg.gcrotmk(linOp,b.array,x0, tol,atol,maxiter)
+            wk,conv = scipy.sparse.linalg.gcrotmk(linOp,b.array,x0, tol=tol,atol=tol,maxiter=maxiter)
+        elif self.optionsDict["linearSolver"] == "minres":
+            wk,conv = cipy.sparse.linalg.minres(linOp,b.array,x0, tol=tol,atol=tol,maxiter=maxiter)
 
         if conv != 0:
             warnings.simplefilter('error', UserWarning)
             warnings.warn("Warning:: Iterative solver is not converged ")
-        return NumpyVector(wk)
+        return NumpyVector(wk,b.optionsDict)
 
+    def formMat(H,Ylist):
+        m = len(Ylist)
+        dtype = Ylist[0].dtype
+        qtAq = np.zeros((m,m),dtype=dtype)
+        for j in range(m):
+            ket = Ylist[j].applyOp(H)
+            for i in range(m):
+                qtAq[i,j] = Ylist[i].vdot(ket)
+                qtAq[j,i] = qtAq[i,j]
+        return qtAq
     # -----------------------------------------------------
