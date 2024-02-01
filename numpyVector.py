@@ -123,7 +123,7 @@ class NumpyVector(AbstractVector):
         qtAq = np.zeros((m,m),dtype=dtype)
         for j in range(m):
             ket = vectors[j].applyOp(operator)
-            for i in range(m):
+            for i in range(j,m):
                 qtAq[i,j] = vectors[i].vdot(ket)
                 qtAq[j,i] = qtAq[i,j]
         return qtAq
