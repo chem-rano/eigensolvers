@@ -73,8 +73,8 @@ def core_func(H,v0,sigma,L,maxit,conv_tol):
         else:
             Ylist = [uv[idx]]
 
-         if (it == maxit-1) and (not isConverged):
-             print("Alert:: Lanczos iterations is not converged!")
+        if (it == maxit-1) and (not isConverged):
+            print("Alert:: Lanczos iterations is not converged!")
         
     return ev,uv
 # -----------------------------------------------------
