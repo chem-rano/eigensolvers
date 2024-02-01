@@ -66,11 +66,10 @@ class NumpyVector(AbstractVector):
         In:: other == list of vectors
              coeff == list of coefficients, [c1,c2,...,cn]
         '''
-        alen = len(other[0])
         dtype = other[0].dtype
-        combArray = np.zeros(alen,dtype=dtype)
+        combArray = np.zeros(len(other[0]),dtype=dtype)
         for n in range(len(other)):
-            combArray += coeff[n]*other[0].array[n]
+            combArray += coeff[n]*other[n].array
         return NumpyVector(combArray,other[0].optionsDict)
 
     
@@ -94,6 +93,8 @@ class NumpyVector(AbstractVector):
         innerprod = x.vdot(x,conjugate=False)
         if innerprod > lindep:
             x = x/np.sqrt(innerprod) # normalize
+        else:
+            x = None
         return x
         
     def solve(H, b, sigma, x0=None):
@@ -108,7 +109,7 @@ class NumpyVector(AbstractVector):
         if b.optionsDict["linearSolver"] == "gcrotmk":
             wk,conv = scipy.sparse.linalg.gcrotmk(linOp,b.array,x0, tol=tol,atol=atol,maxiter=maxiter)
         elif b.optionsDict["linearSolver"] == "minres":
-            wk,conv = cipy.sparse.linalg.minres(linOp,b.array,x0, tol=tol,atol=atol,maxiter=maxiter)
+            wk,conv = scipy.sparse.linalg.minres(linOp,b.array,x0, tol=tol, maxiter=maxiter)
 
         if conv != 0:
             warnings.simplefilter('error', UserWarning)
