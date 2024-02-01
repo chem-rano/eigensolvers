@@ -63,7 +63,8 @@ def core_func(H,v0,sigma,L,maxit,conv_tol):
                 ev_last = ev_nearest
             else:
                 warnings.simplefilter('error', UserWarning)
-                warnings.warn("Linear dependency problem, quitting the job.")
+                warnings.warn("Linear dependency problem, abort current Lanczos iteration and restart.")
+                break
        
 
        # If not converged, continue to next iteration with x0 guess as nearest eigenvector
