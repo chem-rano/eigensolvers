@@ -6,7 +6,7 @@ from scipy.sparse.linalg import LinearOperator
 import warnings
 
 ####################################################################
-# Creates a numpyyVector class, which have defined elementary operations
+# Creates a numpyVector class, which has defined elementary operations
 ####################################################################
 
 # file1:   abs_funcs.py holding these abstract functions list
@@ -17,23 +17,24 @@ import warnings
 # Assign the task for the functions initiated in abstract class
 # -------------------------------------------------------------
 class NumpyVector(AbstractVector):
-    def __init__(self,array):
+    def __init__(self,array,optionsDict=None):
         self.array = array
         self.dtype = array.dtype
         self.size = array.size
         self.shape = array.shape
-    
-    def __add__(self, other):
-        return NumpyVector(self.array + other.array)
+        self.optionsDict = optionsDict
+        self.optionsDict["linearSolver"] = self.optionsDict.get("linearSolver","minres")
+        self.optionsDict["linearIter"] = self.optionsDict.get("linearIter",1000)
+        self.optionsDict["linear_tol"] = self.optionsDict.get("linear_tol",1e-4)
+        self.optionsDict["linear_atol"] = self.optionsDict.get("linear_atol",1e-4)
+        
 
-    def __sub__(self,other):
-        return NumpyVector(self.array - other.array)
-
+        
     def __mul__(self,other):
-        return NumpyVector(self.array*other)
+        return NumpyVector(self.array*other,self.optionsDict)
 
     def __truediv__(self,other):
-        return NumpyVector(self.array/other)
+        return NumpyVector(self.array/other,self.optionsDict)
 
 
     def __len__(self) -> int:
@@ -49,10 +50,11 @@ class NumpyVector(AbstractVector):
             return np.dot(self.array.ravel(),other.array.ravel())
     
     def copy(self):
-        return NumpyVector(self.array.copy())
+        return NumpyVector(self.array.copy(), self.optionsDict)
 
     def applyOp(self,other):
-        return NumpyVector(other@self.array)
+        ''' Apply rmatmul as other@self.array '''
+        return NumpyVector(other@self.array,self.optionsDict)
     
 
     def linearCombination(other,coeff):
@@ -64,59 +66,65 @@ class NumpyVector(AbstractVector):
         In:: other == list of vectors
              coeff == list of coefficients, [c1,c2,...,cn]
         '''
-        alen = len(other[0])
         dtype = other[0].dtype
-        combArray = np.zeros(alen,dtype=dtype)
+        combArray = np.zeros(len(other[0]),dtype=dtype)
         for n in range(len(other)):
-            combArray += coeff[n]*other[0].array[n]
-        return NumpyVector(combArray)
+            combArray += coeff[n]*other[n].array
+        return NumpyVector(combArray,other[0].optionsDict)
 
     
-    
-    def orthogonalize(xs,lindep=1e-14):
+
+    def orthogonalize_against_set(x,qs,lindep=1e-14):
         '''
-        Constructs a orthogonal vector space using Gram-Schmidt algorithm
-        The current vector space is checked for linear-independency
-        Defualt measure of linear-indepency check is 1e-14
-
-        In:: xs == list of vectors
-         lindep (Optional) == linear dependency tolerance
-         
-         dot need not to be specified; myVector has vdot (and hence dot) associated 
+        Orthogonalizes a vector against the previously obtained set of 
+        orthogonalized vectors
+        x (In): vector to be orthogonalized 
+        xs (In): set of orthogonalized vector
+        lindep (optional): Parameter to check linear dependency
+        '''
+        nv = len(qs)
+        for i in range(nv):
+            qsi = qs[i]
+            term1 = x.vdot(qsi,conjugate=False)
+            term2 = qsi.vdot(qsi,conjugate=False)
+            proj = qsi*(term1/term2)
+            x = NumpyVector.linearCombination([x,proj],[1.0,-1.0])
+            #x = x - proj
+        innerprod = x.vdot(x,conjugate=False)
+        if innerprod > lindep:
+            x = x/np.sqrt(innerprod) # normalize
+        else:
+            x = None
+        return x
         
-        '''
-
-        nvec = len(xs)
-        dtype = xs[0].dtype
-        qs_elem = NumpyVector(np.empty(xs[0].size,dtype=dtype))
-        qs = []
-        for i in range(nvec):
-            qs.append(qs_elem)
-
-        nv = 0
-        for i in range(nvec):
-            xi = xs[i]
-            for j in range(nv):
-                qsj = qs[j]
-                prod = qsj.vdot(xi,conjugate=False)
-                xi -= (qsj*prod)
-            innerprod = xi.vdot(xi,conjugate=False)
-            norm = np.sqrt(innerprod)
-            if innerprod > lindep:
-                qs[nv] = xi/norm
-                nv += 1
-        return qs[:nv]
-
-    def solve(H, b, sigma, x0=None, shift=0.0, gcrot_tol=1e-5,gcrot_iter=1000):
-
+    def solve(H, b, sigma, x0=None):
+        ''' Linear equation ((H-sigma*I)x0 =b ) solver'''
+        
         n = H.shape[0]
         sigma = sigma*np.eye(n)
+        tol = b.optionsDict["linear_tol"]
+        atol = b.optionsDict["linear_atol"]
+        maxiter = b.optionsDict["linearIter"]
         linOp = LinearOperator((n,n),lambda x, sigma=sigma, H=H:(sigma@x - H@x))
-        wk,conv = scipy.sparse.linalg.gcrotmk(linOp,b.array,x0, tol=gcrot_tol,atol=gcrot_tol,maxiter = gcrot_iter)
+        if b.optionsDict["linearSolver"] == "gcrotmk":
+            wk,conv = scipy.sparse.linalg.gcrotmk(linOp,b.array,x0, tol=tol,atol=atol,maxiter=maxiter)
+        elif b.optionsDict["linearSolver"] == "minres":
+            wk,conv = scipy.sparse.linalg.minres(linOp,b.array,x0, tol=tol, maxiter=maxiter)
 
         if conv != 0:
             warnings.simplefilter('error', UserWarning)
             warnings.warn("Warning:: Iterative solver is not converged ")
-        return NumpyVector(wk)
+        return NumpyVector(wk,b.optionsDict)
 
+    def matrixRepresentation(operator,vectors):
+        ''' Calculates and returns matrix in the "vectors" space '''
+        m = len(vectors)
+        dtype = vectors[0].dtype
+        qtAq = np.zeros((m,m),dtype=dtype)
+        for j in range(m):
+            ket = vectors[j].applyOp(operator)
+            for i in range(j,m):
+                qtAq[i,j] = vectors[i].vdot(ket)
+                qtAq[j,i] = qtAq[i,j].conj()
+        return qtAq
     # -----------------------------------------------------

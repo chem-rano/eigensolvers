@@ -30,6 +30,7 @@ def core_func(H,v0,sigma,L,maxit,conv_tol):
     Ylist.append(v0/v0.norm())
     typeClass = v0.__class__
     ev_last = np.inf # for convergence check
+    isConverged = False
   
   
     for it in range(maxit):
@@ -37,40 +38,43 @@ def core_func(H,v0,sigma,L,maxit,conv_tol):
         for i in range(1,L):
             #print("it",it,"i",i)
             # each element in the list are now NumpyVector, not np.array
-            Ylist.append(typeClass.solve(H,Ylist[i-1],sigma))
+            Ysolved = typeClass.solve(H,Ylist[i-1],sigma)
             
             # Orthogonalize the Krylov space
-            Ylist = typeClass.orthogonalize(Ylist[:i+1])
+            item = typeClass.orthogonalize_against_set(Ysolved,Ylist)
+            if item is not None:
+                Ylist.append(item)
             
-            m = len(Ylist)
-            qtAq = np.zeros((m,m),dtype=dtype)
+                m = len(Ylist)
 
-            # This matrix formation can be included as a function: formMat
-            for j in range(m):
-                ket = Ylist[j].applyOp(H)
-                for i in range(m):
-                    qtAq[i,j] = Ylist[i].vdot(ket)
-                    qtAq[j,i] = qtAq[i,j]
+                qtAq = typeClass.matrixRepresentation(H,Ylist)
 
-            ev, uvals = la.eigh(qtAq)
-            uv = []
-            for j in range(m):
-                uv.append(typeClass.linearCombination(Ylist,uvals[:,j]))
+                ev, uvals = la.eigh(qtAq)
+                uv = []
+                for j in range(m):
+                    uv.append(typeClass.linearCombination(Ylist,uvals[:,j]))
         
-            # Find closest ev and check if this value is converged
-            idx, ev_nearest = find_nearest(ev,sigma)
-            check_ev = abs(ev_nearest-ev_last)
-            if (check_ev <= conv_tol):
-                break                # Break to Krylov space expansion
-            # Update the last eigenvalue for convergence check
-            ev_last = ev_nearest
+                # Find closest ev and check if this value is converged
+                idx, ev_nearest = find_nearest(ev,sigma)
+                check_ev = abs(ev_nearest-ev_last)
+                if (check_ev <= conv_tol):
+                    break                # Break to Krylov space expansion
+                # Update the last eigenvalue for convergence check
+                ev_last = ev_nearest
+            else:
+                warnings.warn("Linear dependency problem, abort current Lanczos iteration and restart.")
+                break
        
 
        # If not converged, continue to next iteration with x0 guess as nearest eigenvector
         if (check_ev <= conv_tol):
+            isConverged = True
             break
         else:
             Ylist = [uv[idx]]
+
+        if (it == maxit-1) and (not isConverged):
+            print("Alert:: Lanczos iterations is not converged!")
         
     return ev,uv
 # -----------------------------------------------------
@@ -81,11 +85,14 @@ if __name__ == "__main__":
     Q = la.qr(np.random.rand(n,n))[0]
     A = Q.T @ np.diag(ev) @ Q
 
-    Y0 = NumpyVector(np.random.random((n)))
+    
     sigma = 100
     maxit = 4
     L  = 8
     conv_tol = 1e-08
+    optionDict = {"linearSolver":"gcrotmk","linearIter":1000,"linear_tol":1e-04}
+
+    Y0 = NumpyVector(np.random.random((n)),optionDict)
 
     headerBot("Inexact Lanczos")
     print("{:50} :: {: <4}".format("Sigma",sigma))
