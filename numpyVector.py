@@ -125,6 +125,6 @@ class NumpyVector(AbstractVector):
             ket = vectors[j].applyOp(operator)
             for i in range(j,m):
                 qtAq[i,j] = vectors[i].vdot(ket)
-                qtAq[j,i] = qtAq[i,j]
+                qtAq[j,i] = qtAq[i,j].conj()
         return qtAq
     # -----------------------------------------------------
