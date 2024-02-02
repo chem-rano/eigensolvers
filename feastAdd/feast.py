@@ -54,7 +54,12 @@ def feast_core_interface(A,Y0,nc,quad,rmin,rmax,eps,maxit):
             res = None   # Initialize res as None
         else:
             #calculate eigenvalue residuals
-            res = typeClass.resEigenvalue(ev,prev_ev)
+            #res = typeClass.resEigenvalue(ev,prev_ev)
+            
+            #calculate eigenvector residuals
+            R = typeClass.resvecs(A,Q,ev)
+            res = typeClass.resEigenvector(ev,Q,R,eps)
+
             print("{:10}{:26}".format(i,res))
 
             if res < eps:
@@ -83,7 +88,7 @@ if __name__ == "__main__":
     quad  = "legendre" # Choice of quadrature points # available options, legendre, Hermite (, trapezoidal !)
     m0    = 4         # subspace dimension
     eps   = 1e-08      # residual convergence tolerance
-    maxit = 4         # maximum FEAST iterations
+    maxit = 8         # maximum FEAST iterations
     optionsDict = {"linearSolver":"gcrotmk","linearIter":1000,"linear_tol":1e-02}
     
     Y0 = []

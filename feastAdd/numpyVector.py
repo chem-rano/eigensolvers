@@ -178,18 +178,58 @@ class NumpyVector(AbstractVector):
             prev_tot += prev_ev[i]
         res = diff/prev_tot
         return res
-    # -----------------------------------------------------
-    '''
-    def resEigenvector(uv,prev_ev):
+    
+    def resvecs(operator,vectors,eigenvalues):
+        #Residual = ((np.eye(n))@x@np.diag(lest))-A@x
+        n = vectors[0].shape
+        m0 = len(vectors)
+        typeClass = vectors[0].__class__
+        #I = np.eye(n)
+        diagM = np.diag(eigenvalues)
 
-        m0 = len(ev)
-        diff = 0.0
-        prev_tot = 0.0
-
+        # no need to multiply with identity matrix
+        residual = []
         for i in range(m0):
-            diff += abs(prev_ev[i]-ev[i])
-            prev_tot += prev_ev[i]
-        res = diff/prev_tot
-        return res
-    '''
+            #lElem = vectors[i].applyOp(np.diag(eigenvalues))   # TODO is np.diag needed?
+            lElem = vectors[i]*eigenvalues[i]   
+            rElem = vectors[i].applyOp(operator)
+            residual.append(typeClass.linearCombination([lElem,rElem],[1.0,-1.0]))
+        return residual
+    
+    # -----------------------------------------------------
+    def resEigenvector(lest,x,resvecs,eps):
+        '''
+        Calculates maximum residual inside the contour subspace
+        '''
+        m0 = len(x)
+        n = x[0].shape
+        resnorms = np.zeros(m0)
+    
+        # step1: creates an array with residual norms (divided by x norms) 
+        for i in range(m0):
+            if (x[i].norm() > 1e-14):
+                resnorms[i]= resvecs[i].norm()/x[i].norm()
+
+        # step2: checks if how many resnorms follow convergence
+        s = []
+        nsubspace = 0                                     # n subspace states satisfying convergence criteria
+        for k in range(m0):
+            if(resnorms[k] < eps):                        # residual norm is less than a specified small number; 
+                nsubspace = nsubspace + 1                 # when feast subspace is identical to exact space; it is zero.
+                s.append(k)
+    
+        # step3: if all resnorms achieved convergence, then return maximum value from them
+        #         otherwise go through all residual norms and print out the maximum from them
+        maxres = 0.0
+        if(nsubspace == 0):
+            maxres = np.max(resnorms)
+        else:
+            for k in range(m0):
+                if(resnorms[k] < eps): 
+                    tmp = resnorms[k]
+                    if(tmp > maxres):                    # finding the maximum residual value
+                        maxres = tmp
+
+
+        return maxres
     # -----------------------------------------------------

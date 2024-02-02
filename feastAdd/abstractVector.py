@@ -86,3 +86,7 @@ class AbstractVector(ABC):
     @staticmethod
     def resEigenvalue(ev,prev_ev):
         raise NotImplementedError
+
+    @staticmethod
+    def resvecs(operator,vectors,eigenvalues):
+        raise NotImplementedError
