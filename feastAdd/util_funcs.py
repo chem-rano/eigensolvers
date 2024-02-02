@@ -22,11 +22,30 @@ def trapezoidal(nc):
 
 # -----------------------------------------------------
 # This function is copied from cross_filterdiag.py
-def eigRegularized(A, Q):
-    Aq = Q.T.conj() @ (A @ Q)
-    ev, uv = la.eigh(Aq)
+def eigRegularized(A, B, Q, tol):
+    """ Solve generalized eigenvalue problem by discarding all eigenvectors of B smaller than tol.
+    :returns Eigenvalue, eigenvectors
+    """
+    if B is None:
+        Bq = (Q.T.conj())@Q
+    else:
+        Bq = (Q.T.conj())@B@Q
+    eBq,uBq = la.eigh(Bq)
+    #eBq,uBq = la.eig(Bq)
+    #    vv not abs => negative eigenvalues are even worse!
+    idx = eBq > tol
+    eBq = eBq[idx]
+    uBq = uBq[:,idx]
+    # TODO Here space is being truncated
+    uBqTraf = uBq * eBq**(-0.5)
+    Q_trun = Q @ uBqTraf # HRL suggested
     
-    return ev,Q@uv
+    AqTraf = Q_trun.T.conj() @ (A @ Q_trun)
+    #AqTraf = Q_trun.T.conj() @ Q_trun
+    ev, uvTraf = la.eigh(AqTraf)
+    
+    uv = uBqTraf @ uvTraf
+    return ev,Q@uv, Q_trun
 # -----------------------------------------------------
 def eigRegularized_list(Amat,B, Q, atol):
     mQ = len(Q)
@@ -45,7 +64,7 @@ def eigRegularized_list(Amat,B, Q, atol):
     mu,nu = uvals.shape
     res = np.zeros((mQ,nQ))
    
-    for j in range(nu):                # nu = m0  # mQ = m0 ==> 4
+    for j in range(nu):
         for k in range(mQ):
             res[j,:] += uvals[k,j] * Q[k] 
     return evals, res
@@ -57,17 +76,22 @@ def getRes(lest,x,resvecs,eps):
     '''
     n,m0 = x.shape
     resnorms = np.zeros(m0)
+
+    # step1: creates an array with residual norms (divided by x norms) 
     for i in range(m0):
         if (la.norm(x[:,i]) > 1e-14):
             resnorms[i]= la.norm(resvecs[:,i])/la.norm(x[:,i])
 
+    # step2: checks if how many resnorms follow convergence
     s = []
     nsubspace = 0                                     # n subspace states satisfying convergence criteria
     for k in range(m0):
         if(resnorms[k] < eps):                        # residual norm is less than a specified small number; 
             nsubspace = nsubspace + 1                 # when feast subspace is identical to exact space; it is zero.
             s.append(k)
-
+    
+    # step3: if all resnorms achieved convergence, then return maximum value from them
+    #         otherwise go through all residual norms and print out the maximum from them
     maxres = 0.0
     if(nsubspace == 0):
         maxres = np.max(resnorms)
@@ -177,4 +201,5 @@ def headerBot(method,yesBot=False):
         print("*"*nstars)
         print("  computation complete      ")
         print("*"*nstars)
+
 

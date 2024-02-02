@@ -179,3 +179,17 @@ class NumpyVector(AbstractVector):
         res = diff/prev_tot
         return res
     # -----------------------------------------------------
+    '''
+    def resEigenvector(uv,prev_ev):
+
+        m0 = len(ev)
+        diff = 0.0
+        prev_tot = 0.0
+
+        for i in range(m0):
+            diff += abs(prev_ev[i]-ev[i])
+            prev_tot += prev_ev[i]
+        res = diff/prev_tot
+        return res
+    '''
+    # -----------------------------------------------------
