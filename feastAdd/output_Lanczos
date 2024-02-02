@@ -1,0 +1,16 @@
+*********************************************
+         Inexact Lanczos           
+*********************************************
+
+
+Sigma                                              :: 100 
+Krylov space dimension                             :: 9   
+Eigenvalue convergence tolarance                   :: 1e-08
+
+
+Eigenvalue nearest to sigma                        :: 100.66666667
+Actual eigenvalue nearest to sigma                 :: 100.66666667
+Time taken (in sec)                                :: 0.08
+*********************************************
+  computation complete      
+*********************************************

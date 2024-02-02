@@ -3,7 +3,7 @@ import scipy
 from scipy.sparse.linalg import LinearOperator
 from scipy import special
 from scipy import linalg as la
-from util_funcs import getRes, print_a_range, quad_func, eigRegularized
+from util_funcs import getRes, print_a_range, quad_func, resEigenvalue
 from numpyVector import NumpyVector
 import time
 
@@ -11,16 +11,17 @@ import time
 # ***************************************************
 # Part 1: main FEAST function for contour integral
 # ------------------------------
-def feast_core_interface(A,Y0,nc,quad,rmin,rmax,eps,maxit):
+def feast_core_interface(A,Y,nc,quad,rmin,rmax,eps,maxit):
 
-    typeClass = Y0[0].__class__
-    m0 = len(Y0)
-    n = Y0[0].size
+    typeClass = Y[0].__class__
+    m0 = len(Y)
+    n = Y[0].size
     #I = np.eye(n)  # no need to store
-    Y1 = Y0.copy()     
+    #Y1 = Y.copy()     # no need to copy
     ev = np.zeros(m0)
     prev_ev = np.zeros(m0)
-    Q = typeClass.zeros_like(Y1,dtype = complex)
+    Q = [np.nan for it in range(m0)]
+    #Q = typeClass.zeros_like(Y1,dtype = complex)
 
     # numerical quadrature points.
     gk,wk = quad_func(nc,quad)
@@ -33,14 +34,16 @@ def feast_core_interface(A,Y0,nc,quad,rmin,rmax,eps,maxit):
             linOp = LinearOperator((n,n), matvec = lambda x, z=z, A=A: z*(np.eye(n))@x-A@x,dtype=complex)
             
             for jloop in range(m0):
-                #b_in = (Y1[jloop]).applyOp(B)    # no need of multiplication
-                b_in = Y1[jloop]
+                #b_in = (Y[jloop]).applyOp(B)    # no need of multiplication
+                b_in = Y[jloop]
                 Qkjloop = typeClass.solve(linOp,b_in, x0=None)
                 
-                Qadd = np.real((Qkjloop*((rmin-rmax)/2*np.exp(1j*theta))).array)*(wk[k]/2)
-                Qadd = NumpyVector(Qadd)
-                
-                Q[jloop] = typeClass.linearCombination([Q[jloop],Qadd],[1.0,1.0])
+                Qadd = np.real((Qkjloop*((rmin-rmax)/2*np.exp(1j*theta))).array)*(wk[k]*-0.5)
+                Qadd = NumpyVector(Qadd,b_in.optionsDict)
+                if k == 0:
+                    Q[jloop] = Qadd
+                else:
+                    Q[jloop] = typeClass.linearCombination([Q[jloop],Qadd],[1.0,1.0])
         #qtAq = typeClass.matrixRepresentation(A,Q)
         #ev, uv = la.eigh(qtAq)
         
@@ -54,7 +57,7 @@ def feast_core_interface(A,Y0,nc,quad,rmin,rmax,eps,maxit):
             res = None   # Initialize res as None
         else:
             #calculate eigenvalue residuals
-            #res = typeClass.resEigenvalue(ev,prev_ev)
+            #res = resEigenvalue(ev,prev_ev)
             
             #calculate eigenvector residuals
             R = typeClass.resvecs(A,Q,ev)
@@ -64,6 +67,7 @@ def feast_core_interface(A,Y0,nc,quad,rmin,rmax,eps,maxit):
 
             if res < eps:
                 break
+        Y = Q
         prev_ev = ev
 
         
@@ -86,18 +90,18 @@ if __name__ == "__main__":
     ev_max = 184.0
     nc    = 4          # number of contour points
     quad  = "legendre" # Choice of quadrature points # available options, legendre, Hermite (, trapezoidal !)
-    m0    = 4         # subspace dimension
+    m0    = 1         # subspace dimension
     eps   = 1e-08      # residual convergence tolerance
-    maxit = 8         # maximum FEAST iterations
+    maxit = 5         # maximum FEAST iterations
     optionsDict = {"linearSolver":"gcrotmk","linearIter":1000,"linear_tol":1e-02}
     
-    Y0 = []
+    Y = []
     np.random.seed(10)
     aVector = NumpyVector(np.random.random((n)),optionsDict)
     for i in range(m0):
-        Y0.append(aVector.copy())
+        Y.append(aVector.copy())
 
     contour_ev = print_a_range(ev, ev_min, ev_max)
     print("actual",contour_ev)
-    qIn,efeast =  feast_core_interface(linOp,Y0,nc,quad,ev_min,ev_max,eps,maxit)
+    qIn,efeast =  feast_core_interface(linOp,Y,nc,quad,ev_min,ev_max,eps,maxit)
     print("feast",efeast)

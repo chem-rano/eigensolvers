@@ -52,7 +52,7 @@ class NumpyVector(AbstractVector):
     def copy(self):
         return NumpyVector(self.array.copy(), self.optionsDict)
     
-    def zeros_like(other,dtype):
+    def list_zeros(other,dtype):
         ''' returns list of vectors (with all elements zero) for list of vectors'''
         nlist = len(other)
         out = []
@@ -90,6 +90,7 @@ class NumpyVector(AbstractVector):
         x (In): vector to be orthogonalized 
         xs (In): set of orthogonalized vector
         lindep (optional): Parameter to check linear dependency
+                           If condition is not met, returns None
         '''
         nv = len(qs)
         for i in range(nv):
@@ -115,7 +116,7 @@ class NumpyVector(AbstractVector):
         if b.optionsDict["linearSolver"] == "gcrotmk":
             wk,conv = scipy.sparse.linalg.gcrotmk(H,b.array,x0, tol=tol,atol=atol,maxiter=maxiter)
         elif b.optionsDict["linearSolver"] == "minres":
-            wk,conv = scipy.sparse.linalg.minres(H,b.array,x0, tol=tol,atol=atol,maxiter=maxiter)
+            wk,conv = scipy.sparse.linalg.minres(H,b.array,x0, tol=tol,maxiter=maxiter)
         
         if conv != 0:
             warnings.simplefilter('error', UserWarning)
@@ -137,6 +138,9 @@ class NumpyVector(AbstractVector):
 
 
     def eig_in_LowdinBasis(operator,vectors,tol=1e-14):
+        ''' Orthogonalizes vectors using Lowdin method
+        tol: Tolerance to keep eigenvalues 
+        '''
         
         typeClass = vectors[0].__class__
         m = len(vectors)
@@ -167,19 +171,8 @@ class NumpyVector(AbstractVector):
 
     
     # -----------------------------------------------------
-    def resEigenvalue(ev,prev_ev):
-
-        m0 = len(ev)
-        diff = 0.0
-        prev_tot = 0.0
-
-        for i in range(m0):
-            diff += abs(prev_ev[i]-ev[i])
-            prev_tot += prev_ev[i]
-        res = diff/prev_tot
-        return res
-    
     def resvecs(operator,vectors,eigenvalues):
+        '''Calculates eigenvector maximum residual'''
         #Residual = ((np.eye(n))@x@np.diag(lest))-A@x
         n = vectors[0].shape
         m0 = len(vectors)

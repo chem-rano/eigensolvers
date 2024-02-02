@@ -37,7 +37,7 @@ class AbstractVector(ABC):
         pass
     
     @abstractmethod
-    def zeros_like(other):
+    def list_zeros(other):
         pass
     
     @abstractmethod
@@ -66,6 +66,7 @@ class AbstractVector(ABC):
         x (In): vector to be orthogonalized 
         xs (In): set of orthogonalized vector
         lindep (optional): Parameter to check linear dependency
+                           If condition is not met, returns None
         '''
         raise NotImplementedError
     
@@ -81,12 +82,13 @@ class AbstractVector(ABC):
 
     @staticmethod
     def eig_in_LowdinBasis(operator,vectors,tol=1e-14):
+        ''' Orthogonalizes vectors using Lowdin method
+        tol: Tolerance to keep eigenvalues 
+        '''
         raise NotImplementedError
     
-    @staticmethod
-    def resEigenvalue(ev,prev_ev):
-        raise NotImplementedError
 
     @staticmethod
     def resvecs(operator,vectors,eigenvalues):
+        '''Calculates eigenvector maximum residual'''
         raise NotImplementedError
