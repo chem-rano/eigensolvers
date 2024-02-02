@@ -16,7 +16,7 @@ def feast_core_interface(A,Y0,nc,quad,rmin,rmax,eps,maxit):
     typeClass = Y0[0].__class__
     m0 = len(Y0)
     n = Y0[0].size
-    B = np.eye(n)
+    #I = np.eye(n)  # no need to store
     Y1 = Y0.copy()     
     ev = np.zeros(m0)
     prev_ev = np.zeros(m0)
@@ -30,10 +30,11 @@ def feast_core_interface(A,Y0,nc,quad,rmin,rmax,eps,maxit):
         for k in range(nc):
             theta = -(pi*0.5)*(gk[k]-1)
             z = (rmin+rmax)/2+ np.exp(1.0j*theta)
-            linOp = LinearOperator((n,n), matvec = lambda x, z=z, B=B, A=A: z*B@x-A@x,dtype=complex)
+            linOp = LinearOperator((n,n), matvec = lambda x, z=z, A=A: z*(np.eye(n))@x-A@x,dtype=complex)
             
             for jloop in range(m0):
-                b_in = (Y1[jloop]).applyOp(B)
+                #b_in = (Y1[jloop]).applyOp(B)    # no need of multiplication
+                b_in = Y1[jloop]
                 Qkjloop = typeClass.solve(linOp,b_in, x0=None)
                 
                 Qadd = np.real((Qkjloop*((rmin-rmax)/2*np.exp(1j*theta))).array)*(wk[k]/2)
@@ -50,7 +51,7 @@ def feast_core_interface(A,Y0,nc,quad,rmin,rmax,eps,maxit):
         for ivec in range(m0):
             Q[ivec] = typeClass.linearCombination(Q,uv[:,ivec])
         if i == 0: 
-            res = None
+            res = None   # Initialize res as None
         else:
             #calculate eigenvalue residuals
             res = typeClass.resEigenvalue(ev,prev_ev)
