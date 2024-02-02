@@ -67,8 +67,6 @@ def eigRegularized_list(Amat,B, Q, atol):
     for j in range(nu):
         for k in range(mQ):
             res[j,:] += uvals[k,j] * Q[k] 
-    #for k in range(mQ):
-    #    res[0,:] += uvals[k,0] * Q[k]
     return evals, res
 # -----------------------------------------------------
 #find maximum residual inside contour
