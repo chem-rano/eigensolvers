@@ -9,6 +9,8 @@ from scipy import linalg as la
 # Abstract functions are here for initiation/listing
 # We name them and pass for later use
 
+LINDEP_DEFAULT_VALUE = 1e-14
+
 # Specify abstractmethod whenever the task should be specified later
 class AbstractVector(ABC):
     
@@ -55,7 +57,7 @@ class AbstractVector(ABC):
 
     
     @staticmethod
-    def orthogonalize_against_set(x,xs,lindep=1e-12):
+    def orthogonalize_against_set(x,xs,lindep=LINDEP_DEFAULT_VALUE):
         '''
         Orthogonalizes a vector against the previously obtained set of 
         orthogonalized vectors
@@ -63,14 +65,20 @@ class AbstractVector(ABC):
         xs (In): set of orthogonalized vector
         lindep (optional): Parameter to check linear dependency
         '''
+        # TODO Explain lindep and return type (can be None)
         raise NotImplementedError
     
     @staticmethod
-    def solve(H, b, sigma, x0):
-        ''' Linear equation ((H-sigma*I)x0 =b ) solver'''
+    def solve(H, b, sigma, x0, opType="her"):
+        ''' Linear equation ((H-sigma*I)x0 =b ) solver
+
+        :param opType: Operator type:
+            "gen" for generic operator, "sym" for (complex) symmetric, "her" for hermitian,
+            "pos" for positive definite
+        '''
         raise NotImplementedError
 
     @staticmethod
     def matrixRepresentation(operator,vectors):
-        ''' Calculates and returns matrix in the "vectors" space '''
+        ''' Calculates and returns matrix in the "vectors" space of a *hermitian* operator. '''
         raise NotImplementedError
