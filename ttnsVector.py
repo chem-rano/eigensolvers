@@ -8,12 +8,10 @@ from numbers import Number
 import warnings
 import copy
 from ttns2.state import TTNS
-from ttns2.renormalization import AbstractRenormalization, SumOfOperators, RenormalizedDot
+from ttns2.renormalization import AbstractRenormalization, SumOfOperators
 from ttns2.sweepAlgorithms import (LinearSystem, Orthogonalization,
-                                   StateFitting,
-                                   PerturbativeNoise, WFNoise, OptUnoccNoise)
-from ttns2.contraction import AbstractTruncation
-from ttns2.driver import bracket, getVerbosePrinter, getRenormalizedOp
+                                   StateFitting)
+from ttns2.driver import bracket, getRenormalizedOp
 
 class TTNSVector(AbstractVector):
     def __init__(self, ttns: TTNS, options:Dict[str, Dict]):
@@ -36,7 +34,6 @@ class TTNSVector(AbstractVector):
         self.options["stateFittingArgs"] = options.get("stateFittingArgs", self.options["sweepAlgorithmArgs"])
         self.options["orthogonalizationArgs"] = options.get("orthogonalizationArgs", self.options["sweepAlgorithmArgs"])
         self.options["linearSystemArgs"] = options.get("linearSystemArgs", self.options["sweepAlgorithmArgs"])
-        self._print = getVerbosePrinter(self.options["verbose"])
 
     @property
     def dtype(self):
@@ -132,7 +129,7 @@ class TTNSVector(AbstractVector):
             x0 = b.copy()
         op = getRenormalizedOp(x0.ttns, H, b.ttns)
         if abs(sigma) > 1e-16:
-            LHS = SumOfOperators([op, getRenormalizedOp(x0.ttns, -1, b.ttns)])
+            LHS = SumOfOperators([op, getRenormalizedOp(x0.ttns, -sigma, b.ttns)])
         else:
             LHS = op
         assert "lhsOpType" not in x0.options["linearSolverArgs"] # or just delete it in a copy of the dict
@@ -157,5 +154,6 @@ class TTNSVector(AbstractVector):
             for j in range(i, N):
                 ket = vectors[j].ttns
                 val = getRenormalizedOp(bra, operator, ket).bracket()
-                M[i,j] = M[j,i] = val
+                M[i, j] = val
+                M[j, i] = val.conj()
         return M
