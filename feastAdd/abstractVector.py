@@ -13,6 +13,10 @@ from scipy import linalg as la
 class AbstractVector(ABC):
     
     @abstractmethod
+    def __abs__(self):
+        pass
+    
+    @abstractmethod
     def __mul__(self,other):
         pass
     
