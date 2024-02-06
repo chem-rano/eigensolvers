@@ -27,8 +27,9 @@ class NumpyVector(AbstractVector):
         self.optionsDict["linearIter"] = self.optionsDict.get("linearIter",1000)
         self.optionsDict["linear_tol"] = self.optionsDict.get("linear_tol",1e-4)
         self.optionsDict["linear_atol"] = self.optionsDict.get("linear_atol",1e-4)
-        
-
+    
+    def __abs__(self):        
+        return NumpyVector(abs(self.array),self.optionsDict)
         
     def __mul__(self,other):
         return NumpyVector(self.array*other,self.optionsDict)
