@@ -37,7 +37,7 @@ class TTNSVector(AbstractVector):
 
     @property
     def dtype(self):
-        # TODO add to abstractVector
+        # added to abstractVector
         return np.result_type(*self.ttns.dtypes())
 
     def __mul__(self, other: Number) -> TTNSVector:

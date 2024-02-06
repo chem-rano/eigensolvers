@@ -14,6 +14,12 @@ LINDEP_DEFAULT_VALUE = 1e-14
 # Specify abstractmethod whenever the task should be specified later
 class AbstractVector(ABC):
     
+    @property
+    @abstractmethod
+    def dtype(self):
+        pass
+
+
     @abstractmethod
     def __mul__(self,other):
         pass
