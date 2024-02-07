@@ -19,7 +19,6 @@ import warnings
 class NumpyVector(AbstractVector):
     def __init__(self,array,optionsDict=dict()):
         self.array = array
-        self.dtype = array.dtype
         self.size = array.size
         self.shape = array.shape
         self.optionsDict = optionsDict
@@ -28,18 +27,30 @@ class NumpyVector(AbstractVector):
         self.optionsDict["linear_tol"] = self.optionsDict.get("linear_tol",1e-4)
         self.optionsDict["linear_atol"] = self.optionsDict.get("linear_atol",1e-4)
         
-
+    @property
+    def dtype(self):
+        return self.array.dtype
         
     def __mul__(self,other):
         return NumpyVector(self.array*other,self.optionsDict)
 
     def __truediv__(self,other):
         return NumpyVector(self.array/other,self.optionsDict)
+    
+    def __imul__(self, other):
+        raise NotImplementedError
+
+    def __itruediv__(self, other):
+        raise NotImplementedError
 
 
     def __len__(self) -> int:
         return len(self.array)
     
+    def normalize(self):
+        out = self.array/la.norm(self.array)
+        return NumpyVector(out, self.optionsDict)
+
     def norm(self) -> float:
         return la.norm(self.array)
 
@@ -127,4 +138,43 @@ class NumpyVector(AbstractVector):
                 qtAq[i,j] = vectors[i].vdot(ket)
                 qtAq[j,i] = qtAq[i,j].conj()
         return qtAq
+
+
+        return eigenvalues, eigenvectors, vectors
     # -----------------------------------------------------
+    def eig_in_LowdinBasis(operator,vectors,tol=1e-14):
+
+        typeClass = vectors[0].__class__
+        m = len(vectors)
+        dtype = vectors[0].dtype
+        qtq = np.zeros((m,m),dtype=dtype)
+
+        for i in range(m):
+            for j in range(i,m):
+                qtq[i,j] = vectors[i].vdot(vectors[j],False)
+                qtq[j,i] = qtq[i,j]
+
+        evq, uvq = la.eigh(qtq)
+        idx = evq > tol
+        evq = evq[idx]
+        uvq = uvq[:,idx]
+        uvqTraf = uvq * evq**(-0.5)
+
+        Q_trun = []
+        m = len(evq)
+        for i in range(m):
+            Q_trun.append(typeClass.linearCombination(vectors,uvqTraf[:,i]))
+
+        AqTraf = typeClass.matrixRepresentation(operator,Q_trun)
+        ev, uvTraf = la.eigh(AqTraf)
+
+        #uv = uvqTraf @ uvTraf  # uqTraf and uvTraf are ndarray
+        
+        # uvqTraf == T_traf
+        # Q_trun == Q_traf 
+        # uvTraf == phi_traf
+        # 
+
+        return ev, uvTraf, Q_trun
+
+
