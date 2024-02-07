@@ -14,6 +14,11 @@ LINDEP_DEFAULT_VALUE = 1e-14
 # Specify abstractmethod whenever the task should be specified later
 class AbstractVector(ABC):
     
+    @property
+    @abstractmethod
+    def dtype(self):
+        pass
+    
     @abstractmethod
     def __mul__(self,other):
         pass
@@ -23,7 +28,19 @@ class AbstractVector(ABC):
         pass
 
     @abstractmethod
+    def __imul__(self, other):
+        pass
+
+    @abstractmethod
+    def __itruediv__(self, other):
+        pass
+
+    @abstractmethod
     def __len__(self):
+        pass
+    
+    @abstractmethod
+    def normalize(self):
         pass
         
     @abstractmethod
@@ -55,6 +72,9 @@ class AbstractVector(ABC):
         '''
         raise NotImplementedError
 
+    @staticmethod
+    def orthogonalize(xs,lindep = LINDEP_DEFAULT_VALUE):
+        raise NotImplementedError
     
     @staticmethod
     def orthogonalize_against_set(x,xs,lindep=LINDEP_DEFAULT_VALUE):
@@ -81,4 +101,9 @@ class AbstractVector(ABC):
     @staticmethod
     def matrixRepresentation(operator,vectors):
         ''' Calculates and returns matrix in the "vectors" space of a *hermitian* operator. '''
+        raise NotImplementedError
+    
+    @staticmethod
+    def eig_in_LowdinBasis(operator,vectors,tol=1e-14):
+        ''' Solves eigenvalue problem in Lowdin basis'''
         raise NotImplementedError
