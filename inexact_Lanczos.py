@@ -8,10 +8,10 @@ from numpyVector import NumpyVector
 import time
 
 # -----------------------------------------------------
-#    Inexact Lanczos with NumpyVector interface
+#    Inexact Lanczos with AbstractClass interface
 #------------------------------------------------------
 
-def core_func(H,v0,sigma,L,maxit,conv_tol):
+def core_func(H,v0,sigma,L,maxit,conv_tol,proceed_ortho:bool = False):
     '''
     This is core function to calculate eigenvalues and eigenvectors
     Input::  H => diagonalizable input matrix or linearoperator
@@ -31,52 +31,55 @@ def core_func(H,v0,sigma,L,maxit,conv_tol):
     typeClass = v0.__class__
     ev_last = np.inf # for convergence check
     isConverged = False
+    if not proceed_ortho: print("!!! ATTENTION: Doing inexact Lanczos in non-orthogonal basis. \n")
   
   
     for it in range(maxit):
-        # Krylov-space propagation:: Ax0, A^2x0, and up to basis size L
         for i in range(1,L):
-            #print("it",it,"i",i)
-            # each element in the list are now NumpyVector, not np.array
             Ysolved = typeClass.solve(H,Ylist[i-1],sigma)
-            
-            # Orthogonalize the Krylov space
-            item = typeClass.orthogonalize_against_set(Ysolved,Ylist)
-            if item is not None:
-                Ylist.append(item)
-            
-                m = len(Ylist)
+           
 
-                qtAq = typeClass.matrixRepresentation(H,Ylist)
+            if not proceed_ortho:
+                Ylist.append(Ysolved)
+                ev, uvals, Ylist = typeClass.eig_in_LowdinBasis(H,Ylist)
 
-                ev, uvals = la.eigh(qtAq)
-                uv = []
-                for j in range(m):
-                    uv.append(typeClass.linearCombination(Ylist,uvals[:,j]))
-        
-                # Find closest ev and check if this value is converged
-                idx, ev_nearest = find_nearest(ev,sigma)
-                check_ev = abs(ev_nearest-ev_last)
-                if (check_ev <= conv_tol):
-                    break                # Break to Krylov space expansion
-                # Update the last eigenvalue for convergence check
-                ev_last = ev_nearest
             else:
-                warnings.warn("Linear dependency problem, abort current Lanczos iteration and restart.")
-                break
-       
+                item = typeClass.orthogonalize_against_set(Ysolved,Ylist)
+                if item is not None:
+                    Ylist.append(item)
+                    qtAq = typeClass.matrixRepresentation(H,Ylist)
+                    ev, uvals = la.eigh(qtAq)
+                    
+                else:
+                    warnings.warn("Linear dependency problem, abort current Lanczos iteration and restart.")
+                    break
+        
+            # Find closest ev and check if this value is converged
+            idx, ev_nearest = find_nearest(ev,sigma)
+            check_ev = abs(ev_nearest-ev_last)
+                    
+            if (check_ev <= conv_tol):
+                break                # Break to Krylov space expansion
+                    
+            ev_last = ev_nearest     # Update the last eigenvalue for convergence check
+
 
        # If not converged, continue to next iteration with x0 guess as nearest eigenvector
         if (check_ev <= conv_tol):
             isConverged = True
+            
+            m = len(Ylist)
+            for j in range(m):
+                Ylist[j] = typeClass.linearCombination(Ylist,uvals[:,j])
+
             break
         else:
-            Ylist = [uv[idx]]
+            Ylist = [typeClass.linearCombination(Ylist,uvals[:,idx])]
 
         if (it == maxit-1) and (not isConverged):
             print("Alert:: Lanczos iterations is not converged!")
         
-    return ev,uv
+    return ev,Ylist
 # -----------------------------------------------------
 if __name__ == "__main__":
     n = 100
@@ -86,7 +89,7 @@ if __name__ == "__main__":
     A = Q.T @ np.diag(ev) @ Q
 
     
-    sigma = 100
+    sigma = 230
     maxit = 4
     L  = 8
     conv_tol = 1e-08
