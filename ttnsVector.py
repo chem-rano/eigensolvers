@@ -9,8 +9,8 @@ import warnings
 import copy
 from ttns2.state import TTNS
 from ttns2.renormalization import AbstractRenormalization, SumOfOperators
-from ttns2.sweepAlgorithms import (LinearSystem, Orthogonalization,
-                                   StateFitting)
+from ttns2.sweepAlgorithms import (LinearSystem, Orthogonalization, 
+                                StateFitting)
 from ttns2.driver import bracket, getRenormalizedOp
 
 class TTNSVector(AbstractVector):
@@ -37,7 +37,7 @@ class TTNSVector(AbstractVector):
 
     @property
     def dtype(self):
-        # TODO add to abstractVector
+        # added to abstractVector
         return np.result_type(*self.ttns.dtypes())
 
     def __mul__(self, other: Number) -> TTNSVector:
@@ -64,7 +64,7 @@ class TTNSVector(AbstractVector):
         return self
 
     def normalize(self) -> TTNSVector:
-        # TODO add this function to abstract vector
+        # added this function to abstract vector
         self.ttns.normalize()
         return self
 
