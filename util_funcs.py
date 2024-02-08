@@ -3,6 +3,7 @@ from scipy import linalg as la
 import sys
 from scipy import special
 import copy
+from numpyVector import NumpyVector
 
 # -----------------------------------------------------
 def trapezoidal(nc):
@@ -39,11 +40,11 @@ def eigRegularized(A, B, Q, tol):
     # TODO Here space is being truncated
     uBqTraf = uBq * eBq**(-0.5)
     Q_trun = Q @ uBqTraf # HRL suggested
-    
+
     AqTraf = Q_trun.T.conj() @ (A @ Q_trun)
     #AqTraf = Q_trun.T.conj() @ Q_trun
     ev, uvTraf = la.eigh(AqTraf)
-    
+
     uv = uBqTraf @ uvTraf
     return ev,Q@uv, Q_trun
 # -----------------------------------------------------
@@ -201,5 +202,21 @@ def headerBot(method,yesBot=False):
         print("*"*nstars)
         print("  computation complete      ")
         print("*"*nstars)
+
+# -----------------------------------------------------
+def linearDepedency(oMat, tol=1e-14):
+    """ Checks linear dipendency (with tolerance tol) of vectors uisng overlap matrix (oMat).
+    :returns info (is all linear independent: True or not), vectors
+    """
+
+    evq, uvq = la.eigh(oMat)
+    idx = evq > tol
+    evq = evq[idx]
+    uvq = uvq[:,idx]
+
+    info = all(idx)
+    uvqTraf = uvq * evq**(-0.5)
+
+    return info, uvqTraf
 
 
