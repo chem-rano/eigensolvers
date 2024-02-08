@@ -3,6 +3,7 @@ import scipy
 from scipy import linalg as la
 from scipy.sparse.linalg import LinearOperator
 from util_funcs import find_nearest, headerBot
+from util_funcs import linearDepedency
 import warnings
 from numpyVector import NumpyVector
 import time
@@ -38,10 +39,28 @@ def core_func(H,v0,sigma,L,maxit,conv_tol,proceed_ortho:bool = False):
         for i in range(1,L):
             Ysolved = typeClass.solve(H,Ylist[i-1],sigma)
            
-
             if not proceed_ortho:
                 Ylist.append(Ysolved)
-                ev, uvals, Ylist = typeClass.eig_in_LowdinBasis(H,Ylist)
+                qtq = typeClass.overlapMatrix(Ylist)
+                info, uvqTraf = linearDepedency(qtq, tol = 1e-12)
+                # Also get assured if info is False, then return uvqTraf (to avoid extra memory)
+                
+                info = False # forcefully entering to if loop
+                
+                if not info:
+                    # TODO how to avoid linear combination.
+                    Ylist_trun = []
+                    m = uvqTraf.shape[1]
+                    for i in range(m):
+                        Ylist_trun.append(typeClass.linearCombination(Ylist,uvqTraf[:,i]))
+                    AqTraf = typeClass.matrixRepresentation(H,Ylist_trun)
+                    ev, uvals = la.eigh(AqTraf)
+                else:
+                    Aq = typeClass.matrixRepresentation(H,Ylist)
+                    ev, uv = la.eigh(Aq)
+                    #uv to list format: that is Ylist
+                    # so this leads another condition and another if loop! Leaving as it is.
+
 
             else:
                 item = typeClass.orthogonalize_against_set(Ysolved,Ylist)
