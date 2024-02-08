@@ -92,6 +92,7 @@ class NumpyVector(AbstractVector):
         x (In): vector to be orthogonalized 
         xs (In): set of orthogonalized vector
         lindep (optional): Parameter to check linear dependency
+        If it does not find linearly independent vector w.r.t. xs; it returns None
         '''
         nv = len(qs)
         for i in range(nv):
@@ -139,42 +140,16 @@ class NumpyVector(AbstractVector):
                 qtAq[j,i] = qtAq[i,j].conj()
         return qtAq
 
+    def overlapMatrix(vectors):
+        ''' Calculates overlap matrix of vectors'''
 
-        return eigenvalues, eigenvectors, vectors
-    # -----------------------------------------------------
-    def eig_in_LowdinBasis(operator,vectors,tol=1e-14):
-
-        typeClass = vectors[0].__class__
         m = len(vectors)
         dtype = vectors[0].dtype
         qtq = np.zeros((m,m),dtype=dtype)
-
+        
         for i in range(m):
             for j in range(i,m):
-                qtq[i,j] = vectors[i].vdot(vectors[j],False)
-                qtq[j,i] = qtq[i,j]
-
-        evq, uvq = la.eigh(qtq)
-        idx = evq > tol
-        evq = evq[idx]
-        uvq = uvq[:,idx]
-        uvqTraf = uvq * evq**(-0.5)
-
-        Q_trun = []
-        m = len(evq)
-        for i in range(m):
-            Q_trun.append(typeClass.linearCombination(vectors,uvqTraf[:,i]))
-
-        AqTraf = typeClass.matrixRepresentation(operator,Q_trun)
-        ev, uvTraf = la.eigh(AqTraf)
-
-        #uv = uvqTraf @ uvTraf  # uqTraf and uvTraf are ndarray
-        
-        # uvqTraf == T_traf
-        # Q_trun == Q_traf 
-        # uvTraf == phi_traf
-        # 
-
-        return ev, uvTraf, Q_trun
-
-
+                qtq[i,j] = vectors[i].vdot(vectors[j],True)
+                qtq[j,i] = qtq[i,j].conj()
+        return qtq
+    # -----------------------------------------------------
