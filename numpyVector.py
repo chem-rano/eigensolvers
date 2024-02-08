@@ -19,7 +19,6 @@ import warnings
 class NumpyVector(AbstractVector):
     def __init__(self,array,optionsDict=dict()):
         self.array = array
-        self.dtype = array.dtype
         self.size = array.size
         self.shape = array.shape
         self.optionsDict = optionsDict
@@ -28,18 +27,30 @@ class NumpyVector(AbstractVector):
         self.optionsDict["linear_tol"] = self.optionsDict.get("linear_tol",1e-4)
         self.optionsDict["linear_atol"] = self.optionsDict.get("linear_atol",1e-4)
         
-
+    @property
+    def dtype(self):
+        return self.array.dtype
         
     def __mul__(self,other):
         return NumpyVector(self.array*other,self.optionsDict)
 
     def __truediv__(self,other):
         return NumpyVector(self.array/other,self.optionsDict)
+    
+    def __imul__(self, other):
+        raise NotImplementedError
+
+    def __itruediv__(self, other):
+        raise NotImplementedError
 
 
     def __len__(self) -> int:
         return len(self.array)
     
+    def normalize(self):
+        out = self.array/la.norm(self.array)
+        return NumpyVector(out, self.optionsDict)
+
     def norm(self) -> float:
         return la.norm(self.array)
 
@@ -81,6 +92,7 @@ class NumpyVector(AbstractVector):
         x (In): vector to be orthogonalized 
         xs (In): set of orthogonalized vector
         lindep (optional): Parameter to check linear dependency
+        If it does not find linearly independent vector w.r.t. xs; it returns None
         '''
         nv = len(qs)
         for i in range(nv):
@@ -127,4 +139,17 @@ class NumpyVector(AbstractVector):
                 qtAq[i,j] = vectors[i].vdot(ket)
                 qtAq[j,i] = qtAq[i,j].conj()
         return qtAq
+
+    def overlapMatrix(vectors):
+        ''' Calculates overlap matrix of vectors'''
+
+        m = len(vectors)
+        dtype = vectors[0].dtype
+        qtq = np.zeros((m,m),dtype=dtype)
+        
+        for i in range(m):
+            for j in range(i,m):
+                qtq[i,j] = vectors[i].vdot(vectors[j],True)
+                qtq[j,i] = qtq[i,j].conj()
+        return qtq
     # -----------------------------------------------------

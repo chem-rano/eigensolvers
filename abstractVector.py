@@ -18,8 +18,6 @@ class AbstractVector(ABC):
     @abstractmethod
     def dtype(self):
         pass
-
-
     @abstractmethod
     def __mul__(self,other):
         pass
@@ -29,7 +27,19 @@ class AbstractVector(ABC):
         pass
 
     @abstractmethod
+    def __imul__(self, other):
+        pass
+
+    @abstractmethod
+    def __itruediv__(self, other):
+        pass
+
+    @abstractmethod
     def __len__(self):
+        pass
+    
+    @abstractmethod
+    def normalize(self):
         pass
         
     @abstractmethod
@@ -61,6 +71,9 @@ class AbstractVector(ABC):
         '''
         raise NotImplementedError
 
+    @staticmethod
+    def orthogonalize(xs,lindep = LINDEP_DEFAULT_VALUE):
+        raise NotImplementedError
     
     @staticmethod
     def orthogonalize_against_set(x,xs,lindep=LINDEP_DEFAULT_VALUE):
@@ -70,6 +83,7 @@ class AbstractVector(ABC):
         x (In): vector to be orthogonalized 
         xs (In): set of orthogonalized vector
         lindep (optional): Parameter to check linear dependency
+        If it does not find linearly independent vector w.r.t. xs; it returns None
         '''
         # TODO Explain lindep and return type (can be None)
         raise NotImplementedError
@@ -87,4 +101,9 @@ class AbstractVector(ABC):
     @staticmethod
     def matrixRepresentation(operator,vectors):
         ''' Calculates and returns matrix in the "vectors" space of a *hermitian* operator. '''
+        raise NotImplementedError
+    
+    @staticmethod
+    def overlapMatrix(vectors):
+        ''' Calculates overlap matrix of vectors'''
         raise NotImplementedError
