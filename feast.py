@@ -4,6 +4,7 @@ from scipy.sparse.linalg import LinearOperator
 from scipy import special
 from scipy import linalg as la
 from util_funcs import getRes, print_a_range, quad_func, resEigenvalue
+from util_funcs import linearDepedency
 from numpyVector import NumpyVector
 import time
 
@@ -44,24 +45,31 @@ def feast_core_interface(A,Y,nc,quad,rmin,rmax,eps,maxit):
                     Q[jloop] = Qadd
                 else:
                     Q[jloop] = typeClass.linearCombination([Q[jloop],Qadd],[1.0,1.0])
-        #qtAq = typeClass.matrixRepresentation(A,Q)
-        #ev, uv = la.eigh(qtAq)
         
+        # ------------------------------------- 
         # eigh in Lowdin orthogonal basis
-        ev, uv, Q = typeClass.eig_in_LowdinBasis(A,Q,tol=1e-12)
+        qtq = typeClass.overlapMatrix(Q)
+        info, uvqTraf = linearDepedency(qtq, tol = 1e-12)
+        m = uvqTraf.shape[1]
+        for i in range(m):
+            Q[i] = typeClass.linearCombination(Q,uvqTraf[:,i])
+        qtAq = typeClass.matrixRepresentation(A,Q)
+        ev, uv = la.eigh(qtAq)
         
         m0 = len(Q)
         for ivec in range(m0):
             Q[ivec] = typeClass.linearCombination(Q,uv[:,ivec])
+        # ------------------------------------- 
+
         if i == 0: 
             res = None   # Initialize res as None
         else:
             #calculate eigenvalue residuals
-            #res = resEigenvalue(ev,prev_ev)
+            res = resEigenvalue(ev,prev_ev)
             
             #calculate eigenvector residuals
-            R = typeClass.resvecs(A,Q,ev)
-            res = typeClass.resEigenvector(ev,Q,R,eps)
+            #R = typeClass.resvecs(A,Q,ev)
+            #res = typeClass.resEigenvector(ev,Q,R,eps)
 
             print("{:10}{:26}".format(i,res))
 
