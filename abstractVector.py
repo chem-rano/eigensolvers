@@ -85,7 +85,6 @@ class AbstractVector(ABC):
         lindep (optional): Parameter to check linear dependency
         If it does not find linearly independent vector w.r.t. xs; it returns None
         '''
-        # TODO Explain lindep and return type (can be None)
         raise NotImplementedError
     
     @staticmethod
