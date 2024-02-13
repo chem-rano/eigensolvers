@@ -42,7 +42,7 @@ def core_func(H,v0,sigma,L,maxit,conv_tol,proceed_ortho:bool = False):
             if not proceed_ortho:
                 Ylist.append(Ysolved)
                 qtq = typeClass.overlapMatrix(Ylist)
-                info, uQ = linearDepedency(qtq, tol = 1e-12) # uvqTraf changed to uQ; earlier was more confusing
+                info, uQ = linearDepedency(qtq, tol = 1e-12)
                 
                 m = uQ.shape[1]
                 Ylist_trun = []
@@ -50,6 +50,7 @@ def core_func(H,v0,sigma,L,maxit,conv_tol,proceed_ortho:bool = False):
                     Ylist_trun.append(typeClass.linearCombination(Ylist,uQ[:,ivec]))
                 qtAq = typeClass.matrixRepresentation(H,Ylist_trun)
                 ev, uvals = la.eigh(qtAq)
+                uv = uQ@uvals
                 Ylist = Ylist_trun
 
 
@@ -58,7 +59,7 @@ def core_func(H,v0,sigma,L,maxit,conv_tol,proceed_ortho:bool = False):
                 if item is not None:
                     Ylist.append(item)
                     qtAq = typeClass.matrixRepresentation(H,Ylist)
-                    ev, uvals = la.eigh(qtAq)
+                    ev, uv = la.eigh(qtAq)
                     
                 else:
                     warnings.warn("Linear dependency problem, abort current Lanczos iteration and restart.")
@@ -81,11 +82,11 @@ def core_func(H,v0,sigma,L,maxit,conv_tol,proceed_ortho:bool = False):
             m = len(Ylist)
             x = []
             for j in range(m):
-                x.append(typeClass.linearCombination(Ylist,uvals[:,j]))
+                x.append(typeClass.linearCombination(Ylist,uv[:,j]))
             Ylist = x
             break
         else:
-            Ylist = [typeClass.linearCombination(Ylist,uvals[:,idx])]
+            Ylist = [typeClass.linearCombination(Ylist,uv[:,idx])]
 
         if (it == maxit-1) and (not isConverged):
             print("Alert:: Lanczos iterations is not converged!")
@@ -100,9 +101,9 @@ if __name__ == "__main__":
     A = Q.T @ np.diag(ev) @ Q
 
     
-    sigma = 230
+    sigma = 30
     maxit = 4
-    L  = 8
+    L  = 3
     conv_tol = 1e-08
     optionDict = {"linearSolver":"gcrotmk","linearIter":1000,"linear_tol":1e-04}
 
