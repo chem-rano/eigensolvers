@@ -17,12 +17,9 @@ def feast_core_interface(A,Y,nc,quad,rmin,rmax,eps,maxit):
     typeClass = Y[0].__class__
     m0 = len(Y)
     n = Y[0].size
-    #I = np.eye(n)  # no need to store
-    #Y1 = Y.copy()     # no need to copy
     ev = np.zeros(m0)
     prev_ev = np.zeros(m0)
     Q = [np.nan for it in range(m0)]
-    #Q = typeClass.zeros_like(Y1,dtype = complex)
 
     # numerical quadrature points.
     gk,wk = quad_func(nc,quad)
@@ -35,7 +32,6 @@ def feast_core_interface(A,Y,nc,quad,rmin,rmax,eps,maxit):
             linOp = LinearOperator((n,n), matvec = lambda x, z=z, A=A: z*(np.eye(n))@x-A@x,dtype=complex)
             
             for jloop in range(m0):
-                #b_in = (Y[jloop]).applyOp(B)    # no need of multiplication
                 b_in = Y[jloop]
                 Qkjloop = typeClass.solve(linOp,b_in, x0=None)
                 
@@ -45,37 +41,35 @@ def feast_core_interface(A,Y,nc,quad,rmin,rmax,eps,maxit):
                     Q[jloop] = Qadd
                 else:
                     Q[jloop] = typeClass.linearCombination([Q[jloop],Qadd],[1.0,1.0])
-        
+       
         # ------------------------------------- 
         # eigh in Lowdin orthogonal basis
         qtq = typeClass.overlapMatrix(Q)
-        info, uvqTraf = linearDepedency(qtq, tol = 1e-12)
-        m = uvqTraf.shape[1]
-        for i in range(m):
-            Q[i] = typeClass.linearCombination(Q,uvqTraf[:,i])
-        qtAq = typeClass.matrixRepresentation(A,Q)
-        ev, uv = la.eigh(qtAq)
-        
-        m0 = len(Q)
+        info, uQ = linearDepedency(qtq, tol = 1e-12)
+        m0 = uQ.shape[1]  
         for ivec in range(m0):
-            Q[ivec] = typeClass.linearCombination(Q,uv[:,ivec])
+            Q[ivec] = typeClass.linearCombination(Q,uQ[:,ivec])
+        Q = Q[0:m0]
+        qtAq = typeClass.matrixRepresentation(A,Q) 
+        ev, uvals = la.eigh(qtAq)
         # ------------------------------------- 
-
+    
         if i == 0: 
             res = None   # Initialize res as None
         else:
             #calculate eigenvalue residuals
-            res = resEigenvalue(ev,prev_ev)
-            
-            #calculate eigenvector residuals
-            #R = typeClass.resvecs(A,Q,ev)
-            #res = typeClass.resEigenvector(ev,Q,R,eps)
+            res = resEigenvalue(ev,prev_ev)     
 
             print("{:10}{:26}".format(i,res))
 
             if res < eps:
                 break
-        Y = Q
+       
+        uv = uQ@uvals 
+        for jvec in range(m0):
+            Y[jvec]= typeClass.linearCombination(Q,uv[:,jvec])
+        
+        Y = Y[0:m0]
         prev_ev = ev
 
         
@@ -94,13 +88,13 @@ if __name__ == "__main__":
     linOp = LinearOperator((n,n), matvec = lambda x, A=A: A@x)
 
     # Specify FEAST parameters
-    ev_min = 180.0
-    ev_max = 184.0
-    nc    = 4          # number of contour points
+    ev_min = 10.0
+    ev_max = 14.0
+    nc    = 6          # number of contour points
     quad  = "legendre" # Choice of quadrature points # available options, legendre, Hermite (, trapezoidal !)
-    m0    = 1         # subspace dimension
-    eps   = 1e-08      # residual convergence tolerance
-    maxit = 5         # maximum FEAST iterations
+    m0    = 4         # subspace dimension
+    eps   = 1e-6      # residual convergence tolerance
+    maxit = 10         # maximum FEAST iterations
     optionsDict = {"linearSolver":"gcrotmk","linearIter":1000,"linear_tol":1e-02}
     
     Y = []

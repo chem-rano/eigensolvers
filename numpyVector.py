@@ -109,18 +109,23 @@ class NumpyVector(AbstractVector):
             x = None
         return x
         
-    def solve(H, b, x0=None):
-        ''' Linear equation (Hx0 =b) solver'''
+    def solve(H, b, sigma = None, x0=None):
+        ''' Linear equation ((H-sigma*I)x0 =b ) solver'''
         
         n = H.shape[0]
+        if sigma is not None:
+            sigma = sigma*np.eye(n)
+            linOp = LinearOperator((n,n),lambda x, sigma=sigma, H=H:(sigma@x - H@x))
+        else:
+            linOp = H
 
         tol = b.optionsDict["linear_tol"]
         atol = b.optionsDict["linear_atol"]
         maxiter = b.optionsDict["linearIter"]
         if b.optionsDict["linearSolver"] == "gcrotmk":
-            wk,conv = scipy.sparse.linalg.gcrotmk(H,b.array,x0, tol=tol,atol=atol,maxiter=maxiter)
+            wk,conv = scipy.sparse.linalg.gcrotmk(linOp,b.array,x0, tol=tol,atol=atol,maxiter=maxiter)
         elif b.optionsDict["linearSolver"] == "minres":
-            wk,conv = scipy.sparse.linalg.minres(H,b.array,x0, tol=tol,maxiter=maxiter)
+            wk,conv = scipy.sparse.linalg.minres(linOp,b.array,x0, tol=tol,maxiter=maxiter)
 
         if conv != 0:
             warnings.simplefilter('error', UserWarning)

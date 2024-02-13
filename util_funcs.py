@@ -208,15 +208,13 @@ def linearDepedency(oMat, tol=1e-14):
     """ Checks linear dipendency (with tolerance tol) of vectors uisng overlap matrix (oMat).
     :returns info (is all linear independent: True or not), vectors
     """
-
     evq, uvq = la.eigh(oMat)
     idx = evq > tol
     evq = evq[idx]
     uvq = uvq[:,idx]
-
+    
     info = all(idx)
-    uvqTraf = uvq * evq**(-0.5)
-
+    uvqTraf = uvq*evq**(-0.5)
     return info, uvqTraf
 
 def resEigenvalue(ev,prev_ev):
