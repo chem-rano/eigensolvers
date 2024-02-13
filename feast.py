@@ -73,7 +73,7 @@ def feast_core_interface(A,Y,nc,quad,rmin,rmax,eps,maxit):
         prev_ev = ev
 
         
-    return Q,ev
+    return ev,Y
 
 
 if __name__ == "__main__":
@@ -105,5 +105,5 @@ if __name__ == "__main__":
 
     contour_ev = print_a_range(ev, ev_min, ev_max)
     print("actual",contour_ev)
-    qIn,efeast =  feast_core_interface(linOp,Y,nc,quad,ev_min,ev_max,eps,maxit)
+    efeast,ufeast =  feast_core_interface(linOp,Y,nc,quad,ev_min,ev_max,eps,maxit)
     print("feast",efeast)
