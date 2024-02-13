@@ -3,7 +3,7 @@ import scipy
 from scipy.sparse.linalg import LinearOperator
 from scipy import special
 from scipy import linalg as la
-from util_funcs import getRes, print_a_range, quad_func, resEigenvalue
+from util_funcs import print_a_range, quad_func, resEigenvalue
 from util_funcs import linearDepedency
 from numpyVector import NumpyVector
 import time
