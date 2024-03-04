@@ -29,7 +29,7 @@ class AbstractVector(ABC):
     
     @abstractmethod
     def __rmul__(self,other):
-        pass
+        raise NotImplementedError
     
     @abstractmethod
     def __truediv__(self,other):
