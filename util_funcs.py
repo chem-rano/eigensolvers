@@ -215,7 +215,7 @@ def lowdinOrtho(oMat, tol=1e-14):
     uvq = uvq[:,idx]
     
     info = all(idx)
-    uvqTraf = uvq*evq**(-0.5)
+    uvqTraf = uvq * evq**(-0.5)
     return info, uvqTraf
 
 def resEigenvalue(ev,prev_ev):
