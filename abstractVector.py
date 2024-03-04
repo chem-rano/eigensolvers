@@ -23,7 +23,6 @@ class AbstractVector(ABC):
     @abstractmethod
     def dtype(self):
         raise NotImplementedError
-        pass
     @abstractmethod
     def __mul__(self,other):
         pass
