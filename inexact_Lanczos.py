@@ -3,18 +3,21 @@ import scipy
 from scipy import linalg as la
 from scipy.sparse.linalg import LinearOperator
 from util_funcs import find_nearest, headerBot
-from util_funcs import linearDepedency
+from util_funcs import lowdinOrtho  
 import warnings
 from numpyVector import NumpyVector
 import time
 
+epsilonLowdin = 1e-12       # Assign tolerance for Lowdin orthogonalization as 1e-12
+                            # neat way
 # -----------------------------------------------------
 #    Inexact Lanczos with AbstractClass interface
 #------------------------------------------------------
 
-def core_func(H,v0,sigma,L,maxit,conv_tol,proceed_ortho:bool = False):
+def inexactDiagonalization(H,v0,sigma,L,maxit,conv_tol,proceed_ortho:bool = False):
     '''
     This is core function to calculate eigenvalues and eigenvectors
+    with inexact Lanczos method
     Input::  H => diagonalizable input matrix or linearoperator
              sigma => eigenvalue estimate 
              v0 => eigenvector guess
@@ -42,7 +45,7 @@ def core_func(H,v0,sigma,L,maxit,conv_tol,proceed_ortho:bool = False):
             if not proceed_ortho:
                 Ylist.append(Ysolved)
                 qtq = typeClass.overlapMatrix(Ylist)
-                info, uQ = linearDepedency(qtq, tol = 1e-12)
+                uQ = lowdinOrtho(qtq, epsilonLowdin)[1]
                 
                 m = uQ.shape[1]
                 Ylist_trun = []
@@ -115,7 +118,7 @@ if __name__ == "__main__":
     print("{:50} :: {: <4}".format("Eigenvalue convergence tolarance",conv_tol))
     print("\n")
     t1 = time.time()
-    lf,xf =  core_func(A,Y0,sigma,L,maxit,conv_tol)
+    lf,xf =  inexactDiagonalization(A,Y0,sigma,L,maxit,conv_tol)
     t2 = time.time()
 
     print("{:50} :: {: <4}".format("Eigenvalue nearest to sigma",round(find_nearest(lf,sigma)[1],8)))

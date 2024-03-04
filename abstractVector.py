@@ -17,6 +17,12 @@ class AbstractVector(ABC):
     @property
     @abstractmethod
     def hasExactAddition(self):
+        """
+        Simplication of vector addition with its complex conjugate.
+        For example, c+c* = 2c when c=(a+ib)
+        This summation is true for numpy vectors
+        But does not exactly same as 2c for TTNS
+        """
         raise NotImplementedError
     
     @property
@@ -24,7 +30,7 @@ class AbstractVector(ABC):
     def dtype(self):
         raise NotImplementedError
    
-   @abstractmethod
+    @abstractmethod
     def __mul__(self,other):
         raise NotImplementedError
     

@@ -30,6 +30,12 @@ class NumpyVector(AbstractVector):
     
     @property
     def hasExactAddition(self):
+        """
+        Simplication of vector addition with its complex conjugate.
+        For example, c+c* = 2c when c=(a+ib)
+        This summation is true for numpy vectors
+        But does not exactly same as 2c for TTNS
+        """
         return True
         
     @property
@@ -124,10 +130,11 @@ class NumpyVector(AbstractVector):
         ''' Linear equation ((H-sigma*I)x0 =b ) solver'''
             
         n = H.shape[0]
-        if isinstance(sigma,complex) is not True:            
-            linOp = LinearOperator((n,n),matvec = lambda x, sigma=sigma, H=H:(sigma*x - H@x))
-        else:
+        dtype = np.result_type(sigma, H.dtype, b.dtype)
+        if dtype == complex:            
             linOp = LinearOperator((n,n),matvec = lambda x, sigma=sigma, H=H:(sigma*x-H@x),dtype=complex)
+        else:
+            linOp = LinearOperator((n,n),matvec = lambda x, sigma=sigma, H=H:(sigma*x - H@x))
 
         tol = b.optionsDict["linear_tol"]
         atol = b.optionsDict["linear_atol"]
