@@ -86,7 +86,7 @@ def feastDiagonalization(A,Y,nc,quad,rmin,rmax,eps,maxit):
             #calculate eigenvalue residuals
             res = eigenvalueResidual(ev,prev_ev)     
 
-            print(f"{10d:i}   {20.14f:res}")
+            print(f"{i:10d}   {res:20.14f}")
 
             if res < eps:
                 break
@@ -131,5 +131,5 @@ if __name__ == "__main__":
 
     contour_ev = print_a_range(ev, ev_min, ev_max)
     print("actual",contour_ev)
-    efeast,ufeast =  feast_core_interface(linOp,Y,nc,quad,ev_min,ev_max,eps,maxit)
+    efeast,ufeast =  feastDiagonalization(linOp,Y,nc,quad,ev_min,ev_max,eps,maxit)
     print("feast",efeast)
