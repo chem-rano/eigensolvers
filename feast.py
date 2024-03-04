@@ -4,10 +4,12 @@ from scipy.sparse.linalg import LinearOperator
 from scipy import special
 from scipy import linalg as la
 from util_funcs import print_a_range, quad_func, resEigenvalue
-from util_funcs import linearDepedency
+from util_funcs import lowdinOrtho
 from numpyVector import NumpyVector
 import time
 
+epsilonLowdin = 1e-12       # Assign tolerance for Lowdin orthogonalization as 1e-12
+                            # neat way
 
 # ***************************************************
 # Part 1: main FEAST function for contour integral
@@ -54,7 +56,7 @@ def feast_core_interface(A,Y,nc,quad,rmin,rmax,eps,maxit):
         # ------------------------------------- 
         # eigh in Lowdin orthogonal basis
         qtq = typeClass.overlapMatrix(Q)
-        info, uQ = linearDepedency(qtq, tol = 1e-12)
+        info, uQ = lowdinOrtho(qtq, epsilonLowdin)
         m0 = uQ.shape[1]  
         for ivec in range(m0):
             Q[ivec] = typeClass.linearCombination(Q,uQ[:,ivec])

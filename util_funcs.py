@@ -204,8 +204,9 @@ def headerBot(method,yesBot=False):
         print("*"*nstars)
 
 # -----------------------------------------------------
-def linearDepedency(oMat, tol=1e-14):
-    """ Checks linear dipendency (with tolerance tol) of vectors uisng overlap matrix (oMat).
+def lowdinOrtho(oMat, tol=1e-14):
+    """ Extracts out linearly independent vectors from the matrix oMat and 
+    returns orthogonalized vectors (vector*S-1/2).
     :returns info (is all linear independent: True or not), vectors
     """
     evq, uvq = la.eigh(oMat)
