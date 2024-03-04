@@ -205,7 +205,7 @@ def headerBot(method,yesBot=False):
 
 # -----------------------------------------------------
 def lowdinOrtho(oMat, tol=1e-14):
-    """ Extracts out linearly independent vectors from the matrix oMat and 
+    """ Extracts out linearly independent vectors from the overlap matrix `oMat` and 
     returns orthogonalized vectors (vector*S-1/2).
     :returns info (is all linear independent: True or not), vectors
     """
