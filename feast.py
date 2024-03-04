@@ -71,7 +71,7 @@ def feastDiagonalization(A,Y,nc,quad,rmin,rmax,eps,maxit):
         # ------------------------------------- 
         # eigh in Lowdin orthogonal basis
         qtq = typeClass.overlapMatrix(Q)
-        info, uQ = lowdinOrtho(qtq, epsilonLowdin)
+        uQ = lowdinOrtho(qtq, epsilonLowdin)[1]
         m0 = uQ.shape[1]  
         for ivec in range(m0):
             Q[ivec] = typeClass.linearCombination(Q,uQ[:,ivec])
