@@ -23,9 +23,10 @@ class AbstractVector(ABC):
     @abstractmethod
     def dtype(self):
         raise NotImplementedError
-    @abstractmethod
+   
+   @abstractmethod
     def __mul__(self,other):
-        pass
+        raise NotImplementedError
     
     @abstractmethod
     def __rmul__(self,other):
@@ -33,44 +34,44 @@ class AbstractVector(ABC):
     
     @abstractmethod
     def __truediv__(self,other):
-        pass
+        raise NotImplementedError
 
     @abstractmethod
     def __imul__(self, other):
-        pass
+        raise NotImplementedError
 
     @abstractmethod
     def __itruediv__(self, other):
-        pass
+        raise NotImplementedError
 
     @abstractmethod
     def __len__(self):
-        pass
+        raise NotImplementedError
     
     @abstractmethod
     def normalize(self):
-        pass
+        raise NotImplementedError
         
     @abstractmethod
     def norm(self) -> float:  
-        pass
+        raise NotImplementedError
     
     @abstractmethod
     def real(self):
-        pass
+        raise NotImplementedError
 
     @abstractmethod
     def vdot(self,other,conjugate=True):
-        pass
+        raise NotImplementedError
      
     @abstractmethod
     def copy(self):
-        pass
+        raise NotImplementedError
     
     @abstractmethod
     def applyOp(self,other):
         ''' Apply rmatmul as other@self.array '''
-        pass
+        raise NotImplementedError
 
     @staticmethod
     def linearCombination(other,coeff):
