@@ -17,6 +17,7 @@ import warnings
 # Assign the task for the functions initiated in abstract class
 # -------------------------------------------------------------
 class NumpyVector(AbstractVector):
+
     def __init__(self,array,optionsDict=dict()):
         self.array = array
         self.size = array.size
@@ -26,12 +27,19 @@ class NumpyVector(AbstractVector):
         self.optionsDict["linearIter"] = self.optionsDict.get("linearIter",1000)
         self.optionsDict["linear_tol"] = self.optionsDict.get("linear_tol",1e-4)
         self.optionsDict["linear_atol"] = self.optionsDict.get("linear_atol",1e-4)
+    
+    @property
+    def hasExactAddition(self):
+        return True
         
     @property
     def dtype(self):
         return self.array.dtype
         
     def __mul__(self,other):
+        return NumpyVector(self.array*other,self.optionsDict)
+    
+    def __rmul__(self,other):
         return NumpyVector(self.array*other,self.optionsDict)
 
     def __truediv__(self,other):
@@ -53,6 +61,9 @@ class NumpyVector(AbstractVector):
 
     def norm(self) -> float:
         return la.norm(self.array)
+
+    def real(self):
+        return NumpyVector(np.real(self.array),self.optionsDict)
 
     def vdot(self,other,conjugate:bool=True):
         if conjugate:
@@ -111,13 +122,12 @@ class NumpyVector(AbstractVector):
         
     def solve(H, b, sigma = None, x0=None):
         ''' Linear equation ((H-sigma*I)x0 =b ) solver'''
-        
+            
         n = H.shape[0]
-        if sigma is not None:
-            sigma = sigma*np.eye(n)
-            linOp = LinearOperator((n,n),lambda x, sigma=sigma, H=H:(sigma@x - H@x))
+        if isinstance(sigma,complex) is not True:            
+            linOp = LinearOperator((n,n),matvec = lambda x, sigma=sigma, H=H:(sigma*np.eye(n)@x - H@x))
         else:
-            linOp = H
+            linOp = LinearOperator((n,n),matvec = lambda x, sigma=sigma, H=H:(sigma*np.eye(n)@x-H@x),dtype=complex)
 
         tol = b.optionsDict["linear_tol"]
         atol = b.optionsDict["linear_atol"]

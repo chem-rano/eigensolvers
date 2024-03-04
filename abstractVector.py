@@ -16,10 +16,20 @@ class AbstractVector(ABC):
     
     @property
     @abstractmethod
+    def hasExactAddition(self):
+        raise NotImplementedError
+    
+    @property
+    @abstractmethod
     def dtype(self):
+        raise NotImplementedError
         pass
     @abstractmethod
     def __mul__(self,other):
+        pass
+    
+    @abstractmethod
+    def __rmul__(self,other):
         pass
     
     @abstractmethod
@@ -44,6 +54,10 @@ class AbstractVector(ABC):
         
     @abstractmethod
     def norm(self) -> float:  
+        pass
+    
+    @abstractmethod
+    def real(self):
         pass
 
     @abstractmethod

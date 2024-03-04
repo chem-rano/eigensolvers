@@ -16,7 +16,8 @@ def feast_core_interface(A,Y,nc,quad,rmin,rmax,eps,maxit):
 
     typeClass = Y[0].__class__
     m0 = len(Y)
-    n = Y[0].size
+    r = (rmax-rmin)*0.5
+
     ev = np.zeros(m0)
     prev_ev = np.zeros(m0)
     Q = [np.nan for it in range(m0)]
@@ -24,19 +25,27 @@ def feast_core_interface(A,Y,nc,quad,rmin,rmax,eps,maxit):
     # numerical quadrature points.
     gk,wk = quad_func(nc,quad)
     pi = np.pi
-
+    
+    flag = Y[0].hasExactAddition
+    
     for i in range(maxit):
         for k in range(nc):
             theta = -(pi*0.5)*(gk[k]-1)
             z = (rmin+rmax)/2+ np.exp(1.0j*theta)
-            linOp = LinearOperator((n,n), matvec = lambda x, z=z, A=A: z*(np.eye(n))@x-A@x,dtype=complex)
             
             for jloop in range(m0):
                 b_in = Y[jloop]
-                Qkjloop = typeClass.solve(linOp,b_in, x0=None)
+                Qkjloop = typeClass.solve(A,b_in,z)
                 
-                Qadd = np.real((Qkjloop*((rmin-rmax)/2*np.exp(1j*theta))).array)*(wk[k]*-0.5)
-                Qadd = NumpyVector(Qadd,b_in.optionsDict)
+                if flag:
+                    Qadd = (-0.5*wk[k])*typeClass.real(r*np.exp(1j*theta)*Qkjloop)
+                else:
+                    part1 = np.exp(1j*theta)*Qkjloop
+                    part2 = np.exp(-1j*theta)*Qkjloop
+                    Qadd = (-0.25*wk[k])*r*linearCombination([part1,part2],[1.0,1.0]) 
+                    #Qadd = (-0.25*wk[k])*r*((np.exp(1j*theta)*Qkjloop)+((np.exp(-1j*theta)*Qkjloop.conj()))) #HRL conj()
+
+
                 if k == 0:
                     Q[jloop] = Qadd
                 else:
