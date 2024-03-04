@@ -71,7 +71,7 @@ def feast_core_interface(A,Y,nc,quad,rmin,rmax,eps,maxit):
             #calculate eigenvalue residuals
             res = resEigenvalue(ev,prev_ev)     
 
-            print("{:10}{:26}".format(i,res))
+            print(f"{10d:i}   {20.14f:res}")
 
             if res < eps:
                 break
