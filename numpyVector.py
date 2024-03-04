@@ -125,9 +125,9 @@ class NumpyVector(AbstractVector):
             
         n = H.shape[0]
         if isinstance(sigma,complex) is not True:            
-            linOp = LinearOperator((n,n),matvec = lambda x, sigma=sigma, H=H:(sigma*np.eye(n)@x - H@x))
+            linOp = LinearOperator((n,n),matvec = lambda x, sigma=sigma, H=H:(sigma*x - H@x))
         else:
-            linOp = LinearOperator((n,n),matvec = lambda x, sigma=sigma, H=H:(sigma*np.eye(n)@x-H@x),dtype=complex)
+            linOp = LinearOperator((n,n),matvec = lambda x, sigma=sigma, H=H:(sigma*x-H@x),dtype=complex)
 
         tol = b.optionsDict["linear_tol"]
         atol = b.optionsDict["linear_atol"]
