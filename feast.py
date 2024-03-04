@@ -92,10 +92,10 @@ def feastDiagonalization(A,Y,nc,quad,rmin,rmax,eps,maxit):
                 break
        
         uv = uQ@uvals 
+        Y = []
         for jvec in range(m0):
-            Y[jvec]= typeClass.linearCombination(Q,uv[:,jvec])
+            Y.append(typeClass.linearCombination(Q,uv[:,jvec]))
         
-        Y = Y[0:m0]
         prev_ev = ev
 
         
