@@ -218,7 +218,7 @@ def lowdinOrtho(oMat, tol=1e-14):
     uvqTraf = uvq * evq**(-0.5)
     return info, uvqTraf
 
-def resEigenvalue(ev,prev_ev):
+def eigenvalueResidual(ev,prev_ev):
 
     m0 = len(ev)
     diff = 0.0

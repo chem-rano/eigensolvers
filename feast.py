@@ -3,7 +3,7 @@ import scipy
 from scipy.sparse.linalg import LinearOperator
 from scipy import special
 from scipy import linalg as la
-from util_funcs import print_a_range, quad_func, resEigenvalue
+from util_funcs import print_a_range, quad_func, eigenvalueResidual
 from util_funcs import lowdinOrtho
 from numpyVector import NumpyVector
 import time
@@ -14,7 +14,22 @@ epsilonLowdin = 1e-12       # Assign tolerance for Lowdin orthogonalization as 1
 # ***************************************************
 # Part 1: main FEAST function for contour integral
 # ------------------------------
-def feast_core_interface(A,Y,nc,quad,rmin,rmax,eps,maxit):
+def feastDiagonalization(A,Y,nc,quad,rmin,rmax,eps,maxit):
+    """ FEAST diagonalization of A 
+
+        In A     ::  matrix or linearoperator or SOP operator 
+        In Y     ::  Initial guess of m0 vectors (m0 is called as subspace dimension)
+        In nc    ::  number of quadrature points
+        In quad  ::  quadrature points distribution
+                     Avaiable options - "legendre", "hermite", "trapezoidal"
+        In rmin  ::  eigenvalue lower limit
+        In rmax  ::  eigenvalue upper limit
+        In eps   ::  eigenvalue residual convergence tolerance
+        In maxit ::  maximum feast iterations
+
+        Out ev   ::  feast eigenvalues
+        Out Y    ::  feast eigenvectors
+    """
 
     typeClass = Y[0].__class__
     m0 = len(Y)
@@ -69,7 +84,7 @@ def feast_core_interface(A,Y,nc,quad,rmin,rmax,eps,maxit):
             res = None   # Initialize res as None
         else:
             #calculate eigenvalue residuals
-            res = resEigenvalue(ev,prev_ev)     
+            res = eigenvalueResidual(ev,prev_ev)     
 
             print(f"{10d:i}   {20.14f:res}")
 
