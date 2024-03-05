@@ -3,7 +3,7 @@ import scipy
 from scipy import linalg as la
 from scipy.sparse.linalg import LinearOperator
 from util_funcs import find_nearest, headerBot
-from util_funcs import linearDepedency
+from util_funcs import lowdinOrtho  
 import warnings
 from numpyVector import NumpyVector
 import time
@@ -12,9 +12,10 @@ import time
 #    Inexact Lanczos with AbstractClass interface
 #------------------------------------------------------
 
-def core_func(H,v0,sigma,L,maxit,conv_tol,proceed_ortho:bool = False):
+def inexactDiagonalization(H,v0,sigma,L,maxit,conv_tol,proceed_ortho:bool = False):
     '''
     This is core function to calculate eigenvalues and eigenvectors
+    with inexact Lanczos method
     Input::  H => diagonalizable input matrix or linearoperator
              sigma => eigenvalue estimate 
              v0 => eigenvector guess
@@ -42,24 +43,16 @@ def core_func(H,v0,sigma,L,maxit,conv_tol,proceed_ortho:bool = False):
             if not proceed_ortho:
                 Ylist.append(Ysolved)
                 qtq = typeClass.overlapMatrix(Ylist)
-                info, uvqTraf = linearDepedency(qtq, tol = 1e-12)
-                # Also get assured if info is False, then return uvqTraf (to avoid extra memory)
+                uQ = lowdinOrtho(qtq)[1]
                 
-                info = False # forcefully entering to if loop
-                
-                if not info:
-                    # TODO how to avoid linear combination.
-                    Ylist_trun = []
-                    m = uvqTraf.shape[1]
-                    for i in range(m):
-                        Ylist_trun.append(typeClass.linearCombination(Ylist,uvqTraf[:,i]))
-                    AqTraf = typeClass.matrixRepresentation(H,Ylist_trun)
-                    ev, uvals = la.eigh(AqTraf)
-                else:
-                    Aq = typeClass.matrixRepresentation(H,Ylist)
-                    ev, uv = la.eigh(Aq)
-                    #uv to list format: that is Ylist
-                    # so this leads another condition and another if loop! Leaving as it is.
+                m = uQ.shape[1]
+                Ylist_trun = []
+                for ivec in range(m):
+                    Ylist_trun.append(typeClass.linearCombination(Ylist,uQ[:,ivec]))
+                qtAq = typeClass.matrixRepresentation(H,Ylist_trun)
+                ev, uvals = la.eigh(qtAq)
+                uv = uQ@uvals
+                Ylist = Ylist_trun
 
 
             else:
@@ -67,7 +60,7 @@ def core_func(H,v0,sigma,L,maxit,conv_tol,proceed_ortho:bool = False):
                 if item is not None:
                     Ylist.append(item)
                     qtAq = typeClass.matrixRepresentation(H,Ylist)
-                    ev, uvals = la.eigh(qtAq)
+                    ev, uv = la.eigh(qtAq)
                     
                 else:
                     warnings.warn("Linear dependency problem, abort current Lanczos iteration and restart.")
@@ -88,12 +81,13 @@ def core_func(H,v0,sigma,L,maxit,conv_tol,proceed_ortho:bool = False):
             isConverged = True
             
             m = len(Ylist)
+            x = []
             for j in range(m):
-                Ylist[j] = typeClass.linearCombination(Ylist,uvals[:,j])
-
+                x.append(typeClass.linearCombination(Ylist,uv[:,j]))
+            Ylist = x
             break
         else:
-            Ylist = [typeClass.linearCombination(Ylist,uvals[:,idx])]
+            Ylist = [typeClass.linearCombination(Ylist,uv[:,idx])]
 
         if (it == maxit-1) and (not isConverged):
             print("Alert:: Lanczos iterations is not converged!")
@@ -108,9 +102,9 @@ if __name__ == "__main__":
     A = Q.T @ np.diag(ev) @ Q
 
     
-    sigma = 230
+    sigma = 30
     maxit = 4
-    L  = 8
+    L  = 3
     conv_tol = 1e-08
     optionDict = {"linearSolver":"gcrotmk","linearIter":1000,"linear_tol":1e-04}
 
@@ -122,7 +116,7 @@ if __name__ == "__main__":
     print("{:50} :: {: <4}".format("Eigenvalue convergence tolarance",conv_tol))
     print("\n")
     t1 = time.time()
-    lf,xf =  core_func(A,Y0,sigma,L,maxit,conv_tol)
+    lf,xf =  inexactDiagonalization(A,Y0,sigma,L,maxit,conv_tol)
     t2 = time.time()
 
     print("{:50} :: {: <4}".format("Eigenvalue nearest to sigma",round(find_nearest(lf,sigma)[1],8)))

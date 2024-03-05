@@ -5,6 +5,8 @@ from scipy import special
 import copy
 from numpyVector import NumpyVector
 
+LINDEP_DEFAULT_VALUE = 1e-14 # Global variable
+
 # -----------------------------------------------------
 def trapezoidal(nc):
     '''
@@ -165,7 +167,7 @@ def quad_func(nc,quad):
 
 # -----------------------------------------------------
 # _qr function is copied from pyscf
-def _qr(xs, dot, lindep=1e-14):
+def _qr(xs, dot, lindep= LINDEP_DEFAULT_VALUE):
     '''QR decomposition for a list of vectors (for linearly independent vectors only).
     xs = (r.T).dot(qs)
     '''
@@ -204,19 +206,29 @@ def headerBot(method,yesBot=False):
         print("*"*nstars)
 
 # -----------------------------------------------------
-def linearDepedency(oMat, tol=1e-14):
-    """ Checks linear dipendency (with tolerance tol) of vectors uisng overlap matrix (oMat).
+def lowdinOrtho(oMat, tol= LINDEP_DEFAULT_VALUE):
+    """ Extracts out linearly independent vectors from the overlap matrix `oMat` and 
+    returns orthogonalized vectors (vector*S-1/2).
     :returns info (is all linear independent: True or not), vectors
     """
-
     evq, uvq = la.eigh(oMat)
     idx = evq > tol
     evq = evq[idx]
     uvq = uvq[:,idx]
-
+    
     info = all(idx)
     uvqTraf = uvq * evq**(-0.5)
-
     return info, uvqTraf
 
+def eigenvalueResidual(ev,prev_ev):
 
+    m0 = len(ev)
+    diff = 0.0
+    prev_tot = 0.0
+
+    for i in range(m0):
+        diff += abs(prev_ev[i]-ev[i])
+        prev_tot += prev_ev[i]
+    res = diff/prev_tot
+    return res
+    

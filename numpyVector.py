@@ -17,6 +17,7 @@ import warnings
 # Assign the task for the functions initiated in abstract class
 # -------------------------------------------------------------
 class NumpyVector(AbstractVector):
+
     def __init__(self,array,optionsDict=dict()):
         self.array = array
         self.size = array.size
@@ -26,12 +27,25 @@ class NumpyVector(AbstractVector):
         self.optionsDict["linearIter"] = self.optionsDict.get("linearIter",1000)
         self.optionsDict["linear_tol"] = self.optionsDict.get("linear_tol",1e-4)
         self.optionsDict["linear_atol"] = self.optionsDict.get("linear_atol",1e-4)
+    
+    @property
+    def hasExactAddition(self):
+        """
+        Simplication of vector addition with its complex conjugate.
+        For example, c+c* = 2c when c=(a+ib)
+        This summation is true for numpy vectors
+        But does not exactly same as 2c for TTNS
+        """
+        return True
         
     @property
     def dtype(self):
         return self.array.dtype
         
     def __mul__(self,other):
+        return NumpyVector(self.array*other,self.optionsDict)
+    
+    def __rmul__(self,other):
         return NumpyVector(self.array*other,self.optionsDict)
 
     def __truediv__(self,other):
@@ -53,6 +67,9 @@ class NumpyVector(AbstractVector):
 
     def norm(self) -> float:
         return la.norm(self.array)
+
+    def real(self):
+        return NumpyVector(np.real(self.array),self.optionsDict)
 
     def vdot(self,other,conjugate:bool=True):
         if conjugate:
@@ -85,13 +102,15 @@ class NumpyVector(AbstractVector):
 
     
 
-    def orthogonalize_against_set(x,qs,lindep=1e-14):
+    def orthogonalize_against_set(x,qs,lindep):
         '''
         Orthogonalizes a vector against the previously obtained set of 
         orthogonalized vectors
         x (In): vector to be orthogonalized 
         xs (In): set of orthogonalized vector
         lindep (optional): Parameter to check linear dependency
+                          Deafult value is LINDEP_DEFAULT_VALUE
+                          See module abstractVector.py
         If it does not find linearly independent vector w.r.t. xs; it returns None
         '''
         nv = len(qs)
@@ -109,19 +128,20 @@ class NumpyVector(AbstractVector):
             x = None
         return x
         
-    def solve(H, b, sigma, x0=None):
+    def solve(H, b, sigma = None, x0=None):
         ''' Linear equation ((H-sigma*I)x0 =b ) solver'''
-        
+            
         n = H.shape[0]
-        sigma = sigma*np.eye(n)
+        dtype = np.result_type(sigma, H.dtype, b.dtype)
+        linOp = LinearOperator((n,n),matvec = lambda x, sigma=sigma, H=H:(sigma*x-H@x),dtype=dtype)
+
         tol = b.optionsDict["linear_tol"]
         atol = b.optionsDict["linear_atol"]
         maxiter = b.optionsDict["linearIter"]
-        linOp = LinearOperator((n,n),lambda x, sigma=sigma, H=H:(sigma@x - H@x))
         if b.optionsDict["linearSolver"] == "gcrotmk":
             wk,conv = scipy.sparse.linalg.gcrotmk(linOp,b.array,x0, tol=tol,atol=atol,maxiter=maxiter)
         elif b.optionsDict["linearSolver"] == "minres":
-            wk,conv = scipy.sparse.linalg.minres(linOp,b.array,x0, tol=tol, maxiter=maxiter)
+            wk,conv = scipy.sparse.linalg.minres(linOp,b.array,x0, tol=tol,maxiter=maxiter)
 
         if conv != 0:
             warnings.simplefilter('error', UserWarning)
