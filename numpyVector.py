@@ -133,10 +133,7 @@ class NumpyVector(AbstractVector):
             
         n = H.shape[0]
         dtype = np.result_type(sigma, H.dtype, b.dtype)
-        if dtype == complex:            
-            linOp = LinearOperator((n,n),matvec = lambda x, sigma=sigma, H=H:(sigma*x-H@x),dtype=complex)
-        else:
-            linOp = LinearOperator((n,n),matvec = lambda x, sigma=sigma, H=H:(sigma*x - H@x))
+        linOp = LinearOperator((n,n),matvec = lambda x, sigma=sigma, H=H:(sigma*x-H@x),dtype=dtype)
 
         tol = b.optionsDict["linear_tol"]
         atol = b.optionsDict["linear_atol"]
