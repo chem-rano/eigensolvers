@@ -102,13 +102,15 @@ class NumpyVector(AbstractVector):
 
     
 
-    def orthogonalize_against_set(x,qs,lindep=1e-14):
+    def orthogonalize_against_set(x,qs,lindep):
         '''
         Orthogonalizes a vector against the previously obtained set of 
         orthogonalized vectors
         x (In): vector to be orthogonalized 
         xs (In): set of orthogonalized vector
         lindep (optional): Parameter to check linear dependency
+                          Deafult value is LINDEP_DEFAULT_VALUE
+                          See module abstractVector.py
         If it does not find linearly independent vector w.r.t. xs; it returns None
         '''
         nv = len(qs)
