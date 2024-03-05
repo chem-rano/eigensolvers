@@ -21,7 +21,7 @@ class AbstractVector(ABC):
         Simplication of vector addition with its complex conjugate.
         For example, c+c* = 2c when c=(a+ib)
         This summation is true for numpy vectors
-        But does not exactly same as 2c for TTNS
+        but is not exactly identical to 2c for TNSs
         """
         raise NotImplementedError
     
