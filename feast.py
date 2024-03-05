@@ -8,9 +8,6 @@ from util_funcs import lowdinOrtho
 from numpyVector import NumpyVector
 import time
 
-epsilonLowdin = 1e-12       # Assign tolerance for Lowdin orthogonalization as 1e-12
-                            # neat way
-
 # ***************************************************
 # Part 1: main FEAST function for contour integral
 # ------------------------------
@@ -71,7 +68,7 @@ def feastDiagonalization(A,Y,nc,quad,rmin,rmax,eps,maxit):
         # ------------------------------------- 
         # eigh in Lowdin orthogonal basis
         qtq = typeClass.overlapMatrix(Q)
-        uQ = lowdinOrtho(qtq, epsilonLowdin)[1]
+        uQ = lowdinOrtho(qtq)[1]
         m0 = uQ.shape[1]  
         for ivec in range(m0):
             Q[ivec] = typeClass.linearCombination(Q,uQ[:,ivec])

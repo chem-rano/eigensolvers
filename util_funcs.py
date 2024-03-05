@@ -5,6 +5,8 @@ from scipy import special
 import copy
 from numpyVector import NumpyVector
 
+LINDEP_DEFAULT_VALUE = 1e-14 # Global variable
+
 # -----------------------------------------------------
 def trapezoidal(nc):
     '''
@@ -165,7 +167,7 @@ def quad_func(nc,quad):
 
 # -----------------------------------------------------
 # _qr function is copied from pyscf
-def _qr(xs, dot, lindep=1e-14):
+def _qr(xs, dot, lindep= LINDEP_DEFAULT_VALUE):
     '''QR decomposition for a list of vectors (for linearly independent vectors only).
     xs = (r.T).dot(qs)
     '''
@@ -204,7 +206,7 @@ def headerBot(method,yesBot=False):
         print("*"*nstars)
 
 # -----------------------------------------------------
-def lowdinOrtho(oMat, tol=1e-14):
+def lowdinOrtho(oMat, tol= LINDEP_DEFAULT_VALUE):
     """ Extracts out linearly independent vectors from the overlap matrix `oMat` and 
     returns orthogonalized vectors (vector*S-1/2).
     :returns info (is all linear independent: True or not), vectors

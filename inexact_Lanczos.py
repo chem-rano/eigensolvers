@@ -8,8 +8,6 @@ import warnings
 from numpyVector import NumpyVector
 import time
 
-epsilonLowdin = 1e-12       # Assign tolerance for Lowdin orthogonalization as 1e-12
-                            # neat way
 # -----------------------------------------------------
 #    Inexact Lanczos with AbstractClass interface
 #------------------------------------------------------
@@ -45,7 +43,7 @@ def inexactDiagonalization(H,v0,sigma,L,maxit,conv_tol,proceed_ortho:bool = Fals
             if not proceed_ortho:
                 Ylist.append(Ysolved)
                 qtq = typeClass.overlapMatrix(Ylist)
-                uQ = lowdinOrtho(qtq, epsilonLowdin)[1]
+                uQ = lowdinOrtho(qtq)[1]
                 
                 m = uQ.shape[1]
                 Ylist_trun = []
