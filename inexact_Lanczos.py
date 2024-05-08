@@ -3,16 +3,18 @@ import scipy
 from scipy import linalg as la
 from scipy.sparse.linalg import LinearOperator
 from util_funcs import find_nearest, headerBot
-from util_funcs import lowdinOrtho  
+from util_funcs import lowdinOrtho, convert
+from printUtils import _writeFile
 import warnings
-from numpyVector import NumpyVector
 import time
+import util
+from itertools import compress
 
 # -----------------------------------------------------
 #    Inexact Lanczos with AbstractClass interface
 #------------------------------------------------------
 
-def inexactDiagonalization(H,v0,sigma,L,maxit,conv_tol,proceed_ortho:bool = False):
+def inexactDiagonalization(H,v0,sigma,L,maxit,eConv,startTime,fout=None,fplot=None,proceed_ortho:bool = False):
     '''
     This is core function to calculate eigenvalues and eigenvectors
     with inexact Lanczos method
@@ -25,73 +27,75 @@ def inexactDiagonalization(H,v0,sigma,L,maxit,conv_tol,proceed_ortho:bool = Fals
              uv as inexact Lanczos computed eigenvectors
     '''
     
-    n = v0.size
-    dtype = v0.dtype
-    
-    Ylist = []
-    Ylist.append(v0/v0.norm())
     typeClass = v0.__class__
+    Ylist = [typeClass.normalize(v0)]
     ev_last = np.inf # for convergence check
+    #guessEv = typeClass.matrixRepresentation(H,Ylist)[0][0]
     isConverged = False
     if not proceed_ortho: print("!!! ATTENTION: Doing inexact Lanczos in non-orthogonal basis. \n")
+    nCum = 0
+    _writeFile(fplot,"it","i","nCum",sep="\t",endline=False)
+    _writeFile(fplot,"ev_nearest","check_ev","rel_ev","time",sep="\t")
+    zpve = 9837.4069
   
   
     for it in range(maxit):
         for i in range(1,L):
+            nCum += 1
+            _writeFile(fout,"Lanczos iteration",it+1,"Krylov iteration",i,endline=False)
+            _writeFile(fout,"Cumulative Krylov iteration",nCum)
+
             Ysolved = typeClass.solve(H,Ylist[i-1],sigma)
-           
-            if not proceed_ortho:
-                Ylist.append(Ysolved)
-                qtq = typeClass.overlapMatrix(Ylist)
-                uQ = lowdinOrtho(qtq)[1]
-                
-                m = uQ.shape[1]
-                Ylist_trun = []
-                for ivec in range(m):
-                    Ylist_trun.append(typeClass.linearCombination(Ylist,uQ[:,ivec]))
-                qtAq = typeClass.matrixRepresentation(H,Ylist_trun)
-                ev, uvals = la.eigh(qtAq)
-                uv = uQ@uvals
-                Ylist = Ylist_trun
-
-
-            else:
-                item = typeClass.orthogonalize_against_set(Ysolved,Ylist)
-                if item is not None:
-                    Ylist.append(item)
-                    qtAq = typeClass.matrixRepresentation(H,Ylist)
-                    ev, uv = la.eigh(qtAq)
-                    
-                else:
-                    warnings.warn("Linear dependency problem, abort current Lanczos iteration and restart.")
-                    break
-        
-            # Find closest ev and check if this value is converged
-            idx, ev_nearest = find_nearest(ev,sigma)
-            check_ev = abs(ev_nearest-ev_last)
-                    
-            if (check_ev <= conv_tol):
-                break                # Break to Krylov space expansion
-                    
-            ev_last = ev_nearest     # Update the last eigenvalue for convergence check
-
-
-       # If not converged, continue to next iteration with x0 guess as nearest eigenvector
-        if (check_ev <= conv_tol):
-            isConverged = True
+            Ylist.append(typeClass.normalize(Ysolved))
             
-            m = len(Ylist)
-            x = []
+            S = typeClass.overlapMatrix(Ylist)            
+            info, uS, idxOrtho = lowdinOrtho(S)                        
+            m = uS.shape[1] 
+            
+            qtAq = typeClass.matrixRepresentation(H,Ylist)  
+            #Hmat = qtAq
+            Hmat = uS.T.conj()@qtAq@uS                      
+            _writeFile(fout,"OVERLAP MATRIX")
+            _writeFile(fout,S)
+            _writeFile(fout,"HAMILTONIAN MATRIX")
+            hamiltonianMatrix = convert(Hmat,"cm-1")
+            _writeFile(fout,hamiltonianMatrix)
+
+            #ev, uv = la.eigh(Hmat,S)                          
+            ev, uv = la.eigh(Hmat)                          
+            idx, ev_nearest = find_nearest(ev,sigma)
+            check_ev = util.au2unit(abs(ev_nearest-ev_last),"cm-1") 
+
+            _writeFile(fout,"Eigenvalues")
+            for ivalue in range(0,len(ev),1):
+                _writeFile(fout,util.au2unit(ev[ivalue],"cm-1")-zpve)
+            _writeFile(fplot,it,i,nCum,sep="\t",endline=False)
+            _writeFile(fplot,util.au2unit(ev_nearest,"cm-1")-zpve,sep="\t",endline=False)
+            _writeFile(fplot,check_ev,check_ev/util.au2unit(ev_nearest,"cm-1"),time.time()-startTime,sep="\t")
+            if i == L-1: Ylist = list(compress(Ylist, idxOrtho))
+            
+            if check_ev <= eConv:
+                break
+            ev_last = ev_nearest
+
+        if check_ev <= eConv:
+            isConverged = True
+            x  = []
             for j in range(m):
                 x.append(typeClass.linearCombination(Ylist,uv[:,j]))
             Ylist = x
             break
         else:
-            Ylist = [typeClass.linearCombination(Ylist,uv[:,idx])]
+            x = [typeClass.linearCombination(Ylist,uv[:,idx])]
+            Ylist = x
+            _writeFile(fout,"Choosing eigevector [idx ",idx,"]: Eigenvalue ",endline=False)
+            _writeFile(fout,util.au2unit(ev_nearest,"cm-1")-zpve)
 
         if (it == maxit-1) and (not isConverged):
             print("Alert:: Lanczos iterations is not converged!")
-        
+
+        _writeFile(fout)# blank line
+
     return ev,Ylist
 # -----------------------------------------------------
 if __name__ == "__main__":
