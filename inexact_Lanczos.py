@@ -50,7 +50,7 @@ def inexactDiagonalization(H,v0,sigma,L,maxit,eConv,zpve,startTime,files):
             _writeFile(files["out"],"Cumulative Krylov iteration",nCum)
 
             Ysolved = typeClass.solve(H,Ylist[i-1],sigmaAU)
-            Ylist.append(typeClass.normalize(Ysolved))
+            Ylist.append(typeClass.normalize(Ysolved))    # Do we need it? Canonical: orthonormalization
             
             S = typeClass.overlapMatrix(Ylist)            
             uS = lowdinOrtho(S)[1]                       
@@ -83,11 +83,11 @@ def inexactDiagonalization(H,v0,sigma,L,maxit,eConv,zpve,startTime,files):
             isConverged = True
             x  = []
             for j in range(m):
-                x.append(typeClass.linearCombination(Ylist,uv[:,j]))
+                x.append(typeClass.linearCombination(Ylist,uS[:,j]))
             Ylist = x
             break
         else:
-            x = [typeClass.linearCombination(Ylist,uv[:,idx])]
+            x = [typeClass.linearCombination(Ylist,uS[:,idx])]
             Ylist = x
             _writeFile(files["out"],"Choosing eigevector [idx ",idx,"]: Eigenvalue ",endline=False)
             _writeFile(files["out"],exlevel_nearest)
