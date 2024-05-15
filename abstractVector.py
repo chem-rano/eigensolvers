@@ -126,3 +126,8 @@ class AbstractVector(ABC):
     def overlapMatrix(vectors):
         ''' Calculates overlap matrix of vectors'''
         raise NotImplementedError
+    
+    @staticmethod
+    def extendOverlapMatrix(vectors,oMat):
+        ''' Calculates overlap matrix of vectors'''
+        raise NotImplementedError

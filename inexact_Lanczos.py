@@ -14,69 +14,70 @@ from itertools import compress
 #    Inexact Lanczos with AbstractClass interface
 #------------------------------------------------------
 
-def inexactDiagonalization(H,v0,sigma,L,maxit,eConv,startTime,fout=None,fplot=None,proceed_ortho:bool = False):
+def inexactDiagonalization(H,v0,sigma,L,maxit,eConv,zpve,startTime,files):
     '''
     This is core function to calculate eigenvalues and eigenvectors
     with inexact Lanczos method
+
+
+    ---Doing inexact Lanczos in canonical orthogonal basis.---
     Input::  H => diagonalizable input matrix or linearoperator
              sigma => eigenvalue estimate 
              v0 => eigenvector guess
-             conv_tol => eigenvalue convergence tolerance
+             eConv => eigenvalue convergence tolerance
+             zpve => zero-point vibrational energy
 
     Output:: ev as inexact Lanczos computed eigenvalues
              uv as inexact Lanczos computed eigenvectors
+
+    All energies in a.u.
     '''
     
     typeClass = v0.__class__
     Ylist = [typeClass.normalize(v0)]
-    ev_last = np.inf # for convergence check
-    #guessEv = typeClass.matrixRepresentation(H,Ylist)[0][0]
+    exlevel_last = np.inf # for convergence check
     isConverged = False
-    if not proceed_ortho: print("!!! ATTENTION: Doing inexact Lanczos in non-orthogonal basis. \n")
     nCum = 0
-    _writeFile(fplot,"it","i","nCum",sep="\t",endline=False)
-    _writeFile(fplot,"ev_nearest","check_ev","rel_ev","time",sep="\t")
-    zpve = 9837.4069
+    sigmaAU = util.unit2au((sigma+zpve),"cm-1")    # in a.u.; since H in  a.u.
+    _writeFile(files["plot"],"it","i","nCum",sep="\t",endline=False)
+    _writeFile(files["plot"],"ev_nearest","check_ev","rel_ev","time",sep="\t")
   
   
     for it in range(maxit):
         for i in range(1,L):
             nCum += 1
-            _writeFile(fout,"Lanczos iteration",it+1,"Krylov iteration",i,endline=False)
-            _writeFile(fout,"Cumulative Krylov iteration",nCum)
+            _writeFile(files["out"],"Lanczos iteration",it+1,"Krylov iteration",i,endline=False)
+            _writeFile(files["out"],"Cumulative Krylov iteration",nCum)
 
-            Ysolved = typeClass.solve(H,Ylist[i-1],sigma)
+            Ysolved = typeClass.solve(H,Ylist[i-1],sigmaAU)
             Ylist.append(typeClass.normalize(Ysolved))
             
             S = typeClass.overlapMatrix(Ylist)            
-            info, uS, idxOrtho = lowdinOrtho(S)                        
+            uS = lowdinOrtho(S)[1]                       
             m = uS.shape[1] 
             
             qtAq = typeClass.matrixRepresentation(H,Ylist)  
-            #Hmat = qtAq
             Hmat = uS.T.conj()@qtAq@uS                      
-            _writeFile(fout,"OVERLAP MATRIX")
-            _writeFile(fout,S)
-            _writeFile(fout,"HAMILTONIAN MATRIX")
-            hamiltonianMatrix = convert(Hmat,"cm-1")
-            _writeFile(fout,hamiltonianMatrix)
-
-            #ev, uv = la.eigh(Hmat,S)                          
-            ev, uv = la.eigh(Hmat)                          
-            idx, ev_nearest = find_nearest(ev,sigma)
-            check_ev = util.au2unit(abs(ev_nearest-ev_last),"cm-1") 
-
-            _writeFile(fout,"Eigenvalues")
-            for ivalue in range(0,len(ev),1):
-                _writeFile(fout,util.au2unit(ev[ivalue],"cm-1")-zpve)
-            _writeFile(fplot,it,i,nCum,sep="\t",endline=False)
-            _writeFile(fplot,util.au2unit(ev_nearest,"cm-1")-zpve,sep="\t",endline=False)
-            _writeFile(fplot,check_ev,check_ev/util.au2unit(ev_nearest,"cm-1"),time.time()-startTime,sep="\t")
-            if i == L-1: Ylist = list(compress(Ylist, idxOrtho))
+            ev, uv = la.eigh(Hmat)                              # Hmat in a.u.=> ev in a.u.
+            exlevels = convert(ev,"cm-1",zpve)                  # excitation levels in cm-1
+            idx, exlevel_nearest = find_nearest(exlevels,sigma)
+            check_ev = abs(exlevel_nearest-exlevel_last)        # excitation levels are alright for check 
+            
+            _writeFile(files["out"],"OVERLAP MATRIX")
+            _writeFile(files["out"],S)
+            _writeFile(files["out"],"HAMILTONIAN MATRIX")
+            _writeFile(files["out"],convert(Hmat,"cm-1"))
+            _writeFile(files["out"],"Eigenvalues")
+            
+            for ivalue in range(0,len(exlevels),1):
+                _writeFile(files["out"],exlevels[ivalue])
+            _writeFile(files["plot"],it,i,nCum,sep="\t",endline=False)
+            _writeFile(files["plot"],exlevel_nearest,sep="\t",endline=False)
+            _writeFile(files["plot"],check_ev,check_ev/exlevel_nearest,time.time()-startTime,sep="\t")
             
             if check_ev <= eConv:
                 break
-            ev_last = ev_nearest
+            exlevel_last = exlevel_nearest
 
         if check_ev <= eConv:
             isConverged = True
@@ -88,15 +89,15 @@ def inexactDiagonalization(H,v0,sigma,L,maxit,eConv,startTime,fout=None,fplot=No
         else:
             x = [typeClass.linearCombination(Ylist,uv[:,idx])]
             Ylist = x
-            _writeFile(fout,"Choosing eigevector [idx ",idx,"]: Eigenvalue ",endline=False)
-            _writeFile(fout,util.au2unit(ev_nearest,"cm-1")-zpve)
+            _writeFile(files["out"],"Choosing eigevector [idx ",idx,"]: Eigenvalue ",endline=False)
+            _writeFile(files["out"],exlevel_nearest)
 
         if (it == maxit-1) and (not isConverged):
             print("Alert:: Lanczos iterations is not converged!")
 
-        _writeFile(fout)# blank line
+        _writeFile(files["out"])# blank line
 
-    return ev,Ylist
+    return exlevels,Ylist
 # -----------------------------------------------------
 if __name__ == "__main__":
     n = 100

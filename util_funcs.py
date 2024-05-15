@@ -4,6 +4,7 @@ import sys
 from scipy import special
 import copy
 from numpyVector import NumpyVector
+import util
 
 LINDEP_DEFAULT_VALUE = 1e-14 # Global variable
 
@@ -218,7 +219,7 @@ def lowdinOrtho(oMat, tol= LINDEP_DEFAULT_VALUE):
     
     info = all(idx)
     uvqTraf = uvq * evq**(-0.5)
-    return info, uvqTraf
+    return info, uvqTraf, idx
 
 def eigenvalueResidual(ev,prev_ev):
 
@@ -231,4 +232,27 @@ def eigenvalueResidual(ev,prev_ev):
         prev_tot += prev_ev[i]
     res = diff/prev_tot
     return res
+# -----------------------------------------------------
+def convert(amat,unit,zpve=None):
     
+    if len(amat.shape) == 1:
+        mdim = amat.shape[0]
+        bmat = np.zeros(mdim)
+        for i1 in range(mdim):
+            if zpve is None:
+                bmat[i1] = util.au2unit(amat[i1],unit)
+            else:
+                bmat[i1] = util.au2unit(amat[i1],unit)-zpve
+    elif len(amat.shape) == 2:
+        mdim, ndim = amat.shape
+        bmat = np.zeros((mdim,ndim))
+        for i1 in range(mdim):
+            for i2 in range(i1,ndim):
+                if zpve is None:
+                    bmat[i1,i2] = util.au2unit(amat[i1,i2],unit)
+                else:
+                    bmat[i1,i2] = util.au2unit(amat[i1,i2],unit)-zpve
+                bmat[i2,i1] = bmat[i1,i2]
+    
+    return bmat
+# -----------------------------------------------------
