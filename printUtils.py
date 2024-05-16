@@ -34,7 +34,7 @@ def writeInfo(fout,dateTime,sigma,zpve,L,maxit,D,eConv,options,guess="Random",pr
     if printInfo:
         print(line)
 
-    line = "{:60} :: {: <4}".format("Target (sigma)",sigma-zpve)
+    line = "{:60} :: {: <4}".format("Target (sigma)",sigma)
     fout.write(line+"\n")
     if printInfo:
         print(line)
@@ -95,7 +95,7 @@ def fplotHeader(fout,dateTime,sigma,zpve,L,maxit,D,eConv,options):
     line = "{:2}, {:10} #{:10}".format("F",nsweepFitting,"nsweepFitting")
     fout.write(line+"\n")
 
-    line = "{:2}, {:10} #{:10}".format("S",sigma-zpve,"Sigma")
+    line = "{:2}, {:10} #{:10}".format("S",sigma,"Sigma")
     fout.write(line+"\n")
 
     line = "{:2}, {:10} #{:10}".format("e",eConv,"eConv in cm-1")
