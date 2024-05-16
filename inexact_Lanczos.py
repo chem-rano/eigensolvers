@@ -93,7 +93,7 @@ def inexactDiagonalization(H,v0,sigma,L,maxit,eConv,zpve,startTime,files):
         else:
             if gotLindep: break   # break, or start with another guess?
             x = typeClass.linearCombination(Ylist,uSH[:,idx])
-            Ylist = [typeClass.normalize(x)]
+            Ylist = [typeClass.normalize(x)]                 # normaliza for better guess?
             _writeFile(files["out"],"Choosing eigevector [idx ",idx,"]: Eigenvalue ",endline=False)
             _writeFile(files["out"],exlevel_nearest)
 
