@@ -8,7 +8,6 @@ from printUtils import _writeFile
 import warnings
 import time
 import util
-from itertools import compress
 
 # -----------------------------------------------------
 #    Inexact Lanczos with AbstractClass interface
@@ -22,13 +21,13 @@ def inexactDiagonalization(H,v0,sigma,L,maxit,eConv,zpve,startTime,files):
 
     ---Doing inexact Lanczos in canonical orthogonal basis.---
     Input::  H => diagonalizable input matrix or linearoperator
-             sigma => eigenvalue estimate 
+             sigma => excitation energy estimate 
              v0 => eigenvector guess
              eConv => eigenvalue convergence tolerance
              zpve => zero-point vibrational energy
 
-    Output:: ev as inexact Lanczos computed eigenvalues
-             uv as inexact Lanczos computed eigenvectors
+    Output:: exlevels as inexact Lanczos excitation energies (cm-1)
+             uv as inexact Lanczos eigenvectors
 
     All energies in a.u.
     '''
@@ -37,6 +36,7 @@ def inexactDiagonalization(H,v0,sigma,L,maxit,eConv,zpve,startTime,files):
     Ylist = [typeClass.normalize(v0)]
     exlevel_last = np.inf # for convergence check
     isConverged = False
+    gotLindep = False
     nCum = 0
     sigmaAU = util.unit2au((sigma+zpve),"cm-1")    # in a.u.; since H in  a.u.
     _writeFile(files["plot"],"it","i","nCum",sep="\t",endline=False)
@@ -51,10 +51,13 @@ def inexactDiagonalization(H,v0,sigma,L,maxit,eConv,zpve,startTime,files):
 
             Ysolved = typeClass.solve(H,Ylist[i-1],sigmaAU)
             Ylist.append(typeClass.normalize(Ysolved))    # Do we need it? Canonical: orthonormalization
+            numYlist = len(Ylist)
             
             S = typeClass.overlapMatrix(Ylist)            
             uS = lowdinOrtho(S)[1]                       
             m = uS.shape[1] 
+            if m < numYlist: gotLindep = True
+            if gotLindep: break   # Ylist vector are dependent, cannot generate better basis
             
             qtAq = typeClass.matrixRepresentation(H,Ylist)  
             Hmat = uS.T.conj()@qtAq@uS                      
@@ -78,17 +81,19 @@ def inexactDiagonalization(H,v0,sigma,L,maxit,eConv,zpve,startTime,files):
             if check_ev <= eConv:
                 break
             exlevel_last = exlevel_nearest
+            if i==L-1: uSH = uS.T.conj()
 
         if check_ev <= eConv:
             isConverged = True
             x  = []
             for j in range(m):
-                x.append(typeClass.linearCombination(Ylist,uS[:,j]))
+                x.append(typeClass.linearCombination(Ylist,uSH[:,j]))
             Ylist = x
             break
         else:
-            x = [typeClass.linearCombination(Ylist,uS[:,idx])]
-            Ylist = x
+            if gotLindep: break   # break, or start with another guess?
+            x = typeClass.linearCombination(Ylist,uSH[:,idx])
+            Ylist = [typeClass.normalize(x)]
             _writeFile(files["out"],"Choosing eigevector [idx ",idx,"]: Eigenvalue ",endline=False)
             _writeFile(files["out"],exlevel_nearest)
 
