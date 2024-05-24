@@ -12,6 +12,7 @@ from ttns2.renormalization import AbstractRenormalization, SumOfOperators
 from ttns2.sweepAlgorithms import (LinearSystem, Orthogonalization, 
                                 StateFitting)
 from ttns2.driver import bracket, getRenormalizedOp
+from ttn2.driver.overlapMatrix as _overlapMatrix
 
 class TTNSVector(AbstractVector):
     def __init__(self, ttns: TTNS, options:Dict[str, Dict]):
