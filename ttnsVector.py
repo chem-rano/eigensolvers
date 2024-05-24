@@ -49,6 +49,7 @@ class TTNSVector(AbstractVector):
     def dtype(self):
         # added to abstractVector
         return np.result_type(*self.ttns.dtypes())
+
     def __len__(self):
         raise NotImplementedError
 
