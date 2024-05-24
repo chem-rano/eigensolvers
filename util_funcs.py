@@ -234,32 +234,23 @@ def eigenvalueResidual(ev,prev_ev):
     return res
 # -----------------------------------------------------
 def convertEnergy(energy,eShift,convertUnit="True",unit="cm-1"):
+    ''' For converting an energy or an array of energy with 
+    adjusted eShift and unit conversion'''
     energyShifted = None 
-    #if type(energy) == float or type(energy) == int:
-    if isinstance(energy, (int, float, complex)):
-        if convertUnit:
-            energyShifted = util.au2unit((energy-eShift),unit)
-        elif not convertUnit:
-            energyShifted = (energy-eShift)
-    elif type(energy) == np.ndarray:
-        energyShifted = np.zeros(energy.shape[0])
-        for i in range(energy.shape[0]):
-            if convertUnit:
-                energyShifted[i] = util.au2unit((energy[i]-eShift),unit)
-            elif not convertUnit:
-                energyShifted[i] = (energy[i] - eShift)
+    if convertUnit:
+        energyShifted = util.au2unit((energy+eShift),unit)
+    elif not convertUnit:
+        energyShifted = (energy+eShift)
     return energyShifted
 
 # -----------------------------------------------------
 def convertMatrix(mat,eShift,convertUnit="True",unit="cm-1"):
-    mdim, ndim = mat.shape
-    matShifted = np.zeros((mdim,ndim))
-    for i1 in range(mdim):
-        for i2 in range(i1,ndim):
-            if convertUnit:
-                matShifted[i1,i2] = util.au2unit((mat[i1,i2]-eShift),unit)
-            elif not convertUnit:
-                matShifted[i1,i2] = mat[i1,i2] - eShift
-            matShifted[i2,i1] = matShifted[i1,i2]
+    ''' For converting a matrix with 
+    adjusted eShift and unit conversion'''
+    if convertUnit:
+        matShifted = util.au2unit(mat,unit) - eShift
+    elif not convertUnit:
+        matShifted = mat - eShift
+
     return matShifted
 # -----------------------------------------------------
