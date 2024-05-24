@@ -17,8 +17,7 @@ from inexact_Lanczos import inexactDiagonalization
 from ttnsVector import TTNSVector
 from util_funcs import find_nearest
 from datetime import datetime
-from printUtils import writeInfo,printfooter,fplotHeader
-from printUtils import fplotFooter
+from printUtils import *
 
 timeStarting = time.time()
 #######################################################
@@ -36,7 +35,7 @@ N_STATES = 8
 _print = getVerbosePrinter(True)
 _print("# EPS=",EPS)
 
-fOp = 'ch3cn.op'  # this one is used for HRL's 2019 jcp work
+fOp = 'examples/ch3cn.op'  # this one is used for HRL's 2019 jcp work
 Hop = mctdh_stuff.translateOperatorFile(fOp, verbose=False)
 _print("# Hop: nSum=",Hop.nSum)
 
@@ -146,12 +145,12 @@ optionsFitting = {"nSweep":nsweepFitting, "convTol":fittingTol}
 options = {"orthogonalizationArgs":optionsOrtho, "linearSystemArgs":optionsLinear, "stateFittingArgs":optionsFitting}
 
 dateTime = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
-writeInfo(files["out"],dateTime,sigma,zpve,L, maxit, MAX_D,eConv,options,guess="Random",printInfo=True) # using _writeFile
+writeInputs(files["out"],dateTime,sigma,zpve,L, maxit, MAX_D,eConv,options,guess="Random",printInfo=True) # using _writeFile
 fplotHeader(files["plot"],dateTime,sigma,zpve,L,maxit,MAX_D,eConv,options)
 #tns = TTNSVector(tnsList[0],options)
 tns = TTNSVector(tns,options)
 startTime = time.time()
-energies, tnsList = inexactDiagonalization(Hop,tns,sigma,L,maxit,eConv,zpve,startTime,files) # main function
+energies, tnsList = inexactDiagonalization(Hop,tns,sigma,L,maxit,eConv,startTime,eShift=zpve) # main function
 ev_nearest = find_nearest(energies,sigma)[1]
 files["out"].write("\n\n"+"-"*20+"\tFINAL RESULTS\t"+"-"*20+"\n")
 files["out"].write("{:30} :: {: <4}, {: <4}".format("Sigma, calculated nearest",sigma,round(ev_nearest),4)+"\n")

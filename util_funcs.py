@@ -219,7 +219,7 @@ def lowdinOrtho(oMat, tol= LINDEP_DEFAULT_VALUE):
     
     info = all(idx)
     uvqTraf = uvq * evq**(-0.5)
-    return info, uvqTraf, idx
+    return info, uvqTraf
 
 def eigenvalueResidual(ev,prev_ev):
 
@@ -233,26 +233,33 @@ def eigenvalueResidual(ev,prev_ev):
     res = diff/prev_tot
     return res
 # -----------------------------------------------------
-def convert(amat,unit,zpve=None):
-    
-    if len(amat.shape) == 1:
-        mdim = amat.shape[0]
-        bmat = np.zeros(mdim)
-        for i1 in range(mdim):
-            if zpve is None:
-                bmat[i1] = util.au2unit(amat[i1],unit)
-            else:
-                bmat[i1] = util.au2unit(amat[i1],unit)-zpve
-    elif len(amat.shape) == 2:
-        mdim, ndim = amat.shape
-        bmat = np.zeros((mdim,ndim))
-        for i1 in range(mdim):
-            for i2 in range(i1,ndim):
-                if zpve is None:
-                    bmat[i1,i2] = util.au2unit(amat[i1,i2],unit)
-                else:
-                    bmat[i1,i2] = util.au2unit(amat[i1,i2],unit)-zpve
-                bmat[i2,i1] = bmat[i1,i2]
-    
-    return bmat
+def convertEnergy(energy,eShift,convertUnit="True",unit="cm-1"):
+    energyShifted = None 
+    #if type(energy) == float or type(energy) == int:
+    if isinstance(energy, (int, float, complex)):
+        if convertUnit:
+            energyShifted = util.au2unit((energy-eShift),unit)
+        elif not convertUnit:
+            energyShifted = (energy-eShift)
+    elif type(energy) == np.ndarray:
+        energyShifted = np.zeros(energy.shape[0])
+        for i in range(energy.shape[0]):
+            if convertUnit:
+                energyShifted[i] = util.au2unit((energy[i]-eShift),unit)
+            elif not convertUnit:
+                energyShifted[i] = (energy[i] - eShift)
+    return energyShifted
+
+# -----------------------------------------------------
+def convertMatrix(mat,eShift,convertUnit="True",unit="cm-1"):
+    mdim, ndim = mat.shape
+    matShifted = np.zeros((mdim,ndim))
+    for i1 in range(mdim):
+        for i2 in range(i1,ndim):
+            if convertUnit:
+                matShifted[i1,i2] = util.au2unit((mat[i1,i2]-eShift),unit)
+            elif not convertUnit:
+                matShifted[i1,i2] = mat[i1,i2] - eShift
+            matShifted[i2,i1] = matShifted[i1,i2]
+    return matShifted
 # -----------------------------------------------------

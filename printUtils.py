@@ -1,6 +1,6 @@
 import util
 
-def writeInfo(fout,dateTime,sigma,zpve,L,maxit,D,eConv,options,guess="Random",printInfo=False):
+def writeInputs(fout,dateTime,sigma,zpve,L,maxit,D,eConv,options,guess="Random",printInfo=False):
     optionsOrtho = options["orthogonalizationArgs"]
     optionsLinear= options["linearSystemArgs"]
     optionsFitting = options["stateFittingArgs"]
@@ -103,6 +103,8 @@ def fplotHeader(fout,dateTime,sigma,zpve,L,maxit,D,eConv,options):
 
     line = "{:2}, {:10} #{:10}".format("D",D,"Bond dimension")
     fout.write(line+"\n\n")
+    line = "it\ti\tnCum\tev_nearest\tcheck_ev\trel_ev\ttime\n"
+    fout.write(line)
 
 def fplotFooter(fout):
     line = "endingPoint"
@@ -110,10 +112,24 @@ def fplotFooter(fout):
     line = "\n"+"*"*70 + "\n\t\tEnd of computation\t\t\n"+"*"*70+"\n\n"
     fout.write(line+"\n")
 
-def _writeFile(file,*args,sep=" ",endline=True):
+def writeFile(fstring,*args,sep=" ",endline=True):
+    fout = open("iterations.out","a");fplot = open("data2Plot.out","a")
+    file = fout if fstring == "out" else fplot
+    
     if len(args) ==1:
         file.write(f"{args[0]}")
     elif len(args)> 1:
         for item in args:
             file.write(str(item)+sep)
     file.write("\n") if endline else file.write("\t")
+    fout.close()
+    fplot.close()
+
+def writeIteration(fstring,it,i,nCum):
+    fout = open("iterations.out","a");fplot = open("data2Plot.out","a")
+    file = fout if fstring == "out" else fplot
+    line = "Lanczos iteration\t"+str(it+1)+"\tKrylov iteration\t"+str(i)
+    line += "\tCumulative Krylov iteration\t"+str(nCum)
+    file.write(line+"\n")
+    fout.close()
+    fplot.close()
