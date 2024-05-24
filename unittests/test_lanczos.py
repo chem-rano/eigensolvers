@@ -7,7 +7,7 @@ from inexact_Lanczos  import (transformationMatrix,diagonalizeHamiltonian,
 import numpy as np
 from scipy import linalg as la
 from numpyVector import NumpyVector
-from util_funcs import print_a_range,find_nearest
+from util_funcs import find_nearest
 import time
 
 # Test 1 :  Checks Krylov expansion basis
@@ -48,8 +48,8 @@ class Test_lanczos(unittest.TestCase):
         
     def test_Hmat(self):
         ''' Bypassing linear combination works for Hamitonian matrix formation'''
-        evLanczos, uvLanczos = inexactDiagonalization(self.mat,self.guess,self.sigma,self.L,
-                self.maxit,self.eConv,self.eShift) 
+        uvLanczos = inexactDiagonalization(self.mat,self.guess,self.sigma,self.L,
+                self.maxit,self.eConv,self.eShift)[1]
         uS = transformationMatrix(uvLanczos)[1]
         typeClass = uvLanczos[0].__class__
         Hmat1 = diagonalizeHamiltonian(self.mat,uvLanczos,uS,self.eShift)[0]  
@@ -67,7 +67,7 @@ class Test_lanczos(unittest.TestCase):
         # 'list' object has no attribute 'array'; Do not know how to compare these 
 
 
-    def xtest_orthogonalization(self):
+    def test_orthogonalization(self):
         ''' Returned basis in old form is orthogonal'''
         uvLanczos = inexactDiagonalization(self.mat,self.guess,self.sigma,self.L,
                 self.maxit,self.eConv,self.eShift)[1]

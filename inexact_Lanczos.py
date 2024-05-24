@@ -50,8 +50,8 @@ def backTransform(newBases,coeffs):
     if len(ndim)==1:
         oldBases.append(typeClass.linearCombination(newBases,coeffs))
     else:
-        for j in range(ndim[0]):
-            oldBases.append(typeClass.linearCombination(newBases,coeffs[j,:]))
+        for j in range(ndim[1]):
+            oldBases.append(typeClass.linearCombination(newBases,coeffs[:,j]))
     return oldBases
 # -----------------------------------------------------
 
@@ -100,7 +100,7 @@ def inexactDiagonalization(H,v0,sigma,L,maxit,eConv,startTime,eShift:float=0.0):
             
             if isConverged:
                 break
-
+        
         if isConverged:
             Ylist = backTransform(Ylist,uSH)
             break
