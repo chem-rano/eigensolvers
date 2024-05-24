@@ -33,8 +33,9 @@ def diagonalizeHamiltonian(H,bases,X,eShift):
     writeFile("out",ev)
     return Hmat,ev,uv
     
-def checkConvergence(ev,ref,sigma,eConv,startTime):
+def checkConvergence(ev,ref,sigma,eConv):
     isConverged = False
+    startTime = time.time()
     idx, ev_nearest = find_nearest(ev,sigma)
     check_ev = abs(ev_nearest - ref)    
     if check_ev <= eConv: isConverged = True
@@ -59,7 +60,7 @@ def backTransform(newBases,coeffs):
 #    Inexact Lanczos with AbstractClass interface
 #------------------------------------------------------
 
-def inexactDiagonalization(H,v0,sigma,L,maxit,eConv,startTime,eShift:float=0.0):
+def inexactDiagonalization(H,v0,sigma,L,maxit,eConv,eShift:float=0.0):
     '''
     This is core function to calculate eigenvalues and eigenvectors
     with inexact Lanczos method
@@ -85,17 +86,23 @@ def inexactDiagonalization(H,v0,sigma,L,maxit,eConv,startTime,eShift:float=0.0):
     ref = np.inf
     nCum = 0
     sigmaShifted = convertEnergy(sigma,eShift,convertUnit=False)
+    # Information of convergence
+    status = {"isConverged":False,"maxit":0, "lindep":False}    
   
     for it in range(maxit):
         for i in range(1,L):
             nCum += 1
             writeIteration("out",it,i,nCum)
             Ysolved = typeClass.solve(H,Ylist[i-1],sigmaShifted)
-            Ylist.append(typeClass.normalize(Ysolved))    # Do we need it? Canonical: orthonormalization
+            if typeClass.norm(Ysolved) > 0.001*eConv:
+                Ylist.append(typeClass.normalize(Ysolved))
+            else:
+                Ylist.append(Ysolved)
+                print("Alert: Not normalizing add basis; norm <=0.001*eConv")
             linIndep, uS = transformationMatrix(Ylist)
             if not linIndep: break
             ev, uv = diagonalizeHamiltonian(H,Ylist,uS,eShift)[1:3]
-            isConverged,idx,ref = checkConvergence(ev,ref,sigma,eConv,startTime)
+            isConverged,idx,ref = checkConvergence(ev,ref,sigma,eConv)
             uSH = uS@uv
             
             if isConverged:
@@ -107,11 +114,12 @@ def inexactDiagonalization(H,v0,sigma,L,maxit,eConv,startTime,eShift:float=0.0):
         else:
             y = backTransform(Ylist,uSH[:,idx])
             Ylist = [typeClass.normalize(y[0])]
+        
+        status["isConverged"] = isConverged
+        status["maxit"] = it
+        status["lindep"] = not linIndep
 
-        if (it == maxit-1) and (not isConverged):
-            print("Alert:: Lanczos iterations is not converged!")
-
-    return ev,Ylist
+    return ev,Ylist,status
 # -----------------------------------------------------
 if __name__ == "__main__":
     n = 100
@@ -135,7 +143,9 @@ if __name__ == "__main__":
     print("{:50} :: {: <4}".format("Eigenvalue convergence tolarance",eConv))
     print("\n")
     t1 = time.time()
-    lf,xf =  inexactDiagonalization(A,Y0,sigma,L,maxit,eConv,t1)
+    lf,xf,status =  inexactDiagonalization(A,Y0,sigma,L,maxit,eConv)
+    if status['isConverged'] and status['maxit'] == maxit -1: print("Alert: Lanczos iterations is not converged!")
+    if status['lindep']: print("Alert: Got linear dependent basis!")
     t2 = time.time()
 
     print("{:50} :: {: <4}".format("Eigenvalue nearest to sigma",round(find_nearest(lf,sigma)[1],8)))

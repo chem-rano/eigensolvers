@@ -92,7 +92,7 @@ class Test_lanczos(unittest.TestCase):
     def test_returnType(self):
         ''' Checks if the returned eigenvalue and eigenvectors are of correct type'''
         evLanczos, uvLanczos = inexactDiagonalization(self.mat,self.guess,self.sigma,self.L,
-                self.maxit,self.eConv,self.eShift) 
+                self.maxit,self.eConv,self.eShift)[0:2] 
         self.assertIsInstance(evLanczos, np.ndarray)
         self.assertIsInstance(uvLanczos, list)
         self.assertIsInstance(uvLanczos[0], NumpyVector)

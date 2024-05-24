@@ -150,7 +150,7 @@ fplotHeader(files["plot"],dateTime,sigma,zpve,L,maxit,MAX_D,eConv,options)
 #tns = TTNSVector(tnsList[0],options)
 tns = TTNSVector(tns,options)
 startTime = time.time()
-energies, tnsList = inexactDiagonalization(Hop,tns,sigma,L,maxit,eConv,startTime,eShift=zpve) # main function
+energies, tnsList = inexactDiagonalization(Hop,tns,sigma,L,maxit,eConv,eShift=zpve)[0:2] # main function
 ev_nearest = find_nearest(energies,sigma)[1]
 files["out"].write("\n\n"+"-"*20+"\tFINAL RESULTS\t"+"-"*20+"\n")
 files["out"].write("{:30} :: {: <4}, {: <4}".format("Sigma, calculated nearest",sigma,round(ev_nearest),4)+"\n")
