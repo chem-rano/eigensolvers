@@ -35,7 +35,7 @@ class Test_lanczos(unittest.TestCase):
         self.guess = Y0
         self.mat = A
         self.ev = ev                     
-        self.sigma = 9
+        self.sigma = 30
         self.eShift = 0.0
         self.L = 6
         self.maxit = 4
@@ -57,15 +57,15 @@ class Test_lanczos(unittest.TestCase):
         Hmat2 = uS.T.conj()@qtAq@uS
         np.testing.assert_allclose(Hmat1,Hmat2,rtol=1e-5,atol=0)
    
-    def xtest_backTransform(self):
+    def test_backTransform(self):
         ''' Checks linear combination'''
         uvLanczos = inexactDiagonalization(self.mat,self.guess,self.sigma,self.L,
                 self.maxit,self.eConv,self.eShift)[1]
-        coeffs = np.ones(100)
-        bases = backTransform(uvLanczos,coeffs)
-        np.testing.assert_allclose(uvLanczos[0].array,bases.array,atol=1e-5)
-        # 'list' object has no attribute 'array'; Do not know how to compare these 
-
+        uS = transformationMatrix(uvLanczos)[1]
+        uv = diagonalizeHamiltonian(self.mat,uvLanczos,uS,self.eShift)[2] 
+        uSH = uS@uv
+        bases = backTransform(uvLanczos,uSH)
+        np.testing.assert_allclose(uvLanczos[0].array,bases[0].array,atol=1e-5)
 
     def test_orthogonalization(self):
         ''' Returned basis in old form is orthogonal'''
