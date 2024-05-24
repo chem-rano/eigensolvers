@@ -106,7 +106,7 @@ class TTNSVector(AbstractVector):
 
     @staticmethod
     def linearCombination(vectors: List[TTNSVector], coeffs:Optional[List[Number]]=None) -> TTNSVector:
-        # Initial guess: The one with largest coeffsicient.
+        # Initial guess: The one with largest coefficient.
         if coeffs is not None:
             toOpt = vectors[np.argmax(np.abs(coeffs))].copy()
         else:
