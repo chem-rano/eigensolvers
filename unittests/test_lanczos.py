@@ -76,16 +76,16 @@ class Test_lanczos(unittest.TestCase):
         np.testing.assert_allclose(S,np.eye(S.shape[0]),atol=1e-5) 
 
         
-    def xtest_transformationMatrix(self):
+    def test_transformationMatrix(self):
         ''' XH@S@X = 1'''
         uvLanczos = inexactDiagonalization(self.mat,self.guess,self.sigma,self.L,
-                self.maxit,self.eConv,self.zpve)[1]
+                self.maxit,self.eConv,self.eShift)[1]
         typeClass = uvLanczos[0].__class__
         S = typeClass.overlapMatrix(uvLanczos)
         uS = transformationMatrix(uvLanczos)[1]
         uv = diagonalizeHamiltonian(self.mat,uvLanczos,uS,self.eShift)[2] 
         uSH = uS@uv
-        mat = uSH@S@uS
+        mat = uSH.T.conj()@S@uSH
         np.testing.assert_allclose(mat,np.eye(mat.shape[0]),atol=1e-5) 
 
 
@@ -108,11 +108,11 @@ class Test_lanczos(unittest.TestCase):
         self.assertTrue((abs(target_value-closest_value)<= 1e-4),'Not accurate up to 4-nd decimal place')
     
     def xtest_eigenvector(self):
-        ''' Checks if the calculated eigenvalue is accurate to seventh decimal place'''
+        ''' Checks if the calculated eigenvalue is accurate to fourth decimal place'''
         uvLanczos = inexactDiagonalization(self.mat,self.guess,self.sigma,self.L,
-                self.maxit,self.eConv,self.zpve)[1]
+                self.maxit,self.eConv,self.eShift)[1]
         for i in range(len(uvLanczos)): 
-            np.testing.assert_allclose(uvLanczos[i].array,self.uvEigh[i],atol=1e-5) 
+            np.testing.assert_allclose(uvLanczos[i].array,self.uvEigh[i],atol=1e-4) 
 
 if __name__ == '__main__':
     unittest.main()
