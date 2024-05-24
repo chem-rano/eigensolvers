@@ -182,13 +182,4 @@ class TTNSVector(AbstractVector):
     @staticmethod
     def overlapMatrix(vectors:List[TTNSVector]):
         ''' Calculates overlap matrix of tensor network states'''
-        
-        dtype = np.result_type(*[v.dtype for v in vectors])
-        N = len(vectors)
-        qtq = np.empty([N,N],dtype=dtype)
-
-        for i in range(N):
-            for j in range(i,N):
-                qtq[i,j] = vectors[i].vdot(vectors[j],True)
-                qtq[j,i] = qtq[i,j].conj()
-        return qtq
+        return _overlapMatrix(vectors)
