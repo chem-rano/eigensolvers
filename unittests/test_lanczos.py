@@ -3,7 +3,7 @@ import sys
 # caution: path[0] is reserved for script path (or '' in REPL)
 sys.path.insert(1, '../')
 from inexact_Lanczos  import (transformationMatrix,diagonalizeHamiltonian,
-        backTransform,inexactDiagonalization)
+        oldBasisForm,inexactDiagonalization)
 import numpy as np
 from scipy import linalg as la
 from numpyVector import NumpyVector
@@ -64,7 +64,7 @@ class Test_lanczos(unittest.TestCase):
         uS = transformationMatrix(uvLanczos)[1]
         uv = diagonalizeHamiltonian(self.mat,uvLanczos,uS,self.eShift)[2] 
         uSH = uS@uv
-        bases = backTransform(uvLanczos,uSH)
+        bases = oldBasisForm(uvLanczos,uSH)
         np.testing.assert_allclose(uvLanczos[0].array,bases[0].array,atol=1e-5)
 
     def test_orthogonalization(self):
@@ -114,5 +114,7 @@ class Test_lanczos(unittest.TestCase):
         for i in range(len(uvLanczos)): 
             np.testing.assert_allclose(uvLanczos[i].array,self.uvEigh[i],atol=1e-4) 
 
+
 if __name__ == '__main__':
     unittest.main()
+

@@ -14,16 +14,45 @@ from numpyVector import NumpyVector # delete later
 # and convenient testing
 
 def transformationMatrix(Ylist):
+    ''' calculate transformation matrix from 
+    overlap matrix in Ylist basis
+    In: Ylist (list of basis)
+    lindep (default value is 1e-14)
+    
+    Out: not linIndep (bool) -> True if bases in Ylist 
+    are linearly dependent
+    uS: transformation matrix
+    Additional: prints overlap matrix in detailed 
+    output file ("iterations.out", default)'''
+    
     typeClass = Ylist[0].__class__
     S = typeClass.overlapMatrix(Ylist)            
     writeFile("out","OVERLAP MATRIX")
     writeFile("out",S)
     linIndep, uS = lowdinOrtho(S)                       
-    return linIndep, uS
+    return not linIndep, uS
     
-def diagonalizeHamiltonian(H,bases,X,eShift):
+def diagonalizeHamiltonian(Hop,bases,X,eShift):
+    ''' Calculates matrix representation of Hop (qtAq),
+    forms truncated matrix (Hmat)
+    and finally solves eigenvalue problem for Hmat
+
+    In: Hop -> Hamiltonain operator 
+        bases -> list of basis
+        X -> transformation matrix
+        eShift -> eigenvalue shift (e.g., zpve)
+
+    Out: Hmat -> Hamiltonian matrix represenation
+                 mainly for unit tests
+         ev -> shifted (subtracted) eigenvalues
+               mainly, excitation energies
+         uv -> eigenvectors
+    Additional: prints Hamiltonian matrix, 
+                eigenvalues in detailed 
+    output file ("iterations.out", default)'''
+
     typeClass = bases[0].__class__
-    qtAq = typeClass.matrixRepresentation(H,bases)  
+    qtAq = typeClass.matrixRepresentation(Hop,bases)  
     Hmat = X.T.conj()@qtAq@X                      
     evShifted, uv = sp.linalg.eigh(Hmat)  
     writeFile("out","HAMILTONIAN MATRIX")
@@ -34,6 +63,23 @@ def diagonalizeHamiltonian(H,bases,X,eShift):
     return Hmat,ev,uv
     
 def checkConvergence(ev,ref,sigma,eConv):
+    ''' checks eigenvalue convergence 
+    In: ev -> eigenvalues
+        ref -> eigenvalue of last iteration
+               (i-1 th eigenvalue)
+        sigma -> eigenvalue target
+        eConv -> convergence threshold 
+    
+    Out: isConverged (bool) True if converged
+         idx -> index of the nearest eigenvalue 
+         ref -> updated eigenvalue reference for 
+         next convergence check
+    Additional: prints closest eigenvalue to sigma, 
+                absolute eigenvalue difference, 
+                relative eigenvalue difference,
+                time in seconds
+    plotting file ("data2Plot.out", default)'''
+    
     isConverged = False
     startTime = time.time()
     idx, ev_nearest = find_nearest(ev,sigma)
@@ -44,7 +90,9 @@ def checkConvergence(ev,ref,sigma,eConv):
     writeFile("plot",check_ev,check_ev/ev_nearest,time.time()-startTime,sep="\t")
     return isConverged, idx, ref
  
-def backTransform(newBases,coeffs):
+def oldBasisForm(newBases,coeffs):
+    ''' Equivalent representation of eigenvectors to old
+    form of the basis'''
     typeClass = newBases[0].__class__
     ndim = coeffs.shape
     oldBases = []
@@ -99,8 +147,8 @@ def inexactDiagonalization(H,v0,sigma,L,maxit,eConv,eShift:float=0.0):
             else:
                 Ylist.append(Ysolved)
                 print("Alert: Not normalizing add basis; norm <=0.001*eConv")
-            linIndep, uS = transformationMatrix(Ylist)
-            if not linIndep: break
+            lindep, uS = transformationMatrix(Ylist)
+            if lindep: break
             ev, uv = diagonalizeHamiltonian(H,Ylist,uS,eShift)[1:3]
             isConverged,idx,ref = checkConvergence(ev,ref,sigma,eConv)
             uSH = uS@uv
@@ -109,15 +157,15 @@ def inexactDiagonalization(H,v0,sigma,L,maxit,eConv,eShift:float=0.0):
                 break
         
         if isConverged:
-            Ylist = backTransform(Ylist,uSH)
+            Ylist = oldBasisForm(Ylist,uSH)
             break
         else:
-            y = backTransform(Ylist,uSH[:,idx])
+            y = oldBasisForm(Ylist,uSH[:,idx])
             Ylist = [typeClass.normalize(y[0])]
         
         status["isConverged"] = isConverged
         status["maxit"] = it
-        status["lindep"] = not linIndep
+        status["lindep"] = lindep
 
     return ev,Ylist,status
 # -----------------------------------------------------
