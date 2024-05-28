@@ -232,25 +232,3 @@ def eigenvalueResidual(ev,prev_ev):
         prev_tot += prev_ev[i]
     res = diff/prev_tot
     return res
-# -----------------------------------------------------
-def convertEnergy(energy,eShift,convertUnit="True",unit="cm-1"):
-    ''' For converting an energy or an array of energy with 
-    adjusted eShift and unit conversion'''
-    energyShifted = None 
-    if convertUnit:
-        energyShifted = util.au2unit((energy+eShift),unit)
-    elif not convertUnit:
-        energyShifted = (energy+eShift)
-    return energyShifted
-
-# -----------------------------------------------------
-def convertMatrix(mat,eShift,convertUnit="True",unit="cm-1"):
-    ''' For converting a matrix with 
-    adjusted eShift and unit conversion'''
-    if convertUnit:
-        matShifted = util.au2unit(mat,unit) - eShift
-    elif not convertUnit:
-        matShifted = mat - eShift
-
-    return matShifted
-# -----------------------------------------------------

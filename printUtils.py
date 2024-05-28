@@ -1,5 +1,33 @@
 import util
 
+inputs  = open("example/printChoicesNumpyvector").readlines()
+#inputs  = open("example/printChoicesTTNS").readlines()
+convertUnit = (inputs[0].split("#"))[0];#print(bool(convertUnit))
+eShift = float((inputs[1].split("#"))[0]);#print(eShift)
+
+# -----------------------------------------------------
+def convertEnergy(energy,unit="cm-1"):
+    ''' For converting an energy or an array of energy with 
+    adjusted eShift and unit conversion'''
+    energyShifted = None 
+    if convertUnit == 'True':
+        energyShifted = util.au2unit(energy,unit)-eShift
+    else:
+        energyShifted = energy-eShift
+    return energyShifted
+
+# -----------------------------------------------------
+def convertMatrix(mat,unit="cm-1"):
+    ''' For converting a matrix with 
+    adjusted eShift and unit conversion'''
+    if convertUnit == 'True':
+        matShifted = util.au2unit(mat,unit) - eShift
+    else:
+        matShifted = mat - eShift
+
+    return matShifted
+# -----------------------------------------------------
+
 def writeInputs(fout,dateTime,sigma,zpve,L,maxit,D,eConv,options,guess="Random",printInfo=False):
     optionsOrtho = options["orthogonalizationArgs"]
     optionsLinear= options["linearSystemArgs"]
@@ -116,20 +144,24 @@ def writeFile(fstring,*args,sep=" ",endline=True):
     fout = open("iterations.out","a");fplot = open("data2Plot.out","a")
     file = fout if fstring == "out" else fplot
     
-    if len(args) ==1:
-        file.write(f"{args[0]}")
-    elif len(args)> 1:
+    if len(args) == 2:
+        if args[0] == "OVERLAP MATRIX":
+            file.write("OVERLAP MATRIX\n")
+            file.write(f"{args[1]}")
+        elif args[0] == "HAMILTONIAN MATRIX":
+            file.write("HAMILTONIAN MATRIX\n")
+            file.write(f"{convertMatrix(args[1])}")
+        elif args[0] == "Eigenvalues":
+            file.write("Eigenvalues\n")
+            file.write(f"{convertEnergy(args[1])}")
+    
+    elif len(args)> 2 and args[0] == "iteration details":
+        line = "Lanczos iteration\t"+str(args[1]+1)+"\tKrylov iteration\t"+str(args[2])
+        line += "\tCumulative Krylov iteration\t"+str(args[3])
+        file.write(line+"\n")
+    else:                           # whatever else write with \t separation
         for item in args:
             file.write(str(item)+sep)
     file.write("\n") if endline else file.write("\t")
-    fout.close()
-    fplot.close()
-
-def writeIteration(fstring,it,i,nCum):
-    fout = open("iterations.out","a");fplot = open("data2Plot.out","a")
-    file = fout if fstring == "out" else fplot
-    line = "Lanczos iteration\t"+str(it+1)+"\tKrylov iteration\t"+str(i)
-    line += "\tCumulative Krylov iteration\t"+str(nCum)
-    file.write(line+"\n")
     fout.close()
     fplot.close()
