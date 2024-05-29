@@ -88,7 +88,8 @@ def checkConvergence(ev,ref,sigma,eConv,status):
     isConverged = False
     startTime = time.time()
     idx, ev_nearest = find_nearest(ev,sigma)
-    check_ev = abs(ev_nearest - ref)    
+    #check_ev = abs(ev_nearest - ref)    
+    check_ev = abs(ev_nearest - ref)/max(abs(ev_nearest), 1e-14)    
     if check_ev <= eConv: isConverged = True
     ref = ev_nearest
     status["isConverged"] = isConverged
@@ -139,7 +140,7 @@ def inexactDiagonalization(H,v0,sigma,L,maxit,eConv):
              sigma => eigenvalue estimate
              L => Krylov space dimension
              maxit => Maximum Lanczos iterations
-             eConv => eigenvalue convergence tolerance
+             eConv => relative eigenvalue convergence tolerance
 
     Output:: ev as inexact Lanczos eigenvalues
              uv as inexact Lanczos eigenvectors

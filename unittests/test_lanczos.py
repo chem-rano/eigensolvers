@@ -25,6 +25,7 @@ class Test_lanczos(unittest.TestCase):
         ev = np.linspace(1,200,n)
         np.random.seed(1212)
         Q = la.qr(np.random.rand(n,n))[0]
+        #Q = la.qr(np.random.rand(n,n)+1j*np.random.rand(n,n))[0]
         A = Q.T @ np.diag(ev) @ Q
         assert(la.ishermitian(A, atol=1e-08, rtol=1e-08))
         
