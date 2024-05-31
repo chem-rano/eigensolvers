@@ -95,7 +95,7 @@ def checkConvergence(ev,ref,sigma,eConv,status):
     status["isConverged"] = isConverged
     return status, idx, ref
  
-def oldBasisForm(newBases,coeffs):
+def basisTransformation(newBases,coeffs):
     ''' Equivalent representation of eigenvectors to old
     form of the basis'''
     typeClass = newBases[0].__class__
@@ -169,10 +169,10 @@ def inexactDiagonalization(H,v0,sigma,L,maxit,eConv):
                 break
         
         if not continueIteration:
-            Ylist = oldBasisForm(Ylist,uSH)
+            Ylist = basisTransformation(Ylist,uSH)
             break
         else:
-            y = oldBasisForm(Ylist,uSH[:,idx])
+            y = basisTransformation(Ylist,uSH[:,idx])
             Ylist = [typeClass.normalize(y[0])]
 
     return ev,Ylist,status

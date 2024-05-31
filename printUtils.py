@@ -1,31 +1,23 @@
 import util
 
-filepath = "/home/madhumita/mr/zundel/gitspace/eigensolvers/examples/"
-inputs  = open(filepath+"printChoicesNumpyvector").readlines()
-convertUnit = (inputs[0].split("#"))[0];#print(bool(convertUnit))
-eShift = float((inputs[1].split("#"))[0]);#print(eShift)
+#filepath = "/home/madhumita/mr/zundel/gitspace/eigensolvers/examples/"
+#inputs  = open(filepath+"printChoicesNumpyvector").readlines()
+#convertUnit = (inputs[0].split("#"))[0];#print(bool(convertUnit))
+#eShift = float((inputs[1].split("#"))[0]);#print(eShift)
 
+convertUnit = "au"
+eShift = 0.0
 # -----------------------------------------------------
-def convertEnergy(energy,unit="cm-1"):
-    ''' For converting an energy or an array of energy with 
+def convert(arr,unit="cm-1"):
+    ''' For converting ndarray (energy or matrix) with 
     adjusted eShift and unit conversion'''
-    energyShifted = None 
-    if convertUnit == 'True':
-        energyShifted = util.au2unit(energy,unit)-eShift
+    arrShifted = None 
+    if convertUnit == 'au':
+        arrShifted = arr-eShift
     else:
-        energyShifted = energy-eShift
-    return energyShifted
+        arrShifted = util.au2unit(arr,unit)-eShift
+    return arrShifted
 
-# -----------------------------------------------------
-def convertMatrix(mat,unit="cm-1"):
-    ''' For converting a matrix with 
-    adjusted eShift and unit conversion'''
-    if convertUnit == 'True':
-        matShifted = util.au2unit(mat,unit) - eShift
-    else:
-        matShifted = mat - eShift
-
-    return matShifted
 # -----------------------------------------------------
 
 def writeInputs(fout,dateTime,sigma,zpve,L,maxit,D,eConv,options,guess="Random",printInfo=False):
@@ -150,10 +142,10 @@ def writeFile(fstring,*args,sep=" ",endline=True):
             file.write(f"{args[1]}")
         elif args[0] == "HAMILTONIAN MATRIX":
             file.write("HAMILTONIAN MATRIX\n")
-            file.write(f"{convertMatrix(args[1])}")
+            file.write(f"{convert(args[1])}")
         elif args[0] == "Eigenvalues":
             file.write("Eigenvalues\n")
-            file.write(f"{convertEnergy(args[1])}")
+            file.write(f"{convert(args[1])}")
     
     elif len(args)> 2 and args[0] == "iteration details":
         line = "Lanczos iteration\t"+str(args[1]+1)+"\tKrylov iteration\t"+str(args[2])
