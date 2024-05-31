@@ -1,122 +1,205 @@
 import numpy as np
-import scipy
-from scipy import linalg as la
-from scipy.sparse.linalg import LinearOperator
-from util_funcs import find_nearest, headerBot
-from util_funcs import lowdinOrtho  
+import scipy as sp
+from util_funcs import find_nearest, lowdinOrtho
+from util_funcs import headerBot
+from printUtils import *
 import warnings
-from numpyVector import NumpyVector
 import time
+import util
+from numpyVector import NumpyVector # delete later
+
+
+# -----------------------------------------------------
+# Diving in to functions for better readability 
+# and convenient testing
+def generateSubspace(Hop,Ylist,sigma,eConv):
+    typeClass = Ylist[0].__class__
+    Ysolved = typeClass.solve(Hop,Ylist[-1],sigma)
+    if typeClass.norm(Ysolved) > 0.001*eConv:
+        Ylist.append(typeClass.normalize(Ysolved))
+    else:
+        Ylist.append(Ysolved)
+        print("Alert: Not normalizing add basis; norm <=0.001*eConv")
+    return Ylist
+
+def transformationMatrix(Ylist,status):
+    ''' Calculates transformation matrix from 
+    overlap matrix in Ylist basis
+    In: Ylist (list of basis)
+    lindep (default value is 1e-14, lowdinOrtho())
+    
+    Out: not linIndep (bool) -> True if bases in Ylist 
+    are linearly dependent
+    uS: transformation matrix
+    Additional: prints overlap matrix in detailed 
+    output file ("iterations.out", default)'''
+    
+    typeClass = Ylist[0].__class__
+    S = typeClass.overlapMatrix(Ylist) 
+    writeFile("out","OVERLAP MATRIX",S)
+    linIndep, uS = lowdinOrtho(S)                  
+    status["lindep"] = not linIndep
+    return status, uS
+    
+def diagonalizeHamiltonian(Hop,bases,X):
+    ''' Calculates matrix representation of Hop (qtAq),
+    forms truncated matrix (Hmat)
+    and finally solves eigenvalue problem for Hmat
+
+    In: Hop -> Hamiltonain operator 
+        bases -> list of basis
+        X -> transformation matrix
+
+    Out: Hmat -> Hamiltonian matrix represenation
+                 mainly for unit tests
+         ev -> eigenvalues
+         uv -> eigenvectors
+    Additional: prints Hamiltonian matrix, 
+                eigenvalues in detailed 
+    output file ("iterations.out", default)'''
+
+    typeClass = bases[0].__class__
+    qtAq = typeClass.matrixRepresentation(Hop,bases)  
+    Hmat = X.T.conj()@qtAq@X                      
+    ev, uv = sp.linalg.eigh(Hmat)  
+    writeFile("out","HAMILTONIAN MATRIX",Hmat)
+    writeFile("out","Eigenvalues",ev)
+    return Hmat,ev,uv
+    
+def checkConvergence(ev,ref,sigma,eConv,status):
+    ''' checks eigenvalue convergence
+
+    In: ev -> eigenvalues
+        ref -> eigenvalue of last iteration
+               (i-1 th eigenvalue)
+        sigma -> eigenvalue target
+        eConv -> convergence threshold 
+    
+    Out: isConverged (bool) True if converged
+         idx -> index of the nearest eigenvalue 
+         ref -> updated eigenvalue reference for 
+         next convergence check
+    Additional: prints closest eigenvalue to sigma, 
+                absolute eigenvalue difference, 
+                relative eigenvalue difference,
+                time in seconds
+    plotting file ("data2Plot.out", default)'''
+    
+    isConverged = False
+    startTime = time.time()
+    idx, ev_nearest = find_nearest(ev,sigma)
+    #check_ev = abs(ev_nearest - ref)    
+    check_ev = abs(ev_nearest - ref)/max(abs(ev_nearest), 1e-14)    
+    if check_ev <= eConv: isConverged = True
+    ref = ev_nearest
+    status["isConverged"] = isConverged
+    return status, idx, ref
+ 
+def basisTransformation(newBases,coeffs):
+    ''' Equivalent representation of eigenvectors to old
+    form of the basis'''
+    typeClass = newBases[0].__class__
+    ndim = coeffs.shape
+    oldBases = []
+    if len(ndim)==1:
+        oldBases.append(typeClass.linearCombination(newBases,coeffs))
+    else:
+        for j in range(ndim[1]):
+            oldBases.append(typeClass.linearCombination(newBases,coeffs[:,j]))
+    return oldBases
+
+def analyzeStatus(status):
+    it = status["iteration"]
+    isConverged = status["isConverged"]
+    lindep = status["lindep"]
+    maxit = status["maxit"]
+    continueIteration = True
+    
+    if isConverged or lindep:
+        continueIteration = False
+    if status['isConverged'] and status['maxit'] == maxit -1: 
+        print("Alert: Lanczos iterations is not converged!")
+    if status['lindep']: print("Alert: Got linear dependent basis!")
+
+    return continueIteration
+# -----------------------------------------------------
 
 # -----------------------------------------------------
 #    Inexact Lanczos with AbstractClass interface
 #------------------------------------------------------
 
-def inexactDiagonalization(H,v0,sigma,L,maxit,conv_tol,proceed_ortho:bool = False):
+def inexactDiagonalization(H,v0,sigma,L,maxit,eConv):
     '''
     This is core function to calculate eigenvalues and eigenvectors
     with inexact Lanczos method
-    Input::  H => diagonalizable input matrix or linearoperator
-             sigma => eigenvalue estimate 
-             v0 => eigenvector guess
-             conv_tol => eigenvalue convergence tolerance
 
-    Output:: ev as inexact Lanczos computed eigenvalues
-             uv as inexact Lanczos computed eigenvectors
+
+    ---Doing inexact Lanczos in canonical orthogonal basis.---
+    Input::  H => diagonalizable input matrix or linearoperator
+             v0 => eigenvector guess
+             sigma => eigenvalue estimate
+             L => Krylov space dimension
+             maxit => Maximum Lanczos iterations
+             eConv => relative eigenvalue convergence tolerance
+
+    Output:: ev as inexact Lanczos eigenvalues
+             uv as inexact Lanczos eigenvectors
     '''
     
-    n = v0.size
-    dtype = v0.dtype
-    
-    Ylist = []
-    Ylist.append(v0/v0.norm())
     typeClass = v0.__class__
-    ev_last = np.inf # for convergence check
-    isConverged = False
-    if not proceed_ortho: print("!!! ATTENTION: Doing inexact Lanczos in non-orthogonal basis. \n")
-  
+    Ylist = [typeClass.normalize(v0)]
+    ref = np.inf
+    nCum = 0
+    status = {"eConv":eConv,"maxit":maxit} # convergence details
   
     for it in range(maxit):
+        status["iteration"] = it
         for i in range(1,L):
-            Ysolved = typeClass.solve(H,Ylist[i-1],sigma)
-           
-            if not proceed_ortho:
-                Ylist.append(Ysolved)
-                qtq = typeClass.overlapMatrix(Ylist)
-                uQ = lowdinOrtho(qtq)[1]
-                
-                m = uQ.shape[1]
-                Ylist_trun = []
-                for ivec in range(m):
-                    Ylist_trun.append(typeClass.linearCombination(Ylist,uQ[:,ivec]))
-                qtAq = typeClass.matrixRepresentation(H,Ylist_trun)
-                ev, uvals = la.eigh(qtAq)
-                uv = uQ@uvals
-                Ylist = Ylist_trun
-
-
-            else:
-                item = typeClass.orthogonalize_against_set(Ysolved,Ylist)
-                if item is not None:
-                    Ylist.append(item)
-                    qtAq = typeClass.matrixRepresentation(H,Ylist)
-                    ev, uv = la.eigh(qtAq)
-                    
-                else:
-                    warnings.warn("Linear dependency problem, abort current Lanczos iteration and restart.")
-                    break
-        
-            # Find closest ev and check if this value is converged
-            idx, ev_nearest = find_nearest(ev,sigma)
-            check_ev = abs(ev_nearest-ev_last)
-                    
-            if (check_ev <= conv_tol):
-                break                # Break to Krylov space expansion
-                    
-            ev_last = ev_nearest     # Update the last eigenvalue for convergence check
-
-
-       # If not converged, continue to next iteration with x0 guess as nearest eigenvector
-        if (check_ev <= conv_tol):
-            isConverged = True
+            nCum += 1
+            writeFile("out","iteration details",it,i,nCum)
             
-            m = len(Ylist)
-            x = []
-            for j in range(m):
-                x.append(typeClass.linearCombination(Ylist,uv[:,j]))
-            Ylist = x
+            Ylist = generateSubspace(H,Ylist,sigma,eConv)
+            status, uS = transformationMatrix(Ylist, status)
+            ev, uv = diagonalizeHamiltonian(H,Ylist,uS)[1:3]
+            status,idx,ref = checkConvergence(ev,ref,sigma,eConv,status)
+            continueIteration = analyzeStatus(status)
+            uSH = uS@uv
+            
+            if not continueIteration:
+                break
+        
+        if not continueIteration:
+            Ylist = basisTransformation(Ylist,uSH)
             break
         else:
-            Ylist = [typeClass.linearCombination(Ylist,uv[:,idx])]
+            y = basisTransformation(Ylist,uSH[:,idx])
+            Ylist = [typeClass.normalize(y[0])]
 
-        if (it == maxit-1) and (not isConverged):
-            print("Alert:: Lanczos iterations is not converged!")
-        
-    return ev,Ylist
+    return ev,Ylist,status
 # -----------------------------------------------------
 if __name__ == "__main__":
     n = 100
     ev = np.linspace(1,300,n)
     np.random.seed(10)
-    Q = la.qr(np.random.rand(n,n))[0]
+    Q = sp.linalg.qr(np.random.rand(n,n))[0]
     A = Q.T @ np.diag(ev) @ Q
 
+    target = 30
+    maxit = 4 
+    L = 6 
+    eConv = 1e-8
     
-    sigma = 30
-    maxit = 4
-    L  = 3
-    conv_tol = 1e-08
     optionDict = {"linearSolver":"gcrotmk","linearIter":1000,"linear_tol":1e-04}
-
     Y0 = NumpyVector(np.random.random((n)),optionDict)
+    sigma = target 
 
     headerBot("Inexact Lanczos")
     print("{:50} :: {: <4}".format("Sigma",sigma))
     print("{:50} :: {: <4}".format("Krylov space dimension",L+1))
-    print("{:50} :: {: <4}".format("Eigenvalue convergence tolarance",conv_tol))
+    print("{:50} :: {: <4}".format("Eigenvalue convergence tolarance",eConv))
     print("\n")
     t1 = time.time()
-    lf,xf =  inexactDiagonalization(A,Y0,sigma,L,maxit,conv_tol)
+    lf,xf,status =  inexactDiagonalization(A,Y0,sigma,L,maxit,eConv)
     t2 = time.time()
 
     print("{:50} :: {: <4}".format("Eigenvalue nearest to sigma",round(find_nearest(lf,sigma)[1],8)))

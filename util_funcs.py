@@ -4,6 +4,7 @@ import sys
 from scipy import special
 import copy
 from numpyVector import NumpyVector
+import util
 
 LINDEP_DEFAULT_VALUE = 1e-14 # Global variable
 
@@ -231,4 +232,3 @@ def eigenvalueResidual(ev,prev_ev):
         prev_tot += prev_ev[i]
     res = diff/prev_tot
     return res
-    

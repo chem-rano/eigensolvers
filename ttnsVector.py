@@ -12,6 +12,7 @@ from ttns2.renormalization import AbstractRenormalization, SumOfOperators
 from ttns2.sweepAlgorithms import (LinearSystem, Orthogonalization, 
                                 StateFitting)
 from ttns2.driver import bracket, getRenormalizedOp
+from ttns2.driver import overlapMatrix as _overlapMatrix
 
 class TTNSVector(AbstractVector):
     def __init__(self, ttns: TTNS, options:Dict[str, Dict]):
@@ -27,18 +28,31 @@ class TTNSVector(AbstractVector):
         self.ttns = ttns
         self.options = options
         # default options
-        self.options["sweepAlgorithmArgs"] = options.get("sweepAlgorithmArgs", {})
+        self.options["sweepAlgorithmArgs"] = options.get("sweepAlgorithmArgs", {"nSweep":1000, "convTol":1e-8})
         op = self.options["sweepAlgorithmArgs"]
         # some changed default options
         op["indent"] = op.get("indent","\t")
         self.options["stateFittingArgs"] = options.get("stateFittingArgs", self.options["sweepAlgorithmArgs"])
         self.options["orthogonalizationArgs"] = options.get("orthogonalizationArgs", self.options["sweepAlgorithmArgs"])
         self.options["linearSystemArgs"] = options.get("linearSystemArgs", self.options["sweepAlgorithmArgs"])
+    
+    @property
+    def hasExactAddition(self):
+        """
+        Simplication of vector addition with its complex conjugate.
+        For example, c+c* = 2c when c=(a+ib)
+        This summation is true for numpy vectors
+        But does not exactly same as 2c for TTNS
+        """
+        return False
 
     @property
     def dtype(self):
         # added to abstractVector
         return np.result_type(*self.ttns.dtypes())
+
+    def __len__(self):
+        raise NotImplementedError
 
     def __mul__(self, other: Number) -> TTNSVector:
         assert isinstance(other, Number)
@@ -46,6 +60,9 @@ class TTNSVector(AbstractVector):
         new = self.copy()
         new.ttns.rootNode.tens *= other
         return new
+    
+    def __rmul__(self,other):
+        raise NotImplementedError
 
     def __truediv__(self, other: Number) -> TTNSVector:
         warnings.warn("This copies the TTNS. This should be avoided!")
@@ -71,6 +88,9 @@ class TTNSVector(AbstractVector):
     def norm(self) -> float:
         return self.ttns.norm()
 
+    def real(self):
+        raise NotImplementedError
+
     def vdot(self, other: TTNSVector, conjugate=True) -> Number:
         if not conjugate:
             # need to change RenormalizedDot accordingly
@@ -86,15 +106,15 @@ class TTNSVector(AbstractVector):
         raise NotImplementedError
 
     @staticmethod
-    def linearCombination(vectors: List[TTNSVector], coeff:Optional[List[Number]]=None) -> TTNSVector:
+    def linearCombination(vectors: List[TTNSVector], coeffs:Optional[List[Number]]=None) -> TTNSVector:
         # Initial guess: The one with largest coefficient.
-        if coeff is not None:
-            toOpt = vectors[np.argmax(np.abs(coeff))].copy()
+        if coeffs is not None:
+            toOpt = vectors[np.argmax(np.abs(coeffs))].copy()
         else:
             # TODO provide b
             norms = [o.norm() for o in vectors]
             toOpt = vectors[np.argmax(norms)].copy()
-        solver = StateFitting([v.ttns for v in vectors], coeff, toOpt.ttns,
+        solver = StateFitting([v.ttns for v in vectors], toOpt.ttns, coeffs,
                         **vectors[0].options["stateFittingArgs"])
         converged, optVal = solver.run()
         if not converged:
@@ -127,17 +147,19 @@ class TTNSVector(AbstractVector):
             # x0=b corresponds to residual of x0 = 0 (LHS x0 - b)
             # the sign does not matter
             x0 = b.copy()
-        op = getRenormalizedOp(x0.ttns, H, b.ttns)
+        op = getRenormalizedOp(x0.ttns, H, x0.ttns)
         if abs(sigma) > 1e-16:
-            LHS = SumOfOperators([op, getRenormalizedOp(x0.ttns, -sigma, b.ttns)])
+            LHS = SumOfOperators([op, getRenormalizedOp(x0.ttns, -sigma, x0.ttns)])
         else:
             LHS = op
-        assert "lhsOpType" not in x0.options["linearSolverArgs"] # or just delete it in a copy of the dict
+        #assert "lhsOpType" not in x0.options["linearSolverArgs"] # or just delete it in a copy of the dict
+        assert "lhsOpType" not in x0.options["linearSystemArgs"] # or just delete it in a copy of the dict
         solver = LinearSystem(x0.ttns if x0 is not None else None,
                               LHS,
                               b.ttns,
                               lhsOpType = opType,
-                              **x0.options["linearSolverArgs"])
+                              **x0.options["linearSystemArgs"])
+                              #**x0.options["linearSolverArgs"])
         converged, val = solver.run()
         if not converged:
             warnings.warn("solve: TTNS sweeps not converged!")
@@ -157,3 +179,8 @@ class TTNSVector(AbstractVector):
                 M[i, j] = val
                 M[j, i] = val.conj()
         return M
+
+    @staticmethod
+    def overlapMatrix(vectors:List[TTNSVector]):
+        ''' Calculates overlap matrix of tensor network states'''
+        return _overlapMatrix([v.ttns for v in vectors])
