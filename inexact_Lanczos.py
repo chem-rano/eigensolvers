@@ -35,7 +35,7 @@ def transformationMatrix(Ylist,status):
     output file ("iterations.out", default)'''
     
     typeClass = Ylist[0].__class__
-    S = typeClass.overlapMatrix(Ylist) 
+    S = typeClass.extendOverlapMatrix(Ylist)
     writeFile("out","OVERLAP MATRIX",S)
     linIndep, uS = lowdinOrtho(S)                  
     status["lindep"] = not linIndep
@@ -59,7 +59,7 @@ def diagonalizeHamiltonian(Hop,bases,X):
     output file ("iterations.out", default)'''
 
     typeClass = bases[0].__class__
-    qtAq = typeClass.matrixRepresentation(Hop,bases)  
+    qtAq = typeClass.extendMatrixRepresentation(Hop,bases)   
     Hmat = X.T.conj()@qtAq@X                      
     ev, uv = sp.linalg.eigh(Hmat)  
     writeFile("out","HAMILTONIAN MATRIX",Hmat)
