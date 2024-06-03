@@ -184,3 +184,42 @@ class TTNSVector(AbstractVector):
     def overlapMatrix(vectors:List[TTNSVector]):
         ''' Calculates overlap matrix of tensor network states'''
         return _overlapMatrix([v.ttns for v in vectors])
+    
+    @staticmethod
+    def extendMatrixRepresentation(operator, vectors:List[TTNSVector],qtAq:ndarray):
+        dtype = np.result_type(*[v.dtype for v in vectors])
+        N = len(vectors)
+        if N < 3:               
+            qtAq = np.empty([N,N],dtype=dtype)
+            for i in range(N):
+                bra = vectors[i].ttns
+                for j in range(i, N):
+                    ket = vectors[j].ttns
+                    val = getRenormalizedOp(bra, operator, ket).bracket()
+                    qtAq[i, j] = val
+                    qtAq[j, i] = val.conj()
+        else:
+            M = np.empty(N,dtype=dtype)
+            bra = vectors[-1].ttns
+            for i in range(1, N):
+                ket = vectors[i].ttns
+                M[i] = getRenormalizedOp(bra, operator, ket).bracket()
+            offD = np.array([M[:-1]])
+            np.concatenate((qtAq,offD.T.conj()),axis=1)
+            np.vstack((qtAq,M[np.newaxis]))
+        return qtAq
+ 
+    @staticmethod
+    def extendOverlapMatrix(vectors:List[TTNSVector],oMat:ndarray):
+        ''' Calculates overlap elements of last tensor networks state'''
+        
+        dtype = np.result_type(*[v.dtype for v in vectors])
+        N = len(vectors)
+        elems = np.empty([N],dtype=dtype)
+
+        for i in range(N):
+            elems[i] = vectors[i].vdot(vectors[-1],True)
+        offD = np.array([elems[:-1]])
+        np.concatenate((oMat,offD.T.conj()),axis=1)
+        np.vstack((oMat,elems[np.newaxis]))
+        return oMat
