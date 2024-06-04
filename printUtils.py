@@ -5,17 +5,15 @@ import util
 #convertUnit = (inputs[0].split("#"))[0];#print(bool(convertUnit))
 #eShift = float((inputs[1].split("#"))[0]);#print(eShift)
 
-convertUnit = "au"
-eShift = 0.0
 # -----------------------------------------------------
-def convert(arr,unit="cm-1"):
+def convert(arr,eShift =0.0, convertUnit="au"):
     ''' For converting ndarray (energy or matrix) with 
     adjusted eShift and unit conversion'''
     arrShifted = None 
     if convertUnit == 'au':
         arrShifted = arr-eShift
     else:
-        arrShifted = util.au2unit(arr,unit)-eShift
+        arrShifted = util.au2unit(arr,"cm-1")-eShift
     return arrShifted
 
 # -----------------------------------------------------
