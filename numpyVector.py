@@ -173,3 +173,40 @@ class NumpyVector(AbstractVector):
                 qtq[j,i] = qtq[i,j].conj()
         return qtq
     # -----------------------------------------------------
+    def extendMatrixRepresentation(operator,vectors,qtAq):
+        m = len(vectors)
+        dtype = vectors[0].dtype
+
+        if m < 3:
+            for j in range(m):
+                ket = vectors[j].applyOp(operator)
+                for i in range(j,m):
+                    qtAq[i,j] = vectors[i].vdot(ket)
+                    qtAq[j,i] = qtAq[i,j].conj()
+        else:
+            M = np.empty(m,dtype=dtype)
+            ket = vectors[-1].applyOp(operator)
+            for i in range(1, m):
+                M[i] = vectors[i].vdot(ket)
+            offD = np.array([M[:-1]])
+            np.concatenate((qtAq,offD.T.conj()),axis=1)
+            np.vstack((qtAq,M[np.newaxis]))
+        return qtAq
+
+    def extendOverlapMatrix(vectors,oMat):
+        dtype = np.result_type(*[v.dtype for v in vectors])
+        N = len(vectors)
+
+        if N < 3:               
+            for i in range(m):
+                for j in range(i,m):
+                    oMat[i,j] = vectors[i].vdot(vectors[j],True)
+                    oMat[j,i] = oMat[i,j].conj()
+        else:
+            elems = np.empty([N],dtype=dtype)
+            for i in range(N):
+                elems[i] = vectors[i].vdot(vectors[-1],True)
+            offD = np.array([elems[:-1]])
+            np.concatenate((oMat,offD.T.conj()),axis=1)
+            np.vstack((oMat,elems[np.newaxis]))
+        return oMat

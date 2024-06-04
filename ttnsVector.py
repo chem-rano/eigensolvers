@@ -48,7 +48,6 @@ class TTNSVector(AbstractVector):
 
     @property
     def dtype(self):
-        # added to abstractVector
         return np.result_type(*self.ttns.dtypes())
 
     def __len__(self):
@@ -210,16 +209,19 @@ class TTNSVector(AbstractVector):
  
     @staticmethod
     def extendOverlapMatrix(vectors:List[TTNSVector],oMat:ndarray):
-        ''' Calculates overlap elements of last tensor networks state'''
+        ''' Calculates overlap elements of newly added tensor networks state'''
         
         dtype = np.result_type(*[v.dtype for v in vectors])
         N = len(vectors)
-        elems = np.empty([N],dtype=dtype)
 
         if N < 3:               
-        for i in range(N):
-            elems[i] = vectors[i].vdot(vectors[-1],True)
-        offD = np.array([elems[:-1]])
-        np.concatenate((oMat,offD.T.conj()),axis=1)
-        np.vstack((oMat,elems[np.newaxis]))
+            oMat = _overlapMatrix([v.ttns for v in vectors])
+        else:
+            print("oMat",oMat)
+            elems = np.empty([N],dtype=dtype)
+            for i in range(N):
+                elems[i] = vectors[i].vdot(vectors[-1],True)
+            offD = np.array([elems[:-1]]).T.conj()
+            np.concatenate((oMat,offD[:,None]),axis=1)
+            np.vstack((oMat,elems[np.newaxis]))
         return oMat

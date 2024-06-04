@@ -39,7 +39,7 @@ def transformationMatrix(Ylist,status,S):
     writeFile("out","OVERLAP MATRIX",S)
     linIndep, uS = lowdinOrtho(S)                  
     status["lindep"] = not linIndep
-    return status, uS
+    return status, uS, S
     
 def diagonalizeHamiltonian(Hop,bases,X,qtAq):
     ''' Calculates matrix representation of Hop (qtAq),
@@ -64,7 +64,7 @@ def diagonalizeHamiltonian(Hop,bases,X,qtAq):
     ev, uv = sp.linalg.eigh(Hmat)  
     writeFile("out","HAMILTONIAN MATRIX",Hmat)
     writeFile("out","Eigenvalues",ev)
-    return Hmat,ev,uv
+    return Hmat,ev,uv,qtAq
     
 def checkConvergence(ev,ref,sigma,eConv,status):
     ''' checks eigenvalue convergence
@@ -151,12 +151,12 @@ def inexactDiagonalization(H,v0,sigma,L,maxit,eConv):
     ref = np.inf
     nCum = 0
     status = {"eConv":eConv,"maxit":maxit} # convergence details
-    dtype = np.result_type(*[v.dtype for v in vectors])
   
     for it in range(maxit):
         status["iteration"] = it
-        S = np.empty([2,2],dtype=dtype);qtAq=np.empty([2,2],dtype=dtype)
+        S = np.empty([2,2],dtype=v0.dtype);qtAq=np.empty([2,2],dtype=v0.dtype)
         for i in range(1,L):
+            print("it",it,"i",i)
             nCum += 1
             writeFile("out","iteration details",it,i,nCum)
             
