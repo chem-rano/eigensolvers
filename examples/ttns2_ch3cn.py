@@ -120,8 +120,8 @@ tnsList, energies = eigenStateComputations(tns, Hop,
 '''
 # ---------- USER INPUT -----------------------
 target = 722; # excitation energy # lower than actual
-maxit = 10
-L = 10  # 
+maxit = 1
+L = 2  # 
 eConv = 1e-4 # abs in cm-1
 zpve = 9837.4069  # cm-1
 nsweepOrtho = 800
@@ -155,16 +155,16 @@ sigma = util.unit2au((target+zpve),unit="cm-1")
 eConvAU = util.unit2au(eConv,unit="cm-1")
 #startTime = time.time()
 ev, tnsList = inexactDiagonalization(Hop,tns,sigma,L,maxit,eConvAU)[0:2] # main function
-energies = convertEnergy(ev,zpve)
+energies = convert(ev,zpve)
 ev_nearest = find_nearest(energies,target)[1]
-files["out"].write("\n\n"+"-"*20+"\tFINAL RESULTS\t"+"-"*20+"\n")
-files["out"].write("{:30} :: {: <4}, {: <4}".format("Target, calculated nearest",target,round(ev_nearest),4)+"\n")
+#files["out"].write("\n\n"+"-"*20+"\tFINAL RESULTS\t"+"-"*20+"\n")
+#files["out"].write("{:30} :: {: <4}, {: <4}".format("Target, calculated nearest",target,round(ev_nearest),4)+"\n")
 
-list_results = ""
-for i in range(0,(len(energies)-1),1):
-    list_results += str(round(energies[i],4))+", "
-list_results +=  str(round(energies[-1],4))
-files["out"].write("{:30} :: {: <4}".format("All subspace eigenvalues",list_results)+"\n")
+#list_results = ""
+#for i in range(0,(len(energies)-1),1):
+#    list_results += str(round(energies[i],4))+", "
+#list_results +=  str(round(energies[-1],4))
+#files["out"].write("{:30} :: {: <4}".format("All subspace eigenvalues",list_results)+"\n")
 #printfooter(fout,printInfo=True)
 #fplotFooter(files["plot"])
 files["out"].close()

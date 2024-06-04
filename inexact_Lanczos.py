@@ -168,12 +168,21 @@ def inexactDiagonalization(H,v0,sigma,L,maxit,eConv):
             if not continueIteration:
                 break
         
+        print("it",it,"i",i,"Energy before fitting",ev[idx],util.au2unit(ev[idx],"cm-1"))
+        S = typeClass.overlapMatrix([Ylist[idx]])
+        print("it",it,"i",i,"Overlap before fitting",S)
         if not continueIteration:
             Ylist = basisTransformation(Ylist,uSH)
             break
         else:
             y = basisTransformation(Ylist,uSH[:,idx])
             Ylist = [typeClass.normalize(y[0])]
+            S = typeClass.overlapMatrix(Ylist)
+            ev = typeClass.matrixRepresentation(H,Ylist)
+            print("it",it,"i",i,"Energy after fitting",ev,util.au2unit(ev,"cm-1"))
+            print("it",it,"i",i,"Overlap after fitting",S)
+
+
 
     return ev,Ylist,status
 # -----------------------------------------------------
