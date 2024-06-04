@@ -190,7 +190,6 @@ class TTNSVector(AbstractVector):
         dtype = np.result_type(*[v.dtype for v in vectors])
         N = len(vectors)
         if N < 3:               
-            qtAq = np.empty([N,N],dtype=dtype)
             for i in range(N):
                 bra = vectors[i].ttns
                 for j in range(i, N):
@@ -217,6 +216,7 @@ class TTNSVector(AbstractVector):
         N = len(vectors)
         elems = np.empty([N],dtype=dtype)
 
+        if N < 3:               
         for i in range(N):
             elems[i] = vectors[i].vdot(vectors[-1],True)
         offD = np.array([elems[:-1]])

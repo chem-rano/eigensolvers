@@ -22,7 +22,7 @@ def generateSubspace(Hop,Ylist,sigma,eConv):
         print("Alert: Not normalizing add basis; norm <=0.001*eConv")
     return Ylist
 
-def transformationMatrix(Ylist,status):
+def transformationMatrix(Ylist,status,S):
     ''' Calculates transformation matrix from 
     overlap matrix in Ylist basis
     In: Ylist (list of basis)
@@ -35,13 +35,13 @@ def transformationMatrix(Ylist,status):
     output file ("iterations.out", default)'''
     
     typeClass = Ylist[0].__class__
-    S = typeClass.extendOverlapMatrix(Ylist)
+    S = typeClass.extendOverlapMatrix(Ylist,S)
     writeFile("out","OVERLAP MATRIX",S)
     linIndep, uS = lowdinOrtho(S)                  
     status["lindep"] = not linIndep
     return status, uS
     
-def diagonalizeHamiltonian(Hop,bases,X):
+def diagonalizeHamiltonian(Hop,bases,X,qtAq):
     ''' Calculates matrix representation of Hop (qtAq),
     forms truncated matrix (Hmat)
     and finally solves eigenvalue problem for Hmat
@@ -59,7 +59,7 @@ def diagonalizeHamiltonian(Hop,bases,X):
     output file ("iterations.out", default)'''
 
     typeClass = bases[0].__class__
-    qtAq = typeClass.extendMatrixRepresentation(Hop,bases)   
+    qtAq = typeClass.extendMatrixRepresentation(Hop,bases,qtAq)   
     Hmat = X.T.conj()@qtAq@X                      
     ev, uv = sp.linalg.eigh(Hmat)  
     writeFile("out","HAMILTONIAN MATRIX",Hmat)
@@ -151,16 +151,18 @@ def inexactDiagonalization(H,v0,sigma,L,maxit,eConv):
     ref = np.inf
     nCum = 0
     status = {"eConv":eConv,"maxit":maxit} # convergence details
+    dtype = np.result_type(*[v.dtype for v in vectors])
   
     for it in range(maxit):
         status["iteration"] = it
+        S = np.empty([2,2],dtype=dtype);qtAq=np.empty([2,2],dtype=dtype)
         for i in range(1,L):
             nCum += 1
             writeFile("out","iteration details",it,i,nCum)
             
             Ylist = generateSubspace(H,Ylist,sigma,eConv)
-            status, uS = transformationMatrix(Ylist, status)
-            ev, uv = diagonalizeHamiltonian(H,Ylist,uS)[1:3]
+            status, uS, S = transformationMatrix(Ylist, status,S)
+            ev, uv, qtAq = diagonalizeHamiltonian(H,Ylist,uS, qtAq)[1:4]
             status,idx,ref = checkConvergence(ev,ref,sigma,eConv,status)
             continueIteration = analyzeStatus(status)
             uSH = uS@uv
