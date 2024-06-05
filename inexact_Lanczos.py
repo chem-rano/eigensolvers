@@ -123,7 +123,7 @@ def checkFitting(Hop, Ylist, ev_nearest, eConv, status):
     '''
     typeClass = Ylist[0].__class__
     qtAq = typeClass.matrixRepresentation(Hop,Ylist)
-    if _convergence(qtAq[0],ev_nearest) <= eConv:
+    if _convergence(qtAq[0],ev_nearest) > eConv:
         status["properFit"] = False
     return qtAq, status
 
