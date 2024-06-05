@@ -146,7 +146,7 @@ def analyzeStatus(status):
         print("Alert: Lanczos iterations is not converged!")
     if status['lindep']: print("Alert: Got linear dependent basis!")
     if not status["properFit"]:
-        print("Altert: Linearcombination inaccurate")
+        print("Alert: Linearcombination inaccurate")
         continueIteration = False
 
     return continueIteration
