@@ -13,7 +13,7 @@ def convert(arr,eShift =0.0, convertUnit="au"):
     if convertUnit == 'au':
         arrShifted = arr-eShift
     else:
-        arrShifted = util.au2unit(arr,"cm-1")-eShift
+        arrShifted = util.au2unit(arr,convertUnit)-eShift
     return arrShifted
 
 # -----------------------------------------------------

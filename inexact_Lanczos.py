@@ -170,7 +170,6 @@ def inexactDiagonalization(H,v0,sigma,L,maxit,eConv):
     for it in range(maxit):
         status["iteration"] = it
         for i in range(1,L):
-            print(it,i)
             nCum += 1
             writeFile("out","iteration details",it,i,nCum)
             
