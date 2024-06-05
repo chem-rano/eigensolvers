@@ -1,10 +1,5 @@
 import util
 
-#filepath = "/home/madhumita/mr/zundel/gitspace/eigensolvers/examples/"
-#inputs  = open(filepath+"printChoicesNumpyvector").readlines()
-#convertUnit = (inputs[0].split("#"))[0];#print(bool(convertUnit))
-#eShift = float((inputs[1].split("#"))[0]);#print(eShift)
-
 # -----------------------------------------------------
 def convert(arr,eShift =0.0, convertUnit="au"):
     ''' For converting ndarray (energy or matrix) with 
