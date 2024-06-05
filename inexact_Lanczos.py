@@ -65,7 +65,14 @@ def diagonalizeHamiltonian(Hop,bases,X):
     writeFile("out","HAMILTONIAN MATRIX",Hmat)
     writeFile("out","Eigenvalues",ev)
     return Hmat,ev,uv
-    
+
+
+def _convergence(value,ref):
+    check_ev = abs(value - ref)/max(abs(value), 1e-14)
+    #if absConvergenc:check_ev = abs(ev_nearest - ref)    
+    return check_ev
+
+
 def checkConvergence(ev,ref,sigma,eConv,status):
     ''' checks eigenvalue convergence
 
@@ -88,9 +95,7 @@ def checkConvergence(ev,ref,sigma,eConv,status):
     isConverged = False
     startTime = time.time()
     idx, ev_nearest = find_nearest(ev,sigma)
-    #check_ev = abs(ev_nearest - ref)    
-    check_ev = abs(ev_nearest - ref)/max(abs(ev_nearest), 1e-14)    
-    if check_ev <= eConv: isConverged = True
+    if _convergence(ev_nearest,ref) <= eConv: isConverged = True
     ref = ev_nearest
     status["isConverged"] = isConverged
     return status, idx, ref
@@ -111,7 +116,7 @@ def basisTransformation(newBases,coeffs):
 def checkFitting(Hop, Ylist, ev_nearest, eConv, status):
     typeClass = Ylist[0].__class__
     qtAq = typeClass.matrixRepresentation(Hop,Ylist)
-    if abs(qtAq[0] - ev_nearest) <= eConv*1e2:
+    if _convergence(qtAq[0],ev_nearest) <= eConv:
         status["properFit"] = False
     return qtAq, status
 
@@ -127,7 +132,7 @@ def analyzeStatus(status):
     if status['isConverged'] and status['maxit'] == maxit -1: 
         print("Alert: Lanczos iterations is not converged!")
     if status['lindep']: print("Alert: Got linear dependent basis!")
-    if not status[[properFit"]:
+    if not status["properFit"]:
         print("Altert: Linearcombination inaccurate")
         continueIteration = False
 
@@ -160,11 +165,12 @@ def inexactDiagonalization(H,v0,sigma,L,maxit,eConv):
     Ylist = [typeClass.normalize(v0)]
     ref = np.inf
     nCum = 0
-    status = {"eConv":eConv,"maxit":maxit} # convergence details
+    status = {"eConv":eConv,"maxit":maxit,"properFit":True} # convergence details 
   
     for it in range(maxit):
         status["iteration"] = it
         for i in range(1,L):
+            print(it,i)
             nCum += 1
             writeFile("out","iteration details",it,i,nCum)
             
@@ -178,7 +184,6 @@ def inexactDiagonalization(H,v0,sigma,L,maxit,eConv):
             if not continueIteration:
                 break
         
-        S = typeClass.overlapMatrix([Ylist[idx]])
         if not continueIteration:
             Ylist = basisTransformation(Ylist,uSH)
             break
