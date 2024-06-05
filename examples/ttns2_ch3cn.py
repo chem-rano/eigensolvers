@@ -20,17 +20,21 @@ from inexact_Lanczos import inexactDiagonalization
 from ttnsVector import TTNSVector
 from util_funcs import find_nearest
 from printUtils import *
+from ttns2.diagonalization import IterativeLinearSystemOptions
+
 
 timeStarting = time.time()
 #######################################################
-MAX_D = 100 
+MAX_D = 30 
 # 5e-9 ok
-if len(sys.argv) > 1:
-    EPS    = float(sys.argv[1]) # only used in between!
-    if EPS < 0:
-        EPS = None
-else:
-    EPS = None
+#if len(sys.argv) > 1:
+#    EPS    = float(sys.argv[1]) # only used in between!
+#    if EPS < 0:
+#        EPS = None
+#else:
+#    EPS = None
+
+EPS = 5e-9
 convTol = 1e-5
 N_STATES = 8
 #######################################################
@@ -96,11 +100,13 @@ tns.toPdf()
 tns.label = "CH3CN using CSC PES"
 
 if EPS is not None:
-    bondDimensionAdaptions = [TruncationEps(min(EPS*1e3,1e-3), maxD=20, offset=1, truncateViaDiscardedSum=False)] * 4
-    bondDimensionAdaptions.extend([TruncationEps(min(EPS*1e2,1e-3), maxD=40, offset=2, truncateViaDiscardedSum=False)] * 4)
-    bondDimensionAdaptions.extend([TruncationEps(min(EPS*1e2,1e-3), maxD=MAX_D, offset=2, truncateViaDiscardedSum=False)] * 2)
-    bondDimensionAdaptions.extend([TruncationEps(min(EPS*1e1,1e-3), maxD=MAX_D, offset=2, truncateViaDiscardedSum=False)] * 2)
-    bondDimensionAdaptions.extend([TruncationEps(EPS, maxD=MAX_D, offset=2, truncateViaDiscardedSum=False)] * 1)
+    #bondDimensionAdaptions = [TruncationEps(min(EPS*1e3,1e-3), maxD=20, offset=1, truncateViaDiscardedSum=False)] * 4
+    #bondDimensionAdaptions.extend([TruncationEps(min(EPS*1e2,1e-3), maxD=40, offset=2, truncateViaDiscardedSum=False)] * 4)
+    #bondDimensionAdaptions.extend([TruncationEps(min(EPS*1e2,1e-3), maxD=MAX_D, offset=2, truncateViaDiscardedSum=False)] * 2)
+    #bondDimensionAdaptions.extend([TruncationEps(min(EPS*1e1,1e-3), maxD=MAX_D, offset=2, truncateViaDiscardedSum=False)] * 2)
+    #bondDimensionAdaptions.extend([TruncationEps(EPS, maxD=MAX_D, offset=2, truncateViaDiscardedSum=False)] * 1)
+    # TODO for larger system than ch3cn, try to start with lower bond dimension
+    bondDimensionAdaptions = [TruncationEps(EPS, maxD=MAX_D, offset=2, truncateViaDiscardedSum=False)]
 else:
     bondDimensionAdaptions = None
 noises = [1e-6] * 4 + [1e-7] * 4 + [1e-8] * 6
@@ -120,14 +126,13 @@ tnsList, energies = eigenStateComputations(tns, Hop,
 '''
 # ---------- USER INPUT -----------------------
 target = 722; # excitation energy # lower than actual
-maxit = 10
-L = 10  # 
+maxit = 4 
+L = 4  # 
 eConv = 1e-4 # abs in cm-1
 zpve = 9837.4069  # cm-1
 nsweepOrtho = 800
 orthoTol = 1e-08
 optShift = 0.0
-bondDimensionAdaptions = None
 
 siteLinearTol = 1e-3
 globalLinearTol = 1e-2
@@ -141,30 +146,30 @@ fplot = open("data2Plot.out","a")
 files={"out":fout,"plot":fplot}
 # ---------- USER INPUT -----------------------
 
+optsCheck = IterativeLinearSystemOptions(solver="gcrotmk",tol=siteLinearTol) 
 optionsOrtho = {"nSweep":nsweepOrtho, "convTol":orthoTol, "optShift":optShift, "bondDimensionAdaptions":bondDimensionAdaptions}
-optionsLinear = {"nSweep":nsweepLinear, "iterativeLinearSystemOptions":[siteLinearTol],"convTol":globalLinearTol}
-optionsFitting = {"nSweep":nsweepFitting, "convTol":fittingTol}
+optionsLinear = {"nSweep":nsweepLinear, "iterativeLinearSystemOptions":optsCheck,"convTol":globalLinearTol,"bondDimensionAdaptions":bondDimensionAdaptions}
+optionsFitting = {"nSweep":nsweepFitting, "convTol":fittingTol,"bondDimensionAdaptions":bondDimensionAdaptions}
 options = {"orthogonalizationArgs":optionsOrtho, "linearSystemArgs":optionsLinear, "stateFittingArgs":optionsFitting}
 
 dateTime = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
-writeInputs(files["out"],dateTime,target,zpve,L, maxit, MAX_D,eConv,options,guess="Random",printInfo=True) # using _writeFile
+#writeInputs(files["out"],dateTime,target,zpve,L, maxit, MAX_D,eConv,options,guess="Random",printInfo=True) # using _writeFile
 #fplotHeader(files["plot"],dateTime,target,zpve,L,maxit,MAX_D,eConv,options)
-#tns = TTNSVector(tnsList[0],options)
+##tns = TTNSVector(tnsList[0],options)
 tns = TTNSVector(tns,options)
 sigma = util.unit2au((target+zpve),unit="cm-1")
 eConvAU = util.unit2au(eConv,unit="cm-1")
-#startTime = time.time()
 ev, tnsList = inexactDiagonalization(Hop,tns,sigma,L,maxit,eConvAU)[0:2] # main function
-energies = convertEnergy(ev,zpve)
+energies = convert(ev,zpve,convertUnit="cm-1")
 ev_nearest = find_nearest(energies,target)[1]
-files["out"].write("\n\n"+"-"*20+"\tFINAL RESULTS\t"+"-"*20+"\n")
-files["out"].write("{:30} :: {: <4}, {: <4}".format("Target, calculated nearest",target,round(ev_nearest),4)+"\n")
+#files["out"].write("\n\n"+"-"*20+"\tFINAL RESULTS\t"+"-"*20+"\n")
+#files["out"].write("{:30} :: {: <4}, {: <4}".format("Target, calculated nearest",target,round(ev_nearest),4)+"\n")
 
 list_results = ""
 for i in range(0,(len(energies)-1),1):
     list_results += str(round(energies[i],4))+", "
 list_results +=  str(round(energies[-1],4))
-files["out"].write("{:30} :: {: <4}".format("All subspace eigenvalues",list_results)+"\n")
+#files["out"].write("{:30} :: {: <4}".format("All subspace eigenvalues",list_results)+"\n")
 #printfooter(fout,printInfo=True)
 #fplotFooter(files["plot"])
 files["out"].close()
