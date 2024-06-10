@@ -113,7 +113,7 @@ def basisTransformation(newBases,coeffs):
             oldBases.append(typeClass.linearCombination(newBases,coeffs[:,j]))
     return oldBases
 
-def checkFitting(Hop, Ylist, qtAq, ev_nearest, eConv, status):
+def checkFitting(qtAq, ev_nearest, eConv, status):
     ''' Checks the eigenvalue after fitting
     (at the end of Lanczos iteration)
     Out : qtAq -> matrix element of the basis nearest to sigma
@@ -208,7 +208,7 @@ def inexactDiagonalization(H,v0,sigma,L,maxit,eConv):
             Ylist = [typeClass.normalize(y[0])]
             S = typeClass.overlapMatrix(Ylist)
             qtAq=typeClass.matrixRepresentation(H,Ylist)
-            status = checkFitting(H,Ylist,qtAq,ev[idx],eConv,status)
+            status = checkFitting(qtAq,ev[idx],eConv,status)
             
 
     return ev,Ylist,status
