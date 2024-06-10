@@ -13,6 +13,8 @@ from numpyVector import NumpyVector # delete later
 # Diving in to functions for better readability 
 # and convenient testing
 def generateSubspace(Hop,Ylist,sigma,eConv):
+    ''' Builds Krylov space with solving linear system
+    and subsequent normalization after checking norm > 0.001*eConv'''
     typeClass = Ylist[0].__class__
     Ysolved = typeClass.solve(Hop,Ylist[-1],sigma)
     if typeClass.norm(Ysolved) > 0.001*eConv:
@@ -28,8 +30,7 @@ def transformationMatrix(Ylist,status,S):
     In: Ylist (list of basis)
     lindep (default value is 1e-14, lowdinOrtho())
     
-    Out: not linIndep (bool) -> True if bases in Ylist 
-    are linearly dependent
+    Out: status (dict: updated lindep)
     uS: transformation matrix
     Additional: prints overlap matrix in detailed 
     output file ("iterations.out", default)'''
@@ -51,7 +52,7 @@ def diagonalizeHamiltonian(Hop,bases,X,qtAq):
         X -> transformation matrix
 
     Out: Hmat -> Hamiltonian matrix represenation
-                 mainly for unit tests
+                 (mainly for unit tests)
          ev -> eigenvalues
          uv -> eigenvectors
     Additional: prints Hamiltonian matrix, 
@@ -65,7 +66,17 @@ def diagonalizeHamiltonian(Hop,bases,X,qtAq):
     writeFile("out","HAMILTONIAN MATRIX",Hmat)
     writeFile("out","Eigenvalues",ev)
     return Hmat,ev,uv,qtAq
+
+
+def _convergence(value,ref):
+    ''' Computes convergence quantity (absolute error or 
+    relative error, current one is relative error )'''
     
+    check_ev = abs(value - ref)/max(abs(value), 1e-14)
+    #if absConvergenc:check_ev = abs(ev_nearest - ref)    
+    return check_ev
+
+
 def checkConvergence(ev,ref,sigma,eConv,status):
     ''' checks eigenvalue convergence
 
@@ -75,29 +86,23 @@ def checkConvergence(ev,ref,sigma,eConv,status):
         sigma -> eigenvalue target
         eConv -> convergence threshold 
     
-    Out: isConverged (bool) True if converged
+    Out: status (dict: updated isConverged)
          idx -> index of the nearest eigenvalue 
          ref -> updated eigenvalue reference for 
-         next convergence check
-    Additional: prints closest eigenvalue to sigma, 
-                absolute eigenvalue difference, 
-                relative eigenvalue difference,
-                time in seconds
-    plotting file ("data2Plot.out", default)'''
+         next convergence check'''
     
     isConverged = False
     startTime = time.time()
     idx, ev_nearest = find_nearest(ev,sigma)
-    #check_ev = abs(ev_nearest - ref)    
-    check_ev = abs(ev_nearest - ref)/max(abs(ev_nearest), 1e-14)    
-    if check_ev <= eConv: isConverged = True
+    if _convergence(ev_nearest,ref) <= eConv: isConverged = True
     ref = ev_nearest
     status["isConverged"] = isConverged
     return status, idx, ref
  
 def basisTransformation(newBases,coeffs):
-    ''' Equivalent representation of eigenvectors to old
-    form of the basis'''
+    ''' basis transformation with eigenvectors 
+    and Krylov bases'''
+
     typeClass = newBases[0].__class__
     ndim = coeffs.shape
     oldBases = []
@@ -108,7 +113,25 @@ def basisTransformation(newBases,coeffs):
             oldBases.append(typeClass.linearCombination(newBases,coeffs[:,j]))
     return oldBases
 
+def checkFitting(Hop, Ylist, qtAq, ev_nearest, eConv, status):
+    ''' Checks the eigenvalue after fitting
+    (at the end of Lanczos iteration)
+    Out : qtAq -> matrix element of the basis nearest to sigma
+                  This will modified in the matrix reuse PR
+
+          status -> (dict: updates properFit)
+    '''
+    if _convergence(qtAq[0],ev_nearest) > eConv:
+        status["properFit"] = False
+    return status
+
 def analyzeStatus(status):
+    ''' Wrapper of all decision parameters for iteration
+        e.g., isConverged, properFit, lindep'
+        in a separate function and conclude to a single 
+        bool param continueIteration
+        to make main function clean'''
+
     it = status["iteration"]
     isConverged = status["isConverged"]
     lindep = status["lindep"]
@@ -120,6 +143,9 @@ def analyzeStatus(status):
     if status['isConverged'] and status['maxit'] == maxit -1: 
         print("Alert: Lanczos iterations is not converged!")
     if status['lindep']: print("Alert: Got linear dependent basis!")
+    if not status["properFit"]:
+        print("Altert: Linearcombination inaccurate")
+        continueIteration = False
 
     return continueIteration
 # -----------------------------------------------------
@@ -148,21 +174,25 @@ def inexactDiagonalization(H,v0,sigma,L,maxit,eConv):
     
     typeClass = v0.__class__
     Ylist = [typeClass.normalize(v0)]
+    S = typeClass.overlapMatrix(Ylist)
+    qtAq=typeClass.matrixRepresentation(H,Ylist)
     ref = np.inf
     nCum = 0
-    status = {"eConv":eConv,"maxit":maxit} # convergence details
+    status = {"eConv":eConv,"maxit":maxit,"properFit":True}
   
     for it in range(maxit):
         status["iteration"] = it
-        S = np.empty([2,2],dtype=v0.dtype);qtAq=np.empty([2,2],dtype=v0.dtype)
         for i in range(1,L):
-            print("it",it,"i",i)
             nCum += 1
             writeFile("out","iteration details",it,i,nCum)
             
             Ylist = generateSubspace(H,Ylist,sigma,eConv)
             status, uS, S = transformationMatrix(Ylist, status,S)
+            Sfull = typeClass.overlapMatrix(Ylist)
             ev, uv, qtAq = diagonalizeHamiltonian(H,Ylist,uS, qtAq)[1:4]
+            qtAqfull=typeClass.matrixRepresentation(H,Ylist)
+            assert np.allclose(S,Sfull)==True 
+            assert np.allclose(qtAq,qtAqfull)==True
             status,idx,ref = checkConvergence(ev,ref,sigma,eConv,status)
             continueIteration = analyzeStatus(status)
             uSH = uS@uv
@@ -176,6 +206,10 @@ def inexactDiagonalization(H,v0,sigma,L,maxit,eConv):
         else:
             y = basisTransformation(Ylist,uSH[:,idx])
             Ylist = [typeClass.normalize(y[0])]
+            S = typeClass.overlapMatrix(Ylist)
+            qtAq=typeClass.matrixRepresentation(H,Ylist)
+            status = checkFitting(H,Ylist,qtAq,ev[idx],eConv,status)
+            
 
     return ev,Ylist,status
 # -----------------------------------------------------

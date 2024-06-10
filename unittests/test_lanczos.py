@@ -51,9 +51,12 @@ class Test_lanczos(unittest.TestCase):
         ''' Bypassing linear combination works for Hamitonian matrix formation'''
         uvLanczos, status = inexactDiagonalization(self.mat,self.guess,self.sigma,self.L,
                 self.maxit,self.eConv)[1:3]
-        uS = transformationMatrix(uvLanczos,status)[1]
         typeClass = uvLanczos[0].__class__
-        Hmat1 = diagonalizeHamiltonian(self.mat,uvLanczos,uS)[0]  
+        S = typeClass.overlapMatrix(uvLanczos[:-1])
+        qtAq = typeClass.matrixRepresentation(self.mat,uvLanczos[:-1])
+        uS = transformationMatrix(uvLanczos,status,S)[1]
+        typeClass = uvLanczos[0].__class__
+        Hmat1 = diagonalizeHamiltonian(self.mat,uvLanczos,uS,qtAq)[0]  
         qtAq = typeClass.matrixRepresentation(self.mat,uvLanczos)
         Hmat2 = uS.T.conj()@qtAq@uS
         np.testing.assert_allclose(Hmat1,Hmat2,rtol=1e-5,atol=0)
@@ -62,8 +65,11 @@ class Test_lanczos(unittest.TestCase):
         ''' Checks linear combination'''
         uvLanczos, status = inexactDiagonalization(self.mat,self.guess,self.sigma,self.L,
                 self.maxit,self.eConv)[1:3]
-        uS = transformationMatrix(uvLanczos,status)[1]
-        uv = diagonalizeHamiltonian(self.mat,uvLanczos,uS)[2] 
+        typeClass = uvLanczos[0].__class__
+        S = typeClass.overlapMatrix(uvLanczos[:-1])
+        qtAq = typeClass.matrixRepresentation(self.mat,uvLanczos[:-1])
+        uS = transformationMatrix(uvLanczos,status,S)[1]
+        uv = diagonalizeHamiltonian(self.mat,uvLanczos,uS,qtAq)[2] 
         uSH = uS@uv
         bases = basisTransformation(uvLanczos,uSH)
         np.testing.assert_allclose(uvLanczos[0].array,bases[0].array,atol=1e-5)
@@ -83,8 +89,10 @@ class Test_lanczos(unittest.TestCase):
                 self.maxit,self.eConv)[1:3]
         typeClass = uvLanczos[0].__class__
         S = typeClass.overlapMatrix(uvLanczos)
-        uS = transformationMatrix(uvLanczos,status)[1]
-        uv = diagonalizeHamiltonian(self.mat,uvLanczos,uS)[2] 
+        S1 = typeClass.overlapMatrix(uvLanczos[:-1])
+        qtAq = typeClass.matrixRepresentation(self.mat,uvLanczos[:-1])
+        uS = transformationMatrix(uvLanczos,status,S1)[1]
+        uv = diagonalizeHamiltonian(self.mat,uvLanczos,uS,qtAq)[2] 
         uSH = uS@uv
         mat = uSH.T.conj()@S@uSH
         np.testing.assert_allclose(mat,np.eye(mat.shape[0]),atol=1e-5) 

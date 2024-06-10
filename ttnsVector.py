@@ -187,24 +187,15 @@ class TTNSVector(AbstractVector):
     @staticmethod
     def extendMatrixRepresentation(operator, vectors:List[TTNSVector],qtAq:ndarray):
         dtype = np.result_type(*[v.dtype for v in vectors])
-        N = len(vectors)
-        if N < 3:               
-            for i in range(N):
-                bra = vectors[i].ttns
-                for j in range(i, N):
-                    ket = vectors[j].ttns
-                    val = getRenormalizedOp(bra, operator, ket).bracket()
-                    qtAq[i, j] = val
-                    qtAq[j, i] = val.conj()
-        else:
-            M = np.empty(N,dtype=dtype)
-            bra = vectors[-1].ttns
-            for i in range(1, N):
-                ket = vectors[i].ttns
-                M[i] = getRenormalizedOp(bra, operator, ket).bracket()
-            offD = np.array([M[:-1]])
-            np.concatenate((qtAq,offD.T.conj()),axis=1)
-            np.vstack((qtAq,M[np.newaxis]))
+        m = len(vectors)
+        elems = np.empty(m,dtype=dtype)
+        bra = vectors[-1].ttns
+        for i in range(m):
+            ket = vectors[i].ttns
+            elems[i] = getRenormalizedOp(bra, operator, ket).bracket()
+        offD = np.array([elems[:-1]])
+        qtAq = np.append(qtAq,offD.conj(),axis=0)
+        qtAq = np.append(qtAq,np.array([elems]).T,axis=1)
         return qtAq
  
     @staticmethod
@@ -212,16 +203,12 @@ class TTNSVector(AbstractVector):
         ''' Calculates overlap elements of newly added tensor networks state'''
         
         dtype = np.result_type(*[v.dtype for v in vectors])
-        N = len(vectors)
+        m = len(vectors)
 
-        if N < 3:               
-            oMat = _overlapMatrix([v.ttns for v in vectors])
-        else:
-            print("oMat",oMat)
-            elems = np.empty([N],dtype=dtype)
-            for i in range(N):
-                elems[i] = vectors[i].vdot(vectors[-1],True)
-            offD = np.array([elems[:-1]]).T.conj()
-            np.concatenate((oMat,offD[:,None]),axis=1)
-            np.vstack((oMat,elems[np.newaxis]))
+        elems = np.empty(m,dtype=dtype)
+        for i in range(m):
+            elems[i] = vectors[i].vdot(vectors[-1],True)
+        offD = np.array([elems[:-1]])
+        oMat = np.append(oMat,offD.conj(),axis=0)
+        oMat = np.append(oMat,np.array([elems]).T,axis=1)
         return oMat
