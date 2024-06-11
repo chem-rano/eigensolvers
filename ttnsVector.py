@@ -186,6 +186,8 @@ class TTNSVector(AbstractVector):
     
     @staticmethod
     def extendMatrixRepresentation(operator, vectors:List[TTNSVector],qtAq:ndarray):
+        ''' Calculates matrix elements of newly added tensor networks state
+        and returns extended matrix representation'''
         dtype = np.result_type(*[v.dtype for v in vectors])
         m = len(vectors)
         elems = np.empty(m,dtype=dtype)
@@ -200,7 +202,8 @@ class TTNSVector(AbstractVector):
  
     @staticmethod
     def extendOverlapMatrix(vectors:List[TTNSVector],oMat:ndarray):
-        ''' Calculates overlap elements of newly added tensor networks state'''
+        ''' Calculates overlap elements of newly added tensor networks state
+        and returns extended overlap matrix'''
         
         dtype = np.result_type(*[v.dtype for v in vectors])
         m = len(vectors)

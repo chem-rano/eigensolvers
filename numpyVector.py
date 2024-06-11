@@ -174,6 +174,8 @@ class NumpyVector(AbstractVector):
         return qtq
     # -----------------------------------------------------
     def extendMatrixRepresentation(operator,vectors,qtAq):
+        ''' Calculates matrix elements of newly added tensor networks state
+        and returns extended matrix representation'''
         m = len(vectors)
         dtype = vectors[0].dtype
 
@@ -187,6 +189,8 @@ class NumpyVector(AbstractVector):
         return qtAq
 
     def extendOverlapMatrix(vectors,oMat):
+        ''' Calculates overlap elements of newly added tensor networks state
+        and returns extended overlap matrix'''
         m = len(vectors)
         dtype = vectors[0].dtype
 
