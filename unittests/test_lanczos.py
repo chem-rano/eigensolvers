@@ -67,6 +67,7 @@ class Test_lanczos(unittest.TestCase):
                 self.maxit,self.eConv)[1:3]
         typeClass = uvLanczos[0].__class__
         S = typeClass.overlapMatrix(uvLanczos[:-1])
+        assert len(uvLanczos) > 1
         qtAq = typeClass.matrixRepresentation(self.mat,uvLanczos[:-1])
         uS = transformationMatrix(uvLanczos,status,S)[1]
         uv = diagonalizeHamiltonian(self.mat,uvLanczos,uS,qtAq)[2] 
@@ -89,6 +90,7 @@ class Test_lanczos(unittest.TestCase):
                 self.maxit,self.eConv)[1:3]
         typeClass = uvLanczos[0].__class__
         S = typeClass.overlapMatrix(uvLanczos)
+        assert len(uvLanczos) > 1
         S1 = typeClass.overlapMatrix(uvLanczos[:-1])
         qtAq = typeClass.matrixRepresentation(self.mat,uvLanczos[:-1])
         uS = transformationMatrix(uvLanczos,status,S1)[1]
@@ -96,7 +98,22 @@ class Test_lanczos(unittest.TestCase):
         uSH = uS@uv
         mat = uSH.T.conj()@S@uSH
         np.testing.assert_allclose(mat,np.eye(mat.shape[0]),atol=1e-5) 
-
+    
+    def test_extension(self):
+        ''' Checks if extension of matrix works or not'''
+        uvLanczos = inexactDiagonalization(self.mat,self.guess,self.sigma,self.L,
+                self.maxit,self.eConv)[1]
+        typeClass = uvLanczos[0].__class__
+        assert len(uvLanczos) > 1
+        Sfull = typeClass.overlapMatrix(uvLanczos)
+        S1 = typeClass.overlapMatrix(uvLanczos[:-1])
+        S = typeClass.extendOverlapMatrix(uvLanczos,S1)
+        qtAqfull = typeClass.matrixRepresentation(self.mat,uvLanczos)
+        qtAq1 = typeClass.matrixRepresentation(self.mat,uvLanczos[:-1])
+        qtAq = typeClass.extendMatrixRepresentation(self.mat,uvLanczos,qtAq1)
+        np.testing.assert_allclose(S,Sfull,atol=1e-9) 
+        np.testing.assert_allclose(qtAq,qtAqfull,atol=1e-9)
+        
 
     def test_returnType(self):
         ''' Checks if the returned eigenvalue and eigenvectors are of correct type'''

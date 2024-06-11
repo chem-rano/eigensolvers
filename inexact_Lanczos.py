@@ -29,6 +29,7 @@ def transformationMatrix(Ylist,status,S):
     overlap matrix in Ylist basis
     In: Ylist (list of basis)
     lindep (default value is 1e-14, lowdinOrtho())
+    S: previous overlap matrix (for extension purpose)
     
     Out: status (dict: updated lindep)
     uS: transformation matrix
@@ -38,7 +39,7 @@ def transformationMatrix(Ylist,status,S):
     typeClass = Ylist[0].__class__
     S = typeClass.extendOverlapMatrix(Ylist,S)
     writeFile("out","OVERLAP MATRIX",S)
-    linIndep, uS = lowdinOrtho(S)                  
+    linIndep, uS = lowdinOrtho(S)
     status["lindep"] = not linIndep
     return status, uS, S
     
@@ -50,6 +51,8 @@ def diagonalizeHamiltonian(Hop,bases,X,qtAq):
     In: Hop -> Hamiltonain operator 
         bases -> list of basis
         X -> transformation matrix
+        qtAq -> previous matrix representation 
+                (for extension purpose)
 
     Out: Hmat -> Hamiltonian matrix represenation
                  (mainly for unit tests)
@@ -116,10 +119,10 @@ def basisTransformation(newBases,coeffs):
 def checkFitting(qtAq, ev_nearest, eConv, status):
     ''' Checks the eigenvalue after fitting
     (at the end of Lanczos iteration)
-    Out : qtAq -> matrix element of the basis nearest to sigma
-                  This will modified in the matrix reuse PR
-
-          status -> (dict: updates properFit)
+    In : qtAq -> matrix element of the basis nearest to sigma
+         ev_nearest -> nearest eigenvalue form previous iteration
+    
+    Out: status -> (dict: updates properFit)
     '''
     if _convergence(qtAq[0],ev_nearest) > eConv:
         status["properFit"] = False
@@ -175,7 +178,7 @@ def inexactDiagonalization(H,v0,sigma,L,maxit,eConv):
     typeClass = v0.__class__
     Ylist = [typeClass.normalize(v0)]
     S = typeClass.overlapMatrix(Ylist)
-    qtAq=typeClass.matrixRepresentation(H,Ylist)
+    qtAq = typeClass.matrixRepresentation(H,Ylist)
     ref = np.inf
     nCum = 0
     status = {"eConv":eConv,"maxit":maxit,"properFit":True}
@@ -188,11 +191,7 @@ def inexactDiagonalization(H,v0,sigma,L,maxit,eConv):
             
             Ylist = generateSubspace(H,Ylist,sigma,eConv)
             status, uS, S = transformationMatrix(Ylist, status,S)
-            Sfull = typeClass.overlapMatrix(Ylist)
             ev, uv, qtAq = diagonalizeHamiltonian(H,Ylist,uS, qtAq)[1:4]
-            qtAqfull=typeClass.matrixRepresentation(H,Ylist)
-            assert np.allclose(S,Sfull)==True 
-            assert np.allclose(qtAq,qtAqfull)==True
             status,idx,ref = checkConvergence(ev,ref,sigma,eConv,status)
             continueIteration = analyzeStatus(status)
             uSH = uS@uv
