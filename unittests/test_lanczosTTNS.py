@@ -160,7 +160,7 @@ class Test_lanczos(unittest.TestCase):
         self.assertIsInstance(uvLanczos[0], TTNSVector)
 
     def test_eigenvalue(self):
-        ''' Checks if the calculated eigenvalue is accurate to 10*eConv'''
+        ''' Checks if the calculated eigenvalue is accurate up to 10*eConv'''
         
         places = [4,8,12,16]
         for p in places:
@@ -172,7 +172,24 @@ class Test_lanczos(unittest.TestCase):
             target_value = find_nearest(evLanczos,sigma)[1]
             closest_value = find_nearest(self.evEigh,sigma)[1]
             self.assertTrue((abs(target_value-closest_value)<= 10*self.eConv),'Not accurate up to 10*eConv')
+    
+    def xtest_eigenvector(self):
+        ''' Checks if the calculated eigenvector is accurate up to 1e-4
+        Provided above test ensures eigenvalues are accurate up to 10*eConv'''
 
+        places = [4]
+        for p in places:
+            target = self.evEigh[p] + 1.0
+            sigma = target + self.zpve
+            evLanczos, uvLanczos = inexactDiagonalization(self.mat,self.guess,sigma,self.L,
+                    self.maxit,self.eConv)[0:2]
+        
+            idxE = find_nearest(self.evEigh,sigma)[0]
+            idxT = find_nearest(evLanczos,sigma)[0]
+            
+            exactTree= self.uvEigh[idxE]
+            lanczosTree= np.ravel(uvLanczos[idxT].ttns.fullTensor()[0])
+            np.testing.assert_allclose(exactTree,lanczosTree,rtol=0,atol=1e-4)
 
 if __name__ == '__main__':
     unittest.main()
