@@ -14,6 +14,8 @@ from util import npu
 from ttns2.diagonalization import IterativeLinearSystemOptions
 import operatornD, operator1D
 
+# time for these specifications: ~10 min
+
 
 class Test_lanczos(unittest.TestCase):
     def setUp(self):

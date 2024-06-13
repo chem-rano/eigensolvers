@@ -1,0 +1,23 @@
+#!/usr/bin/python
+import os
+import sys
+import shutil
+import subprocess
+
+subprocess.run("python ttns2_ch3cn.py >> sweepOutputs", shell=True)
+
+# Get directory name
+mydir = ["../__pycache__"]
+
+# Try to remove the tree; if it fails, throw an error using try...except.
+for item in mydir:
+    try:
+        shutil.rmtree(item)
+    except OSError as e:
+        print("Error: %s - %s." % (e.filename, e.strerror))
+
+myfile = ["ttns_tree.pdf"]
+# If file exists, delete it.
+for item in myfile:
+    if os.path.isfile(item):
+        os.remove(item)
