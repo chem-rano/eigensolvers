@@ -128,13 +128,21 @@ class AbstractVector(ABC):
         raise NotImplementedError
     
     @staticmethod
-    def extendOverlapMatrix(vectors,oMat):
-        ''' Extends the existing overlap matrix (oMat) 
-        with the elements of newly added vector '''
+    def extendMatrixRepresentation(operator,vectors,qtAq):
+        ''' Extends the existing operator matrix representation (qtAq) 
+        with the elements of newly added vector
+        (last member of the "vectors" list)
+
+        out: Extended matrix representation (qtAq)'''
+
         raise NotImplementedError
     
     @staticmethod
-    def extendMatrixRepresentation(operator,vectors,qtAq):
-        ''' Extends the existing operator matrix representation (qtAq) 
-        with the elements of newly added vector'''
+    def extendOverlapMatrix(vectors,oMat):
+        ''' Extends the existing overlap matrix (oMat) 
+        with the elements of newly added vector 
+        (last member of the "vectors" list)
+
+        out: Extended overlap matrix (oMat)'''
+        
         raise NotImplementedError

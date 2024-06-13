@@ -172,10 +172,14 @@ class NumpyVector(AbstractVector):
                 qtq[i,j] = vectors[i].vdot(vectors[j],True)
                 qtq[j,i] = qtq[i,j].conj()
         return qtq
-    # -----------------------------------------------------
+    
     def extendMatrixRepresentation(operator,vectors,qtAq):
-        ''' Calculates matrix elements of newly added tensor networks state
-        and returns extended matrix representation'''
+        ''' Extends the existing operator matrix representation (qtAq) 
+        with the elements of newly added vector
+        (last member of the "vectors" list)
+
+        out: Extended matrix representation (qtAq)'''
+
         m = len(vectors)
         dtype = vectors[0].dtype
 
@@ -183,21 +187,23 @@ class NumpyVector(AbstractVector):
         ket = vectors[-1].applyOp(operator)
         for i in range(m):
             elems[i] = vectors[i].vdot(ket)
-        offD = np.array([elems[:-1]])
-        qtAq = np.append(qtAq,offD.conj(),axis=0)
+        qtAq = np.append(qtAq,np.array([elems[:-1]]).conj(),axis=0)
         qtAq = np.append(qtAq,np.array([elems]).T,axis=1)
         return qtAq
 
     def extendOverlapMatrix(vectors,oMat):
-        ''' Calculates overlap elements of newly added tensor networks state
-        and returns extended overlap matrix'''
+        ''' Extends the existing overlap matrix (oMat) 
+        with the elements of newly added vector 
+        (last member of the "vectors" list)
+
+        out: Extended overlap matrix (oMat)'''
+        
         m = len(vectors)
         dtype = vectors[0].dtype
 
         elems = np.empty(m,dtype=dtype)
         for i in range(m):
             elems[i] = vectors[i].vdot(vectors[-1],True)
-        offD = np.array([elems[:-1]])
-        oMat = np.append(oMat,offD.conj(),axis=0)
+        oMat = np.append(oMat,np.array([elems[:-1]]).conj(),axis=0)
         oMat = np.append(oMat,np.array([elems]).T,axis=1)
         return oMat

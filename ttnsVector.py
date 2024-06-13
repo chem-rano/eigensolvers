@@ -184,8 +184,12 @@ class TTNSVector(AbstractVector):
     
     @staticmethod
     def extendMatrixRepresentation(operator, vectors:List[TTNSVector],qtAq:ndarray):
-        ''' Calculates matrix elements of newly added tensor networks state
-        and returns extended matrix representation'''
+        ''' Extends the existing operator matrix representation (qtAq) 
+        with the elements of newly added vector
+        (last member of the "vectors" list)
+
+        out: Extended matrix representation (qtAq)'''
+
         dtype = np.result_type(*[v.dtype for v in vectors])
         m = len(vectors)
         elems = np.empty(m,dtype=dtype)
@@ -193,15 +197,17 @@ class TTNSVector(AbstractVector):
         for i in range(m):
             ket = vectors[i].ttns
             elems[i] = getRenormalizedOp(bra, operator, ket).bracket()
-        offD = np.array([elems[:-1]])
-        qtAq = np.append(qtAq,offD.conj(),axis=0)
+        qtAq = np.append(qtAq,np.array([elems[:-1]]).conj(),axis=0)
         qtAq = np.append(qtAq,np.array([elems]).T,axis=1)
         return qtAq
  
     @staticmethod
     def extendOverlapMatrix(vectors:List[TTNSVector],oMat:ndarray):
-        ''' Calculates overlap elements of newly added tensor networks state
-        and returns extended overlap matrix'''
+        ''' Extends the existing overlap matrix (oMat) 
+        with the elements of newly added vector 
+        (last member of the "vectors" list)
+
+        out: Extended overlap matrix (oMat)'''
         
         dtype = np.result_type(*[v.dtype for v in vectors])
         m = len(vectors)
@@ -209,7 +215,6 @@ class TTNSVector(AbstractVector):
         elems = np.empty(m,dtype=dtype)
         for i in range(m):
             elems[i] = vectors[i].vdot(vectors[-1],True)
-        offD = np.array([elems[:-1]])
-        oMat = np.append(oMat,offD.conj(),axis=0)
+        oMat = np.append(oMat,np.array([elems[:-1]]).conj(),axis=0)
         oMat = np.append(oMat,np.array([elems]).T,axis=1)
         return oMat
