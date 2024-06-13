@@ -147,7 +147,7 @@ def analyzeStatus(status):
         print("Alert: Lanczos iterations is not converged!")
     if status['lindep']: print("Alert: Got linear dependent basis!")
     if not status["properFit"]:
-        print("Altert: Linearcombination inaccurate")
+        print("Alert: Linearcombination inaccurate")
         continueIteration = False
 
     return continueIteration
@@ -208,7 +208,6 @@ def inexactDiagonalization(H,v0,sigma,L,maxit,eConv):
             S = typeClass.overlapMatrix(Ylist)
             qtAq=typeClass.matrixRepresentation(H,Ylist)
             status = checkFitting(qtAq,ev[idx],eConv,status)
-            
 
     return ev,Ylist,status
 # -----------------------------------------------------

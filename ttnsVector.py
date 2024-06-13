@@ -151,14 +151,12 @@ class TTNSVector(AbstractVector):
             LHS = SumOfOperators([op, getRenormalizedOp(x0.ttns, -sigma, x0.ttns)])
         else:
             LHS = op
-        #assert "lhsOpType" not in x0.options["linearSolverArgs"] # or just delete it in a copy of the dict
         assert "lhsOpType" not in x0.options["linearSystemArgs"] # or just delete it in a copy of the dict
         solver = LinearSystem(x0.ttns if x0 is not None else None,
                               LHS,
                               b.ttns,
                               lhsOpType = opType,
                               **x0.options["linearSystemArgs"])
-                              #**x0.options["linearSolverArgs"])
         converged, val = solver.run()
         if not converged:
             warnings.warn("solve: TTNS sweeps not converged!")
