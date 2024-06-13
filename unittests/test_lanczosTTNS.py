@@ -1,7 +1,5 @@
 import unittest
 import sys
-# caution: path[0] is reserved for script path (or '' in REPL)
-sys.path.insert(1, '../')
 from inexact_Lanczos  import (transformationMatrix,diagonalizeHamiltonian,
         basisTransformation,inexactDiagonalization)
 import numpy as np
