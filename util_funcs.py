@@ -232,3 +232,17 @@ def eigenvalueResidual(ev,prev_ev):
         prev_tot += prev_ev[i]
     res = diff/prev_tot
     return res
+# -----------------------------------------------------
+def calculateTarget(eigenvalues, indx, tol=1e-14):
+    ''' Calculates target for the given 
+    eigenvalues (here, exact eigenvalues) for a specific 
+    index (indx)
+    Checks if the nearest eigenvalues are not degenerate
+    for tolerance, tol (default: 1e-14)'''
+
+    ediff1 = eigenvalues[indx] - eigenvalues[indx-1] 
+    ediff2 = eigenvalues[indx+1] - eigenvalues[indx] 
+    assert min(ediff1,ediff2) > tol, "Got a degenerate eigenvalue"
+    target = eigenvalues[indx] + min(ediff1,ediff2)*0.25
+    return target
+

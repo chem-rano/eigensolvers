@@ -13,7 +13,7 @@ from ttns2.contraction import TruncationEps
 from util import npu
 from ttns2.diagonalization import IterativeLinearSystemOptions
 import operatornD, operator1D
-
+from util_funcs import calculateTarget
 
 class Test_lanczos(unittest.TestCase):
     def setUp(self):
@@ -55,7 +55,8 @@ class Test_lanczos(unittest.TestCase):
         assert npu.isHermitian(H)
         
         self.mat = Hop
-        evEigh, uvEigh = np.linalg.eigh(H)
+        #evEigh, uvEigh = np.linalg.eigh(H)
+        evEigh, uvEigh = la.eigh(H)
         self.evEigh = evEigh
         self.uvEigh = uvEigh
         
@@ -84,13 +85,12 @@ class Test_lanczos(unittest.TestCase):
         self.zpve = 0.0
         self.maxit = 6
         self.L = 10 
-        self.eConv = 1e-5 
+        self.eConv = 1e-8
     
-
     def test_Hmat(self):
         ''' Bypassing linear combination works for Hamitonian matrix formation'''
         
-        target = self.evEigh[4] + 1.0
+        target = calculateTarget(self.evEigh,4)
         sigma = target + self.zpve
         uvLanczos, status = inexactDiagonalization(self.mat,self.guess,sigma,self.L,
                 self.maxit,self.eConv)[1:3]
@@ -107,7 +107,8 @@ class Test_lanczos(unittest.TestCase):
 
     def test_orthogonalization(self):
         ''' Returned basis in old form is orthogonal'''
-        target = self.evEigh[4] + 1.0
+        
+        target = calculateTarget(self.evEigh,4)
         sigma = target + self.zpve
         uvLanczos = inexactDiagonalization(self.mat,self.guess,sigma,self.L,
                 self.maxit,self.eConv)[1]
@@ -117,7 +118,8 @@ class Test_lanczos(unittest.TestCase):
 
     def test_transformationMatrix(self):
         ''' XH@S@X = 1'''
-        target = self.evEigh[4] + 1.0
+        
+        target = calculateTarget(self.evEigh,4)
         sigma = target + self.zpve
         uvLanczos,status = inexactDiagonalization(self.mat,self.guess,sigma,self.L,
                 self.maxit,self.eConv)[1:3]
@@ -134,7 +136,8 @@ class Test_lanczos(unittest.TestCase):
         
     def test_extension(self):
         ''' Checks if extension of matrix works or not'''
-        target = self.evEigh[4] + 1.0
+        
+        target = calculateTarget(self.evEigh,4)
         sigma = target + self.zpve
         uvLanczos = inexactDiagonalization(self.mat,self.guess,sigma,self.L,
                 self.maxit,self.eConv)[1]
@@ -151,7 +154,8 @@ class Test_lanczos(unittest.TestCase):
 
     def test_returnType(self):
         ''' Checks if the returned eigenvalue and eigenvectors are of correct type'''
-        target = self.evEigh[4] + 1.0
+       
+        target = calculateTarget(self.evEigh,4)
         sigma = target + self.zpve
         evLanczos, uvLanczos = inexactDiagonalization(self.mat,self.guess,sigma,self.L,
                 self.maxit,self.eConv)[0:2] 
@@ -164,7 +168,7 @@ class Test_lanczos(unittest.TestCase):
         
         places = [4,8,12,16]
         for p in places:
-            target = self.evEigh[p] + 1.0
+            target = calculateTarget(self.evEigh,p)
             sigma = target + self.zpve
             evLanczos = inexactDiagonalization(self.mat,self.guess,sigma,self.L,
                     self.maxit,self.eConv)[0]
@@ -173,13 +177,13 @@ class Test_lanczos(unittest.TestCase):
             closest_value = find_nearest(self.evEigh,sigma)[1]
             self.assertTrue((abs(target_value-closest_value)<= 10*self.eConv),'Not accurate up to 10*eConv')
     
-    def xtest_eigenvector(self):
+    def test_eigenvector(self):
         ''' Checks if the calculated eigenvector is accurate up to 1e-4
         Provided above test ensures eigenvalues are accurate up to 10*eConv'''
 
-        places = [4]
+        places = [4,8,12,16]
         for p in places:
-            target = self.evEigh[p] + 1.0
+            target = calculateTarget(self.evEigh,p)
             sigma = target + self.zpve
             evLanczos, uvLanczos = inexactDiagonalization(self.mat,self.guess,sigma,self.L,
                     self.maxit,self.eConv)[0:2]
