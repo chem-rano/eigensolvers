@@ -144,13 +144,14 @@ optionsOrtho = {"nSweep":nsweepOrtho, "convTol":orthoTol, "optShift":optShift, "
 optionsLinear = {"nSweep":nsweepLinear, "iterativeLinearSystemOptions":optsCheck,"convTol":globalLinearTol,"bondDimensionAdaptions":bondDimensionAdaptions}
 optionsFitting = {"nSweep":nsweepFitting, "convTol":fittingTol,"bondDimensionAdaptions":bondDimensionAdaptions}
 options = {"orthogonalizationArgs":optionsOrtho, "linearSystemArgs":optionsLinear, "stateFittingArgs":optionsFitting}
+printChoices = {"Iteration details": True,"Plot data": True, "eShift":zpve, "convertUnit":"cm-1"}
 
 fileHeader("out",target,zpve,L, maxit,MAX_D,eConv,options,guess="Random",printInfo=True)
 fileHeader("plot",target,zpve,L,maxit,MAX_D,eConv,options)
 tns = TTNSVector(tns,options)
 sigma = util.unit2au((target+zpve),unit="cm-1")
 eConvAU = util.unit2au(eConv,unit="cm-1")
-ev, tnsList = inexactDiagonalization(Hop,tns,sigma,L,maxit,eConvAU)[0:2]
+ev, tnsList = inexactDiagonalization(Hop,tns,sigma,L,maxit,eConvAU,printChoices)[0:2]
 writeFile("out","Final results",ev,target,eShift=zpve,convertUnit="cm-1")
 fileFooter("out",printInfo=True)
 fileFooter("plot")

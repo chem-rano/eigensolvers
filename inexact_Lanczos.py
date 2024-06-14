@@ -24,7 +24,7 @@ def generateSubspace(Hop,Ylist,sigma,eConv):
         print("Alert: Not normalizing add basis; norm <=0.001*eConv")
     return Ylist
 
-def transformationMatrix(Ylist,status,S):
+def transformationMatrix(Ylist,status,S,*args):
     ''' Calculates transformation matrix from 
     overlap matrix in Ylist basis
     In: Ylist (list of basis)
@@ -38,12 +38,12 @@ def transformationMatrix(Ylist,status,S):
     
     typeClass = Ylist[0].__class__
     S = typeClass.extendOverlapMatrix(Ylist,S)
-    writeFile("out","OVERLAP MATRIX",S)
+    writeFile("out","OVERLAP MATRIX",S,args[0])
     linIndep, uS = lowdinOrtho(S)
     status["lindep"] = not linIndep
     return status, uS, S
     
-def diagonalizeHamiltonian(Hop,bases,X,qtAq):
+def diagonalizeHamiltonian(Hop,bases,X,qtAq,*args):
     ''' Calculates matrix representation of Hop (qtAq),
     forms truncated matrix (Hmat)
     and finally solves eigenvalue problem for Hmat
@@ -66,8 +66,8 @@ def diagonalizeHamiltonian(Hop,bases,X,qtAq):
     qtAq = typeClass.extendMatrixRepresentation(Hop,bases,qtAq)   
     Hmat = X.T.conj()@qtAq@X                      
     ev, uv = sp.linalg.eigh(Hmat)  
-    writeFile("out","HAMILTONIAN MATRIX",Hmat)
-    writeFile("out","Eigenvalues",ev)
+    writeFile("out","HAMILTONIAN MATRIX",Hmat,args[0])
+    writeFile("out","Eigenvalues",ev,args[0])
     return Hmat,ev,uv,qtAq
 
 
@@ -157,7 +157,7 @@ def analyzeStatus(status):
 #    Inexact Lanczos with AbstractClass interface
 #------------------------------------------------------
 
-def inexactDiagonalization(H,v0,sigma,L,maxit,eConv):
+def inexactDiagonalization(H,v0,sigma,L,maxit,eConv,*args):
     '''
     This is core function to calculate eigenvalues and eigenvectors
     with inexact Lanczos method
@@ -190,8 +190,8 @@ def inexactDiagonalization(H,v0,sigma,L,maxit,eConv):
             writeFile("out","iteration details",it,i,nCum)
             
             Ylist = generateSubspace(H,Ylist,sigma,eConv)
-            status, uS, S = transformationMatrix(Ylist, status,S)
-            ev, uv, qtAq = diagonalizeHamiltonian(H,Ylist,uS, qtAq)[1:4]
+            status, uS, S = transformationMatrix(Ylist,status,S,args[0])
+            ev, uv, qtAq = diagonalizeHamiltonian(H,Ylist,uS,qtAq,args[0])[1:4]
             status,idx,ref = checkConvergence(ev,ref,sigma,eConv,status)
             continueIteration = analyzeStatus(status)
             uSH = uS@uv
@@ -224,6 +224,7 @@ if __name__ == "__main__":
     eConv = 1e-8
     
     optionDict = {"linearSolver":"gcrotmk","linearIter":1000,"linear_tol":1e-04}
+    printChoices = {"Iteration details": True,"Plot data": True, "eShift":0.0, "convertUnit":"au"}
     Y0 = NumpyVector(np.random.random((n)),optionDict)
     sigma = target 
 
@@ -233,7 +234,7 @@ if __name__ == "__main__":
     print("{:50} :: {: <4}".format("Eigenvalue convergence tolarance",eConv))
     print("\n")
     t1 = time.time()
-    lf,xf,status =  inexactDiagonalization(A,Y0,sigma,L,maxit,eConv)
+    lf,xf,status = inexactDiagonalization(A,Y0,sigma,L,maxit,eConv,printChoices)
     t2 = time.time()
 
     print("{:50} :: {: <4}".format("Eigenvalue nearest to sigma",round(find_nearest(lf,sigma)[1],8)))

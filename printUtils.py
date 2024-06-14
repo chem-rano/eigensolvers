@@ -16,6 +16,8 @@ def convert(arr,eShift,convertUnit):
 # -----------------------------------------------------
 
 def fileHeader(fstring,sigma,zpve,L,maxit,D,eConv,options,guess="Random",printInfo=False):
+    """ Prints header with all input informations 
+    printInfo prints this header to the screen, recorded in sweepOutputs"""
     
     fout = open("iterations.out","a");fplot = open("data2Plot.out","a")
     file = fout if fstring == "out" else fplot
@@ -111,6 +113,8 @@ def fileHeader(fstring,sigma,zpve,L,maxit,D,eConv,options,guess="Random",printIn
     fplot.close()
 
 def fileFooter(fstring,printInfo=False):
+    """ Prints footer with job complete message
+    printInfo prints this footer to the screen, recorded in sweepOutputs"""
     
     fout = open("iterations.out","a");fplot = open("data2Plot.out","a")
     file = fout if fstring == "out" else fplot
@@ -131,9 +135,18 @@ def fileFooter(fstring,printInfo=False):
 
 
 
-def writeFile(fstring,*args,eShift=0.0,convertUnit="au"):
+def writeFile(fstring,*args,choices=None):
+    """ A single print function for overlap, Hamitonian matrix, iteration details 
+    and final eigenvalue
+    (May be split into different functions for better readability)"""
+
     fout = open("iterations.out","a");fplot = open("data2Plot.out","a")
     file = fout if fstring == "out" else fplot
+    
+    if choices=None:
+        eShift = 0.0; convertUnit="au"
+    else:
+        eShift = choices["eShift"];convertUnit = choices["convertUnit"]
     
     if len(args) == 2:
         if args[0] == "OVERLAP MATRIX":
