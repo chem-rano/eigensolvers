@@ -188,7 +188,7 @@ class Test_lanczos(unittest.TestCase):
             idxT = find_nearest(evLanczos,sigma)[0]
             
             exactTree= self.uvEigh[idxE]
-            lanczosTree= np.ravel(uvLanczos[idxT].ttns.fullTensor()[0])
+            lanczosTree= np.ravel(uvLanczos[idxT].ttns.fullTensor(canonicalOrder=True)[0])
             np.testing.assert_allclose(exactTree,lanczosTree,rtol=0,atol=1e-4)
 
 if __name__ == '__main__':
