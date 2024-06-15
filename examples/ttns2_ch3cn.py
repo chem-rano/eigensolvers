@@ -22,7 +22,7 @@ from ttns2.diagonalization import IterativeLinearSystemOptions
 
 timeStarting = time.time()
 #######################################################
-MAX_D = 30 
+MAX_D = 20 
 #if len(sys.argv) > 1:
 #    EPS    = float(sys.argv[1]) # only used in between!
 #    if EPS < 0:
@@ -124,8 +124,8 @@ tnsList, energies = eigenStateComputations(tns, Hop,
 # ---------- USER INPUT -----------------------
 target = 722
 maxit = 4 
-L = 4  
-eConv = 1e-4 
+L = 10 
+eConv = 1e-6 
 zpve = 9837.4069  
 nsweepOrtho = 800
 orthoTol = 1e-08
@@ -144,15 +144,15 @@ optionsOrtho = {"nSweep":nsweepOrtho, "convTol":orthoTol, "optShift":optShift, "
 optionsLinear = {"nSweep":nsweepLinear, "iterativeLinearSystemOptions":optsCheck,"convTol":globalLinearTol,"bondDimensionAdaptions":bondDimensionAdaptions}
 optionsFitting = {"nSweep":nsweepFitting, "convTol":fittingTol,"bondDimensionAdaptions":bondDimensionAdaptions}
 options = {"orthogonalizationArgs":optionsOrtho, "linearSystemArgs":optionsLinear, "stateFittingArgs":optionsFitting}
-printChoices = {"Iteration details": True,"Plot data": True, "eShift":zpve, "convertUnit":"cm-1"}
+printChoices = {"eShift":zpve, "convertUnit":"cm-1"}
 
-fileHeader("out",target,zpve,L, maxit,MAX_D,eConv,options,guess="Random",printInfo=True)
-fileHeader("plot",target,zpve,L,maxit,MAX_D,eConv,options)
+fileHeader("out",target,zpve,L, maxit,MAX_D,eConv,options)
+fileHeader("plot",target,zpve,L,maxit,MAX_D,eConv,options,printInfo=False)
 tns = TTNSVector(tns,options)
 sigma = util.unit2au((target+zpve),unit="cm-1")
 eConvAU = util.unit2au(eConv,unit="cm-1")
 ev, tnsList = inexactDiagonalization(Hop,tns,sigma,L,maxit,eConvAU,printChoices)[0:2]
-writeFile("out","Final results",ev,target,eShift=zpve,convertUnit="cm-1")
-fileFooter("out",printInfo=True)
-fileFooter("plot")
+writeFile("out","results",ev,target,choices=printChoices)
+fileFooter("out")
+fileFooter("plot",printInfo=False)
 # -----------------   EOF  -----------------------
