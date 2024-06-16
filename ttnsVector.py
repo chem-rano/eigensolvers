@@ -196,7 +196,7 @@ class TTNSVector(AbstractVector):
         bra = vectors[-1].ttns
         for i in range(m):
             ket = vectors[i].ttns
-            elems[0][i] = getRenormalizedOp(bra, operator, ket).bracket()
+            elems[0,i] = getRenormalizedOp(bra, operator, ket).bracket()
         opMat = np.append(opMat,elems[:,:-1].conj(),axis=0)
         opMat = np.append(opMat,elems.T,axis=1)
         return opMat
@@ -214,7 +214,7 @@ class TTNSVector(AbstractVector):
 
         elems = np.empty((1,m),dtype=dtype)
         for i in range(m):
-            elems[0][i] = vectors[i].vdot(vectors[-1],True)
+            elems[0,i] = vectors[i].vdot(vectors[-1],True)
         overlap = np.append(overlap,elems[:,:-1].conj(),axis=0)
         overlap = np.append(overlap,elems.T,axis=1)
         return overlap

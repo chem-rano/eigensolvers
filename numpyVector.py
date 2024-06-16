@@ -186,7 +186,7 @@ class NumpyVector(AbstractVector):
         elems = np.empty((1,m),dtype=dtype)
         ket = vectors[-1].applyOp(operator)
         for i in range(m):
-            elems[0][i] = vectors[i].vdot(ket)
+            elems[0,i] = vectors[i].vdot(ket)
         opMat = np.append(opMat,elems[:,:-1].conj(),axis=0)
         opMat = np.append(opMat,elems.T,axis=1)
         return opMat
@@ -203,7 +203,7 @@ class NumpyVector(AbstractVector):
 
         elems = np.empty((1,m),dtype=dtype)
         for i in range(m):
-            elems[0][i] = vectors[i].vdot(vectors[-1],True)
+            elems[0,i] = vectors[i].vdot(vectors[-1],True)
         overlap = np.append(overlap,elems[:,:-1].conj(),axis=0)
         overlap = np.append(overlap,elems.T,axis=1)
         return overlap

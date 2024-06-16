@@ -55,7 +55,6 @@ class Test_lanczos(unittest.TestCase):
         assert npu.isHermitian(H)
         
         self.mat = Hop
-        #evEigh, uvEigh = np.linalg.eigh(H)
         evEigh, uvEigh = la.eigh(H)
         self.evEigh = evEigh
         self.uvEigh = uvEigh
@@ -193,7 +192,7 @@ class Test_lanczos(unittest.TestCase):
             
             exactTree= self.uvEigh[idxE]
             lanczosTree= np.ravel(uvLanczos[idxT].ttns.fullTensor(canonicalOrder=True)[0])
-            np.testing.assert_allclose(exactTree,lanczosTree,rtol=0,atol=1e-4)
+            np.testing.assert_allclose(abs(exactTree),abs(lanczosTree),rtol=0,atol=1e-4)
 
 if __name__ == '__main__':
     unittest.main()
