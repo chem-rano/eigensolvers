@@ -194,7 +194,9 @@ class Test_lanczos(unittest.TestCase):
             #lanczosTree= np.ravel(uvLanczos[idxT].ttns.fullTensor(canonicalOrder=True)[0])
             ttnsT = np.ravel(uvLanczos[idxT].ttns.fullTensor(canonicalOrder=True)[0])
             lanczosTree = ttnsT*(np.vdot(ttnsT,exactTree))
-            np.testing.assert_allclose(np.abs(exactTree),np.abs(lanczosTree),rtol=1e-5,atol=1e-2)
+            np.abs(lanczosTree, out = lanczosTree)
+            np.abs(exactTree, out = exactTree)
+            np.testing.assert_allclose(exactTree,lanczosTree,rtol=1e-5,atol=1e-2)
 
 if __name__ == '__main__':
     unittest.main()
