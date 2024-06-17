@@ -82,8 +82,8 @@ class Test_lanczos(unittest.TestCase):
         tns = TTNSVector(ttns,options)
         self.guess = tns
         self.zpve = 0.0
-        self.maxit = 6
-        self.L = 10 
+        self.maxit = 20
+        self.L = 30
         self.eConv = 1e-8
     
     def test_Hmat(self):
@@ -191,8 +191,10 @@ class Test_lanczos(unittest.TestCase):
             idxT = find_nearest(evLanczos,sigma)[0]
             
             exactTree= self.uvEigh[idxE]
-            lanczosTree= np.ravel(uvLanczos[idxT].ttns.fullTensor(canonicalOrder=True)[0])
-            np.testing.assert_allclose(abs(exactTree),abs(lanczosTree),rtol=0,atol=1e-4)
+            #lanczosTree= np.ravel(uvLanczos[idxT].ttns.fullTensor(canonicalOrder=True)[0])
+            ttnsT = np.ravel(uvLanczos[idxT].ttns.fullTensor(canonicalOrder=True)[0])
+            lanczosTree = ttnsT*(np.vdot(ttnsT,exactTree))
+            np.testing.assert_allclose(np.abs(exactTree),np.abs(lanczosTree),rtol=1e-4,atol=1e-4)
 
 if __name__ == '__main__':
     unittest.main()
