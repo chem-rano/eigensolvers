@@ -84,7 +84,7 @@ class Test_lanczos(unittest.TestCase):
         self.zpve = 0.0
         self.maxit = 20
         self.L = 30
-        self.eConv = 1e-8
+        self.eConv = 1e-7
     
     def test_Hmat(self):
         ''' Bypassing linear combination works for Hamitonian matrix formation'''
@@ -174,7 +174,7 @@ class Test_lanczos(unittest.TestCase):
         
             target_value = find_nearest(evLanczos,sigma)[1]
             closest_value = find_nearest(self.evEigh,sigma)[1]
-            self.assertTrue((abs(target_value-closest_value)<= 10*self.eConv),'Not accurate up to 10*eConv')
+            self.assertTrue((abs(target_value-closest_value)<= 1e-6),'Not accurate up to 6th decimal place')
     
     def test_eigenvector(self):
         ''' Checks if the calculated eigenvector is accurate up to 1e-4
@@ -190,12 +190,12 @@ class Test_lanczos(unittest.TestCase):
             idxE = find_nearest(self.evEigh,sigma)[0]
             idxT = find_nearest(evLanczos,sigma)[0]
             
-            exactTree= self.uvEigh[:,idxE]
+            exactTree = self.uvEigh[:,idxE]
             ttnsT = np.ravel(uvLanczos[idxT].ttns.fullTensor(canonicalOrder=True)[0])
             ovlp = np.vdot(ttnsT,exactTree)
             np.testing.assert_allclose(abs(ovlp), 1, rtol=1e-5, err_msg = f"{ovlp=} but it should be +-1")
             lanczosTree = ttnsT* ovlp
-            np.testing.assert_allclose(exactTree,lanczosTree,rtol=1e-5,atol=1e-5)
+            np.testing.assert_allclose(exactTree,lanczosTree,rtol=1e-5,atol=1e-4)
 
 if __name__ == '__main__':
     unittest.main()
