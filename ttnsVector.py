@@ -48,7 +48,6 @@ class TTNSVector(AbstractVector):
 
     @property
     def dtype(self):
-        # added to abstractVector
         return np.result_type(*self.ttns.dtypes())
 
     def __len__(self):
@@ -182,3 +181,40 @@ class TTNSVector(AbstractVector):
     def overlapMatrix(vectors:List[TTNSVector]):
         ''' Calculates overlap matrix of tensor network states'''
         return _overlapMatrix([v.ttns for v in vectors])
+    
+    @staticmethod
+    def extendMatrixRepresentation(operator, vectors:List[TTNSVector],opMat:ndarray):
+        ''' Extends the existing operator matrix representation (opMat) 
+        with the elements of newly added vector
+        (last member of the "vectors" list)
+
+        out: Extended matrix representation (opMat)'''
+
+        dtype = np.result_type(*[v.dtype for v in vectors])
+        m = len(vectors)
+        elems = np.empty((1,m),dtype=dtype)
+        bra = vectors[-1].ttns
+        for i in range(m):
+            ket = vectors[i].ttns
+            elems[0,i] = getRenormalizedOp(bra, operator, ket).bracket()
+        opMat = np.append(opMat,elems[:,:-1].conj(),axis=0)
+        opMat = np.append(opMat,elems.T,axis=1)
+        return opMat
+ 
+    @staticmethod
+    def extendOverlapMatrix(vectors:List[TTNSVector],overlap:ndarray):
+        ''' Extends the existing overlap matrix (overlap) 
+        with the elements of newly added vector 
+        (last member of the "vectors" list)
+
+        out: Extended overlap matrix (overlap)'''
+        
+        dtype = np.result_type(*[v.dtype for v in vectors])
+        m = len(vectors)
+
+        elems = np.empty((1,m),dtype=dtype)
+        for i in range(m):
+            elems[0,i] = vectors[i].vdot(vectors[-1],True)
+        overlap = np.append(overlap,elems[:,:-1].conj(),axis=0)
+        overlap = np.append(overlap,elems.T,axis=1)
+        return overlap

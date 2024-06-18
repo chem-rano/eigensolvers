@@ -172,4 +172,38 @@ class NumpyVector(AbstractVector):
                 qtq[i,j] = vectors[i].vdot(vectors[j],True)
                 qtq[j,i] = qtq[i,j].conj()
         return qtq
-    # -----------------------------------------------------
+    
+    def extendMatrixRepresentation(operator,vectors,opMat):
+        ''' Extends the existing operator matrix representation (opMat) 
+        with the elements of newly added vector
+        (last member of the "vectors" list)
+
+        out: Extended matrix representation (opMat)'''
+
+        m = len(vectors)
+        dtype = vectors[0].dtype
+
+        elems = np.empty((1,m),dtype=dtype)
+        ket = vectors[-1].applyOp(operator)
+        for i in range(m):
+            elems[0,i] = vectors[i].vdot(ket)
+        opMat = np.append(opMat,elems[:,:-1].conj(),axis=0)
+        opMat = np.append(opMat,elems.T,axis=1)
+        return opMat
+
+    def extendOverlapMatrix(vectors,overlap):
+        ''' Extends the existing overlap matrix (overlap) 
+        with the elements of newly added vector 
+        (last member of the "vectors" list)
+
+        out: Extended overlap matrix (overlap)'''
+        
+        m = len(vectors)
+        dtype = vectors[0].dtype
+
+        elems = np.empty((1,m),dtype=dtype)
+        for i in range(m):
+            elems[0,i] = vectors[i].vdot(vectors[-1],True)
+        overlap = np.append(overlap,elems[:,:-1].conj(),axis=0)
+        overlap = np.append(overlap,elems.T,axis=1)
+        return overlap

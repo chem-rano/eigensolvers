@@ -24,11 +24,12 @@ def generateSubspace(Hop,Ylist,sigma,eConv):
         print("Alert: Not normalizing add basis; norm <=0.001*eConv")
     return Ylist
 
-def transformationMatrix(Ylist,status):
+def transformationMatrix(Ylist,status,S):
     ''' Calculates transformation matrix from 
     overlap matrix in Ylist basis
     In: Ylist (list of basis)
     lindep (default value is 1e-14, lowdinOrtho())
+    S: previous overlap matrix (for extension purpose)
     
     Out: status (dict: updated lindep)
     uS: transformation matrix
@@ -36,13 +37,13 @@ def transformationMatrix(Ylist,status):
     output file ("iterations.out", default)'''
     
     typeClass = Ylist[0].__class__
-    S = typeClass.overlapMatrix(Ylist) 
+    S = typeClass.extendOverlapMatrix(Ylist,S)
     writeFile("out","OVERLAP MATRIX",S)
-    linIndep, uS = lowdinOrtho(S)                  
+    linIndep, uS = lowdinOrtho(S)
     status["lindep"] = not linIndep
-    return status, uS
+    return status, uS, S
     
-def diagonalizeHamiltonian(Hop,bases,X):
+def diagonalizeHamiltonian(Hop,bases,X,qtAq):
     ''' Calculates matrix representation of Hop (qtAq),
     forms truncated matrix (Hmat)
     and finally solves eigenvalue problem for Hmat
@@ -50,6 +51,8 @@ def diagonalizeHamiltonian(Hop,bases,X):
     In: Hop -> Hamiltonain operator 
         bases -> list of basis
         X -> transformation matrix
+        qtAq -> previous matrix representation 
+                (for extension purpose)
 
     Out: Hmat -> Hamiltonian matrix represenation
                  (mainly for unit tests)
@@ -60,12 +63,12 @@ def diagonalizeHamiltonian(Hop,bases,X):
     output file ("iterations.out", default)'''
 
     typeClass = bases[0].__class__
-    qtAq = typeClass.matrixRepresentation(Hop,bases)  
+    qtAq = typeClass.extendMatrixRepresentation(Hop,bases,qtAq)   
     Hmat = X.T.conj()@qtAq@X                      
     ev, uv = sp.linalg.eigh(Hmat)  
     writeFile("out","HAMILTONIAN MATRIX",Hmat)
     writeFile("out","Eigenvalues",ev)
-    return Hmat,ev,uv
+    return Hmat,ev,uv,qtAq
 
 
 def _convergence(value,ref):
@@ -113,19 +116,17 @@ def basisTransformation(newBases,coeffs):
             oldBases.append(typeClass.linearCombination(newBases,coeffs[:,j]))
     return oldBases
 
-def checkFitting(Hop, Ylist, ev_nearest, eConv, status):
+def checkFitting(qtAq, ev_nearest, eConv, status):
     ''' Checks the eigenvalue after fitting
     (at the end of Lanczos iteration)
-    Out : qtAq -> matrix element of the basis nearest to sigma
-                  This will modified in the matrix reuse PR
-
-          status -> (dict: updates properFit)
+    In : qtAq -> matrix element of the basis nearest to sigma
+         ev_nearest -> nearest eigenvalue form previous iteration
+    
+    Out: status -> (dict: updates properFit)
     '''
-    typeClass = Ylist[0].__class__
-    qtAq = typeClass.matrixRepresentation(Hop,Ylist)
     if _convergence(qtAq[0],ev_nearest) > eConv:
         status["properFit"] = False
-    return qtAq, status
+    return status
 
 def analyzeStatus(status):
     ''' Wrapper of all decision parameters for iteration
@@ -176,6 +177,8 @@ def inexactDiagonalization(H,v0,sigma,L,maxit,eConv):
     
     typeClass = v0.__class__
     Ylist = [typeClass.normalize(v0)]
+    S = typeClass.overlapMatrix(Ylist)
+    qtAq = typeClass.matrixRepresentation(H,Ylist)
     ref = np.inf
     nCum = 0
     status = {"eConv":eConv,"maxit":maxit,"properFit":True}
@@ -187,8 +190,8 @@ def inexactDiagonalization(H,v0,sigma,L,maxit,eConv):
             writeFile("out","iteration details",it,i,nCum)
             
             Ylist = generateSubspace(H,Ylist,sigma,eConv)
-            status, uS = transformationMatrix(Ylist, status)
-            ev, uv = diagonalizeHamiltonian(H,Ylist,uS)[1:3]
+            status, uS, S = transformationMatrix(Ylist, status,S)
+            ev, uv, qtAq = diagonalizeHamiltonian(H,Ylist,uS, qtAq)[1:4]
             status,idx,ref = checkConvergence(ev,ref,sigma,eConv,status)
             continueIteration = analyzeStatus(status)
             uSH = uS@uv
@@ -202,8 +205,9 @@ def inexactDiagonalization(H,v0,sigma,L,maxit,eConv):
         else:
             y = basisTransformation(Ylist,uSH[:,idx])
             Ylist = [typeClass.normalize(y[0])]
-            qtAq,status = checkFitting(H,Ylist,ev[idx],eConv,status)
-            
+            S = typeClass.overlapMatrix(Ylist)
+            qtAq=typeClass.matrixRepresentation(H,Ylist)
+            status = checkFitting(qtAq,ev[idx],eConv,status)
 
     return ev,Ylist,status
 # -----------------------------------------------------
