@@ -84,7 +84,7 @@ class Test_lanczos(unittest.TestCase):
         self.zpve = 0.0
         self.maxit = 20
         self.L = 30
-        self.eConv = 1e-7
+        self.eConv = 1e-8
     
     def test_Hmat(self):
         ''' Bypassing linear combination works for Hamitonian matrix formation'''
@@ -194,10 +194,8 @@ class Test_lanczos(unittest.TestCase):
             ttnsT = np.ravel(uvLanczos[idxT].ttns.fullTensor(canonicalOrder=True)[0])
             ovlp = np.vdot(ttnsT,exactTree)
             np.testing.assert_allclose(abs(ovlp), 1, rtol=1e-5, err_msg = f"{ovlp=} but it should be +-1")
-            #lanczosTree = ttnsT* ovlp
-            #np.testing.assert_allclose(exactTree,lanczosTree,rtol=1e-5,atol=0)
-            np.testing.assert_allclose(np.abs(exactTree,out=exactTree),
-                    np.abs(ttnsT,out=ttnsT),rtol=0,atol=1e-5)
+            lanczosTree = ttnsT* ovlp
+            np.testing.assert_allclose(exactTree,lanczosTree,rtol=1e-5,atol=1e-5)
 
 if __name__ == '__main__':
     unittest.main()
