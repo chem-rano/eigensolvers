@@ -95,11 +95,12 @@ def checkConvergence(ev,ref,sigma,eConv,status):
          next convergence check'''
     
     isConverged = False
-    startTime = time.time()
     idx, ev_nearest = find_nearest(ev,sigma)
     if _convergence(ev_nearest,ref) <= eConv: isConverged = True
     ref = ev_nearest
     status["isConverged"] = isConverged
+    status["endTime"] = time.time()
+    writePlotfile(status,ev_nearest,ref)
     return status, idx, ref
  
 def basisTransformation(newBases,coeffs):
@@ -181,12 +182,15 @@ def inexactDiagonalization(H,v0,sigma,L,maxit,eConv,printChoices):
     qtAq = typeClass.matrixRepresentation(H,Ylist)
     ref = np.inf
     nCum = 0
-    status = {"eConv":eConv,"maxit":maxit,"properFit":True}
+    status = {"eConv":eConv,"maxit":maxit,"properFit":True,
+            "startTime":time.time()}
   
     for it in range(maxit):
         status["iteration"] = it
         for i in range(1,L):
             nCum += 1
+            status["microIteration"] = i
+            status["cummulativeIteration"] = nCum
             writeFile("out","iteration",it,i,nCum)
             
             Ylist = generateSubspace(H,Ylist,sigma,eConv)
@@ -195,7 +199,7 @@ def inexactDiagonalization(H,v0,sigma,L,maxit,eConv,printChoices):
             status,idx,ref = checkConvergence(ev,ref,sigma,eConv,status)
             continueIteration = analyzeStatus(status)
             uSH = uS@uv
-
+            
             if not continueIteration:
                 break
         
@@ -235,8 +239,8 @@ if __name__ == "__main__":
     print("\n")
     t1 = time.time()
     lf,xf,status = inexactDiagonalization(A,Y0,sigma,L,maxit,eConv,printChoices)
-    writeFile("out","results",lf,target)
-    fileFooter("out")
+    #writeFile("out","results",lf,target)
+    #fileFooter("out")
     t2 = time.time()
 
     print("{:50} :: {: <4}".format("Eigenvalue nearest to sigma",round(find_nearest(lf,sigma)[1],8)))

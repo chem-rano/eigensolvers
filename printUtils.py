@@ -1,6 +1,7 @@
 import util
 from datetime import datetime
 from util_funcs import find_nearest
+import numpy as np
 
 # -----------------------------------------------------
 def convert(arr,eShift=0.0,unit='au'):
@@ -140,8 +141,7 @@ def writeFile(fstring,*args,choices=None):
     and final eigenvalue
     (May be split into different functions for better readability)"""
 
-    fout = open("iterations.out","a");fplot = open("data2Plot.out","a")
-    file = fout if fstring == "out" else fplot
+    file = open("iterations.out","a")
     
     if choices == None:
        choices = { "eShift":0.0, "convertUnit":"au"} 
@@ -165,7 +165,6 @@ def writeFile(fstring,*args,choices=None):
         # same as 'eigenvalues', with ev_nearest and final message
         file.write("\n\n"+"-"*20+"\tFINAL RESULTS\t"+"-"*20+"\n")
         energies = convert(args[1],choices["eShift"],choices["convertUnit"])
-        print(choices["eShift"],choices["convertUnit"])
         assert len(args) > 2; target = args[2]
         ev_nearest = find_nearest(energies,target)[1]
         file.write("{:20} :: {:<.4f}, {:<.4f}".format("Target, Lanczos (nearest)",
@@ -179,10 +178,22 @@ def writeFile(fstring,*args,choices=None):
         line += "Lanczos iteration: "+str(args[1]+1)+"\tKrylov iteration: "+str(args[2])
         line += "\tCumulative Krylov iteration: "+str(args[3])
         file.write(line+"\n")
-
+    
     else:           
         for item in args:
             file.write(str(item)+" ")
     file.write("\n")
-    fout.close()
-    fplot.close()
+    file.close()
+
+def writePlotfile(status,evalue,ref):
+    file = open("data2Plot.out","a")
+    
+    it = status["iteration"]
+    i = status["microIteration"]
+    nCum = status["cummulativeIteration"]
+    runTime = status["endTime"]-status["startTime"]
+    abs_diff = np.abs(evalue - ref)
+    rel_ev = abs_diff/np.abs(evalue)
+    file.write(f'{it}\t{i}\t{nCum}\t')
+    file.write(f'{evalue}\t{abs_diff}\t{rel_ev}\t{runTime}\n')
+    file.close()
