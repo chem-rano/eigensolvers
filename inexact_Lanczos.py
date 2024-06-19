@@ -97,10 +97,10 @@ def checkConvergence(ev,ref,sigma,eConv,status):
     isConverged = False
     idx, ev_nearest = find_nearest(ev,sigma)
     if _convergence(ev_nearest,ref) <= eConv: isConverged = True
-    ref = ev_nearest
     status["isConverged"] = isConverged
     status["endTime"] = time.time()
     writePlotfile(status,ev_nearest,ref)
+    ref = ev_nearest
     return status, idx, ref
  
 def basisTransformation(newBases,coeffs):
