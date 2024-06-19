@@ -183,38 +183,38 @@ class TTNSVector(AbstractVector):
         return _overlapMatrix([v.ttns for v in vectors])
     
     @staticmethod
-    def extendMatrixRepresentation(operator, vectors:List[TTNSVector],qtAq:ndarray):
-        ''' Extends the existing operator matrix representation (qtAq) 
+    def extendMatrixRepresentation(operator, vectors:List[TTNSVector],opMat:ndarray):
+        ''' Extends the existing operator matrix representation (opMat) 
         with the elements of newly added vector
         (last member of the "vectors" list)
 
-        out: Extended matrix representation (qtAq)'''
+        out: Extended matrix representation (opMat)'''
 
         dtype = np.result_type(*[v.dtype for v in vectors])
         m = len(vectors)
-        elems = np.empty(m,dtype=dtype)
+        elems = np.empty((1,m),dtype=dtype)
         bra = vectors[-1].ttns
         for i in range(m):
             ket = vectors[i].ttns
-            elems[i] = getRenormalizedOp(bra, operator, ket).bracket()
-        qtAq = np.append(qtAq,np.array([elems[:-1]]).conj(),axis=0)
-        qtAq = np.append(qtAq,np.array([elems]).T,axis=1)
-        return qtAq
+            elems[0,i] = getRenormalizedOp(bra, operator, ket).bracket()
+        opMat = np.append(opMat,elems[:,:-1].conj(),axis=0)
+        opMat = np.append(opMat,elems.T,axis=1)
+        return opMat
  
     @staticmethod
-    def extendOverlapMatrix(vectors:List[TTNSVector],oMat:ndarray):
-        ''' Extends the existing overlap matrix (oMat) 
+    def extendOverlapMatrix(vectors:List[TTNSVector],overlap:ndarray):
+        ''' Extends the existing overlap matrix (overlap) 
         with the elements of newly added vector 
         (last member of the "vectors" list)
 
-        out: Extended overlap matrix (oMat)'''
+        out: Extended overlap matrix (overlap)'''
         
         dtype = np.result_type(*[v.dtype for v in vectors])
         m = len(vectors)
 
-        elems = np.empty(m,dtype=dtype)
+        elems = np.empty((1,m),dtype=dtype)
         for i in range(m):
-            elems[i] = vectors[i].vdot(vectors[-1],True)
-        oMat = np.append(oMat,np.array([elems[:-1]]).conj(),axis=0)
-        oMat = np.append(oMat,np.array([elems]).T,axis=1)
-        return oMat
+            elems[0,i] = vectors[i].vdot(vectors[-1],True)
+        overlap = np.append(overlap,elems[:,:-1].conj(),axis=0)
+        overlap = np.append(overlap,elems.T,axis=1)
+        return overlap
