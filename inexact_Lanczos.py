@@ -6,7 +6,6 @@ from printUtils import *
 import warnings
 import time
 import util
-from numpyVector import NumpyVector # delete later
 
 
 # -----------------------------------------------------
@@ -214,36 +213,3 @@ def inexactDiagonalization(H,v0,sigma,L,maxit,eConv,printChoices):
             status = checkFitting(qtAq,ev[idx],eConv,status)
 
     return ev,Ylist,status
-# -----------------------------------------------------
-if __name__ == "__main__":
-    n = 100
-    ev = np.linspace(1,300,n)
-    np.random.seed(10)
-    Q = sp.linalg.qr(np.random.rand(n,n))[0]
-    A = Q.T @ np.diag(ev) @ Q
-
-    target = 30
-    maxit = 4 
-    L = 6 
-    eConv = 1e-8
-    
-    optionDict = {"linearSolver":"gcrotmk","linearIter":1000,"linear_tol":1e-04}
-    printChoices = {"Iteration details": True,"Plot data": True, "eShift":0.0, "convertUnit":"au"}
-    Y0 = NumpyVector(np.random.random((n)),optionDict)
-    sigma = target 
-
-    headerBot("Inexact Lanczos")
-    print("{:50} :: {: <4}".format("Sigma",sigma))
-    print("{:50} :: {: <4}".format("Krylov space dimension",L+1))
-    print("{:50} :: {: <4}".format("Eigenvalue convergence tolarance",eConv))
-    print("\n")
-    t1 = time.time()
-    lf,xf,status = inexactDiagonalization(A,Y0,sigma,L,maxit,eConv,printChoices)
-    #writeFile("out","results",lf,target)
-    #fileFooter("out")
-    t2 = time.time()
-
-    print("{:50} :: {: <4}".format("Eigenvalue nearest to sigma",round(find_nearest(lf,sigma)[1],8)))
-    print("{:50} :: {: <4}".format("Actual eigenvalue nearest to sigma",round(find_nearest(ev,sigma)[1],8)))
-    print("{:50} :: {: <4}".format("Time taken (in sec)",round((t2-t1),2)))
-    headerBot("Lanczos",yesBot=True)
