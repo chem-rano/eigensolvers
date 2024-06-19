@@ -2,6 +2,7 @@ import util
 from datetime import datetime
 from util_funcs import find_nearest
 import numpy as np
+from ttns2.diagonalization import IterativeLinearSystemOptions
 
 # -----------------------------------------------------
 def convert(arr,eShift=0.0,unit='au'):
@@ -17,7 +18,8 @@ def convert(arr,eShift=0.0,unit='au'):
 
 # -----------------------------------------------------
 
-def fileHeader(fstring,sigma,zpve,L,maxit,D,eConv,options,guess="Random",printInfo=True):
+def fileHeader(fstring,options,sigma,zpve,L,maxit,eConv,
+        D=None,guess="Random",printInfo=True):
     """ Prints header with all input informations 
     printInfo prints this header to the screen, recorded in sweepOutputs"""
     
@@ -27,9 +29,15 @@ def fileHeader(fstring,sigma,zpve,L,maxit,D,eConv,options,guess="Random",printIn
     optionsOrtho = options["orthogonalizationArgs"]
     optionsLinear = options["linearSystemArgs"]
     optionsFitting = options["stateFittingArgs"]
-    
-    solver = optionsLinear["iterativeLinearSystemOptions"].solver
-    siteLinearTol = optionsLinear["iterativeLinearSystemOptions"].tol
+   
+    siteOptions = optionsLinear["iterativeLinearSystemOptions"]
+    if isinstance(siteOptions, IterativeLinearSystemOptions):
+        solver = optionsLinear["iterativeLinearSystemOptions"].solver
+        siteLinearTol = optionsLinear["iterativeLinearSystemOptions"].tol
+    else:
+        solver = optionsLinear["linearSolver"]
+        siteLinearTol = optionsLinear["linear_tol"]
+
     globalLinearTol = optionsLinear["convTol"]
     nsweepLinear = optionsLinear["nSweep"]
     
@@ -67,10 +75,11 @@ def fileHeader(fstring,sigma,zpve,L,maxit,D,eConv,options,guess="Random",printIn
     if printInfo:
         print(line)
     
-    line = "{:6} {:>10} :: {:20}".format("D",D,"Bond dimension")
-    file.write(line+"\n")
-    if printInfo:
-        print(line)
+    if D is not None:
+        line = "{:6} {:>10} :: {:20}".format("D",D,"Bond dimension")
+        file.write(line+"\n")
+        if printInfo:
+            print(line)
     
     line = "{:6} {:>10} :: {:20}".format("ftol",fittingTol,"Fitting Tolerance")
     file.write(line+"\n")
@@ -186,6 +195,7 @@ def writeFile(fstring,*args,choices=None):
     file.close()
 
 def writePlotfile(status,evalue,ref):
+
     file = open("data2Plot.out","a")
     
     it = status["iteration"]

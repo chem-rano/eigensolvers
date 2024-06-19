@@ -19,12 +19,11 @@ target = 30
 maxit = 4 
 L = 6 
 eConv = 1e-8
-zpve = 0.0
     
 optionDict = {"linearSolver":"gcrotmk","linearIter":1000,"linear_tol":1e-04}
-printChoices = {"Iteration details": True,"Plot data": True, "eShift":zpve, "convertUnit":"au"}
+printChoices = {"writeOut": False,"writePlot": False}
 Y0 = NumpyVector(np.random.random((n)),optionDict)
-sigma = target + zpve
+sigma = target
 
 headerBot("Inexact Lanczos")
 print("{:50} :: {: <4}".format("Sigma",sigma))

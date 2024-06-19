@@ -23,13 +23,7 @@ from ttns2.diagonalization import IterativeLinearSystemOptions
 timeStarting = time.time()
 #######################################################
 MAX_D = 20 
-#if len(sys.argv) > 1:
-#    EPS    = float(sys.argv[1]) # only used in between!
-#    if EPS < 0:
-#        EPS = None
-#else:
-#    EPS = None
-
+# if EPS < 0: EPS = None
 # 5e-9 ok
 EPS = 5e-9
 convTol = 1e-5
@@ -144,10 +138,10 @@ optionsOrtho = {"nSweep":nsweepOrtho, "convTol":orthoTol, "optShift":optShift, "
 optionsLinear = {"nSweep":nsweepLinear, "iterativeLinearSystemOptions":optsCheck,"convTol":globalLinearTol,"bondDimensionAdaptions":bondDimensionAdaptions}
 optionsFitting = {"nSweep":nsweepFitting, "convTol":fittingTol,"bondDimensionAdaptions":bondDimensionAdaptions}
 options = {"orthogonalizationArgs":optionsOrtho, "linearSystemArgs":optionsLinear, "stateFittingArgs":optionsFitting}
-printChoices = {"eShift":zpve, "convertUnit":"cm-1"}
+printChoices = {"writeOut":True,"writePlot":True,"eShift":zpve, "convertUnit":"cm-1"}
 
-fileHeader("out",target,zpve,L, maxit,MAX_D,eConv,options)
-fileHeader("plot",target,zpve,L,maxit,MAX_D,eConv,options,printInfo=False)
+fileHeader("out",options,target,zpve,L, maxit,eConv,MAX_D)
+fileHeader("plot",options,target,zpve,L,maxit,eConv,MAX_D,printInfo=False)
 tns = TTNSVector(tns,options)
 sigma = util.unit2au((target+zpve),unit="cm-1")
 eConvAU = util.unit2au(eConv,unit="cm-1")

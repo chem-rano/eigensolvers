@@ -36,7 +36,8 @@ def transformationMatrix(Ylist,status,S,printChoices):
     
     typeClass = Ylist[0].__class__
     S = typeClass.extendOverlapMatrix(Ylist,S)
-    writeFile("out","overlap",S,choices=printChoices)
+    if printChoices["writeOut"]:
+        writeFile("out","overlap",S,choices=printChoices)
     linIndep, uS = lowdinOrtho(S)
     status["lindep"] = not linIndep
     return status, uS, S
@@ -64,8 +65,9 @@ def diagonalizeHamiltonian(Hop,bases,X,qtAq,printChoices):
     qtAq = typeClass.extendMatrixRepresentation(Hop,bases,qtAq)   
     Hmat = X.T.conj()@qtAq@X                      
     ev, uv = sp.linalg.eigh(Hmat)  
-    writeFile("out","hamiltonian",Hmat,choices=printChoices)
-    writeFile("out","eigenvalues",ev,choices=printChoices)
+    if printChoices["writeOut"]:
+        writeFile("out","hamiltonian",Hmat,choices=printChoices)
+        writeFile("out","eigenvalues",ev,choices=printChoices)
     return Hmat,ev,uv,qtAq
 
 
@@ -78,7 +80,7 @@ def _convergence(value,ref):
     return check_ev
 
 
-def checkConvergence(ev,ref,sigma,eConv,status):
+def checkConvergence(ev,ref,sigma,eConv,status,printChoices):
     ''' checks eigenvalue convergence
 
     In: ev -> eigenvalues
@@ -97,7 +99,8 @@ def checkConvergence(ev,ref,sigma,eConv,status):
     if _convergence(ev_nearest,ref) <= eConv: isConverged = True
     status["isConverged"] = isConverged
     status["endTime"] = time.time()
-    writePlotfile(status,ev_nearest,ref)
+    if printChoices["writePlot"]:
+        writePlotfile(status,ev_nearest,ref)
     ref = ev_nearest
     return status, idx, ref
  
@@ -156,7 +159,7 @@ def analyzeStatus(status):
 #    Inexact Lanczos with AbstractClass interface
 #------------------------------------------------------
 
-def inexactDiagonalization(H,v0,sigma,L,maxit,eConv,printChoices):
+def inexactDiagonalization(H,v0,sigma,L,maxit,eConv,printChoices=None):
     '''
     This is core function to calculate eigenvalues and eigenvectors
     with inexact Lanczos method
@@ -189,12 +192,13 @@ def inexactDiagonalization(H,v0,sigma,L,maxit,eConv,printChoices):
             nCum += 1
             status["microIteration"] = i
             status["cummulativeIteration"] = nCum
-            writeFile("out","iteration",it,i,nCum)
+            if printChoices["writeOut"]:
+                writeFile("out","iteration",it,i,nCum)
             
             Ylist = generateSubspace(H,Ylist,sigma,eConv)
             status, uS, S = transformationMatrix(Ylist,status,S,printChoices)
             ev, uv, qtAq = diagonalizeHamiltonian(H,Ylist,uS,qtAq,printChoices)[1:4]
-            status,idx,ref = checkConvergence(ev,ref,sigma,eConv,status)
+            status,idx,ref = checkConvergence(ev,ref,sigma,eConv,status,printChoices)
             continueIteration = analyzeStatus(status)
             uSH = uS@uv
             

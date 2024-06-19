@@ -29,7 +29,7 @@ class Test_lanczos(unittest.TestCase):
         
 
         optionDict = {"linearSolver":"gcrotmk","linearIter":1000,"linear_tol":1e-04}
-        self.printChoices = {"Iteration details": True,"Plot data": True,
+        self.printChoices = {"writeOut": False,"writePlot": False,
                 "eShift":0.0, "convertUnit":"au"}
         Y0 = NumpyVector(np.random.random((n)),optionDict)
         
