@@ -133,9 +133,8 @@ fittingTol = 1e-9
 nsweepFitting = 1000
 # ---------- USER INPUT -----------------------
 
-optsCheck = IterativeLinearSystemOptions(solver="gcrotmk",tol=siteLinearTol) 
+optsCheck = IterativeLinearSystemOptions(solver="gcrotmk",tol=siteLinearTol,maxIter=500) 
 optionsOrtho = {"nSweep":nsweepOrtho, "convTol":orthoTol, "optShift":optShift, "bondDimensionAdaptions":bondDimensionAdaptions}
-#optionsLinear = {"nSweep":nsweepLinear, "iterativeLinearSystemOptions":optsCheck,"maxIter":500,"convTol":globalLinearTol,"bondDimensionAdaptions":bondDimensionAdaptions}
 optionsLinear = {"nSweep":nsweepLinear, "iterativeLinearSystemOptions":optsCheck,"convTol":globalLinearTol,"bondDimensionAdaptions":bondDimensionAdaptions}
 optionsFitting = {"nSweep":nsweepFitting, "convTol":fittingTol,"bondDimensionAdaptions":bondDimensionAdaptions}
 options = {"orthogonalizationArgs":optionsOrtho, "linearSystemArgs":optionsLinear, "stateFittingArgs":optionsFitting}
