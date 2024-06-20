@@ -80,7 +80,6 @@ class TTNSVector(AbstractVector):
         return self
 
     def normalize(self) -> TTNSVector:
-        # added this function to abstract vector
         self.ttns.normalize()
         return self
 

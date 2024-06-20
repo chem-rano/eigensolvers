@@ -13,9 +13,6 @@ from ttns2.diagonalization import IterativeDiagonalizationOptions
 from ttns2.parseInput import parseTree
 from ttns2.contraction import TruncationEps
 from ttns2.misc import mpsToTTNS, getVerbosePrinter
-from datetime import datetime
-#sys.path.insert(1, '../')
-#sys.path.append('..')
 from inexact_Lanczos import inexactDiagonalization
 from ttnsVector import TTNSVector
 from util_funcs import find_nearest
@@ -25,15 +22,9 @@ from ttns2.diagonalization import IterativeLinearSystemOptions
 
 timeStarting = time.time()
 #######################################################
-MAX_D = 30 
+MAX_D = 10 
+# if EPS < 0: EPS = None
 # 5e-9 ok
-#if len(sys.argv) > 1:
-#    EPS    = float(sys.argv[1]) # only used in between!
-#    if EPS < 0:
-#        EPS = None
-#else:
-#    EPS = None
-
 EPS = 5e-9
 convTol = 1e-5
 N_STATES = 8
@@ -92,7 +83,6 @@ operatornD.absorbCoeff(Hop)
 _print("# Hop contracted nSum",Hop.nSum)
 Hop.obtainMultiplyOp(bases)
 basisDict = {l:b for l,b in zip(Hop.DoFlabel, bases)}
-# basisDict["stateAv"] = basis.electronic(2)
 tns = parseTree(treeString, basisDict, returnType="TTNS")
 np.random.seed(898989)
 tns.setRandom()
@@ -123,13 +113,14 @@ tnsList, energies = eigenStateComputations(tns, Hop,
                                      noises = noises,
                                      allowRestart=True,
                                      convTol=convTol)
+##tns = TTNSVector(tnsList[0],options)
 '''
 # ---------- USER INPUT -----------------------
-target = 722; # excitation energy # lower than actual
-maxit = 4 
-L = 4  # 
-eConv = 1e-4 # abs in cm-1
-zpve = 9837.4069  # cm-1
+target = 722
+maxit = 10 
+L = 20 
+eConv = 1e-6 
+zpve = 9837.4069  
 nsweepOrtho = 800
 orthoTol = 1e-08
 optShift = 0.0
@@ -137,41 +128,25 @@ optShift = 0.0
 siteLinearTol = 1e-3
 globalLinearTol = 1e-2
 nsweepLinear = 1000
-#raiseNonConvergenceException = True
 
 fittingTol = 1e-9
 nsweepFitting = 1000
-fout = open("iterations.out","a")
-fplot = open("data2Plot.out","a")
-files={"out":fout,"plot":fplot}
 # ---------- USER INPUT -----------------------
 
-optsCheck = IterativeLinearSystemOptions(solver="gcrotmk",tol=siteLinearTol) 
+optsCheck = IterativeLinearSystemOptions(solver="gcrotmk",tol=siteLinearTol,maxIter=500) 
 optionsOrtho = {"nSweep":nsweepOrtho, "convTol":orthoTol, "optShift":optShift, "bondDimensionAdaptions":bondDimensionAdaptions}
 optionsLinear = {"nSweep":nsweepLinear, "iterativeLinearSystemOptions":optsCheck,"convTol":globalLinearTol,"bondDimensionAdaptions":bondDimensionAdaptions}
 optionsFitting = {"nSweep":nsweepFitting, "convTol":fittingTol,"bondDimensionAdaptions":bondDimensionAdaptions}
 options = {"orthogonalizationArgs":optionsOrtho, "linearSystemArgs":optionsLinear, "stateFittingArgs":optionsFitting}
+status = {"eShift":zpve, "convertUnit":"cm-1"}
 
-dateTime = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
-#writeInputs(files["out"],dateTime,target,zpve,L, maxit, MAX_D,eConv,options,guess="Random",printInfo=True) # using _writeFile
-#fplotHeader(files["plot"],dateTime,target,zpve,L,maxit,MAX_D,eConv,options)
-##tns = TTNSVector(tnsList[0],options)
+fileHeader("out",options,target,zpve,L, maxit,eConv,MAX_D)
+fileHeader("plot",options,target,zpve,L,maxit,eConv,MAX_D,printInfo=False)
 tns = TTNSVector(tns,options)
 sigma = util.unit2au((target+zpve),unit="cm-1")
 eConvAU = util.unit2au(eConv,unit="cm-1")
-ev, tnsList = inexactDiagonalization(Hop,tns,sigma,L,maxit,eConvAU)[0:2] # main function
-energies = convert(ev,zpve,convertUnit="cm-1")
-ev_nearest = find_nearest(energies,target)[1]
-#files["out"].write("\n\n"+"-"*20+"\tFINAL RESULTS\t"+"-"*20+"\n")
-#files["out"].write("{:30} :: {: <4}, {: <4}".format("Target, calculated nearest",target,round(ev_nearest),4)+"\n")
-
-list_results = ""
-for i in range(0,(len(energies)-1),1):
-    list_results += str(round(energies[i],4))+", "
-list_results +=  str(round(energies[-1],4))
-#files["out"].write("{:30} :: {: <4}".format("All subspace eigenvalues",list_results)+"\n")
-#printfooter(fout,printInfo=True)
-#fplotFooter(files["plot"])
-files["out"].close()
-files["plot"].close()
+ev, tnsList = inexactDiagonalization(Hop,tns,sigma,L,maxit,eConvAU,status)[0:2]
+writeFile(status,"out","results",ev,target)
+fileFooter("out")
+fileFooter("plot",printInfo=False)
 # -----------------   EOF  -----------------------
