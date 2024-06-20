@@ -29,7 +29,7 @@ def _getStatus(status,maxit,eConv):
     (iv)    print choices
 
     keys: ["eConv","maxit",
-    "outerIter","microIter","cummIter"],
+    "outerIter","microIter","cumIter"],
     "isConverged","lindep","properFit",
     "startTime","endTime",
     "outputFile", "plotFile", "eShift","convertUnit"
