@@ -207,7 +207,8 @@ def _plotFile(status,args):
     i = status["microIter"]
     nCum = status["cumIter"]
     runTime = status["runTime"]
-    evalue = args[0]; ref = args[1]
+    evalue = convert(args[0],status["eShift"],status["convertUnit"])
+    ref = convert(args[1],status["eShift"],status["convertUnit"])
     abs_diff = np.abs(evalue - ref)
     rel_ev = abs_diff/np.abs(evalue)
     file.write(f'{it}\t{i}\t{nCum}\t')
