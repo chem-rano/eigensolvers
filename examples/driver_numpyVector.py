@@ -2,7 +2,6 @@ import numpy as np
 import scipy as sp
 from util_funcs import find_nearest, lowdinOrtho
 from util_funcs import headerBot
-from printUtils import *
 import warnings
 import time
 import util

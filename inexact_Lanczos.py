@@ -15,7 +15,7 @@ import util
 # -----------------------------------------------------
 # Diving in to functions for better readability 
 # and convenient testing
-def getStatus(status,maxit,eConv):
+def _getStatus(status,maxit,eConv):
     """ 
     Initialize and update status dictionary
     
@@ -220,7 +220,7 @@ def inexactDiagonalization(H,v0,sigma,L,maxit,eConv,status=None):
     S = typeClass.overlapMatrix(Ylist)
     qtAq = typeClass.matrixRepresentation(H,Ylist)
     ref = np.inf; nCum = 0
-    status = getStatus(status,maxit,eConv)
+    status = _getStatus(status,maxit,eConv)
   
     for it in range(maxit):
         status["outerIter"] = it
