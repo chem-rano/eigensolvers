@@ -144,16 +144,8 @@ def fileFooter(fstring,printInfo=True):
     fout.close()
     fplot.close()
 
-
-def writeFile(fstring,*args,choices=None):
-    """ A single print function for overlap, Hamitonian matrix, iteration details 
-    and final eigenvalue
-    (May be split into different functions for better readability)"""
-
+def _outputFile(status,args):
     file = open("iterations.out","a")
-    
-    if choices == None:
-       choices = { "eShift":0.0, "convertUnit":"au"} 
     
     if args[0] == "overlap":
         file.write("OVERLAP MATRIX\n")
@@ -161,40 +153,48 @@ def writeFile(fstring,*args,choices=None):
         
     elif args[0] == "hamiltonian":
         file.write("HAMILTONIAN MATRIX\n")
-        hmat = convert(args[1],choices["eShift"],choices["convertUnit"])
+        hmat = convert(args[1],status["eShift"],status["convertUnit"])
         file.write(f"{hmat}")
         
     elif args[0] == "eigenvalues":
         file.write("Eigenvalues\n")
-        evalues = convert(args[1],choices["eShift"],choices["convertUnit"])
+        evalues = convert(args[1],status["eShift"],status["convertUnit"])
         file.write(f"{evalues}")
-        
-
+    
     elif args[0] == "results":
         # same as 'eigenvalues', with ev_nearest and final message
-        file.write("\n\n"+"-"*20+"\tFINAL RESULTS\t"+"-"*20+"\n")
-        energies = convert(args[1],choices["eShift"],choices["convertUnit"])
+        file.write("\n")
+        file.write("\n")
+        file.write("-"*20)
+        file.write("\tFINAL RESULTS\t")
+        file.write("-"*20)
+        file.write("\n")
+        energies = convert(args[1],status["eShift"],status["convertUnit"])
+        file.write("All subspace eigenvalues:")
+        file.write("\n")
+        file.write(f"{energies}")
+        file.write("\n")
         assert len(args) > 2; target = args[2]
         ev_nearest = find_nearest(energies,target)[1]
-        file.write("{:20} :: {:<.4f}, {:<.4f}".format("Target, Lanczos (nearest)",
-            target,round(ev_nearest),4)+"\n")
-        file.write("{:20} :: {}".format("All subspace eigenvalues",energies)+"\n")
-    
+        file.write("Target, Lanczos (nearest)")
+        file.write("{target}, {ev_nearest}")
+        file.write("\n")
+        
     elif args[0] == "iteration":
-        # I like the first formatted string in the output :)
-        assert len(args) > 2
-        line =  "\n\n...................\tInfo per iteration\t...................\n"
-        line += "Lanczos iteration: "+str(args[1]+1)+"\tKrylov iteration: "+str(args[2])
-        line += "\tCumulative Krylov iteration: "+str(args[3])
-        file.write(line+"\n")
-    
-    else:           
-        for item in args:
-            file.write(str(item)+" ")
-    file.write("\n")
+        file.write("\n")
+        file.write("\n")
+        file.write("."*20)
+        file.write("\tInfo per iteration\t")
+        file.write("."*20)
+        file.write("\n")
+        file.write("Lanczos iteration: "+str(status["outerIter"]+1))
+        file.write("\tKrylov iteration: "+str(status["microIter"]))
+        file.write("\tCumulative Krylov iteration: "+str("cummIter"))
+        file.write("\n")
     file.close()
 
-def writePlotfile(status,evalue,ref):
+
+def _plotFile(status,args):
 
     file = open("data2Plot.out","a")
     
@@ -202,8 +202,18 @@ def writePlotfile(status,evalue,ref):
     i = status["microIteration"]
     nCum = status["cummulativeIteration"]
     runTime = status["endTime"]-status["startTime"]
+    evalue = args[0]; ref = args[1]
     abs_diff = np.abs(evalue - ref)
     rel_ev = abs_diff/np.abs(evalue)
     file.write(f'{it}\t{i}\t{nCum}\t')
     file.write(f'{evalue}\t{abs_diff}\t{rel_ev}\t{runTime}\n')
     file.close()
+
+def writeFile(filestring,status,*args):
+    """ A single print function for overlap, Hamitonian matrix, iteration details 
+    and final eigenvalue"""
+    
+    if filestring == "out":
+        _outputFile(status,args)
+    elif filestring == "plot":
+        _plotFile(status,args)
