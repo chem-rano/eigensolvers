@@ -118,7 +118,6 @@ def print_a_range(in_arr, arr_min, arr_max):
     n = len(in_arr)
     for i in range(n):
         if in_arr[i] >= arr_min and in_arr[i] <= arr_max:
-            #out_arr.append(round(in_arr[i],8))
             out_arr.append(in_arr[i])
     return out_arr
 # -----------------------------------------------------
@@ -134,7 +133,6 @@ def nearest_degenerate(array, value):
     degen = 0
     for i in range(0, len(array)):
         for j in range(i+1, len(array)):
-            #if(array[i] == array[j]):
             if(abs(array[i] - array[j]) <= 1e-6):
                 degen += 1
     if degen > 0 :
@@ -144,25 +142,20 @@ def nearest_degenerate(array, value):
 # -----------------------------------------------------
 def print_krylov(in_arr, E, L):
     '''
-#    Prints L elements of an array (in_arr) near to E
-#    '''
+    Prints L elements of an array (in_arr) near to E
+    '''
     idx, value = find_nearest(in_arr,E)
     lower_idx = idx - int(L/2) 
     upper_idx = idx + int(L/2) 
     out_arr = in_arr[lower_idx:upper_idx]
     return out_arr
 # -----------------------------------------------------
-#gk,wk = trapezoidal(nc)
-#gk,wk = special.roots_hermite(nc)
-#gk,wk = special.roots_legendre(nc)
-
 def quad_func(nc,quad):
     if quad == "legendre":
         gk,wk = special.roots_legendre(nc)
     elif quad == "hermite":
         gk,wk = special.roots_hermite(nc)
     elif quad == "trapezoidal":
-        #gk,wk == trapezoidal(nc)
         gk,wk = trapezoidal(nc)
     return gk,wk
 

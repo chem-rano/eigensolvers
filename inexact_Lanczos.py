@@ -5,6 +5,8 @@ from printUtils import writeFile
 import warnings
 import time
 import util
+from numpyVector import NumpyVector
+from util_funcs import headerBot
 
 # -----------------------------------------------------
 # Order of inputs
@@ -33,9 +35,11 @@ def _getStatus(status,maxit,eConv):
     "outputFile", "plotFile", "eShift","convertUnit"
     """
     
-    statusUp = {"eConv":eConv,"maxit":maxit,"properFit":True,
-            "startTime":time.time(), "outputFile":True,
-            "plotFile":True, "eShift":0.0, "convertUnit":"au"}
+    statusUp = {"eConv":eConv,"maxit":maxit,
+            "outerIter":0, "microIter":0,"cumIter":0,
+            "isConverged":False,"lindep":False,"properFit":True,
+            "startTime":time.time(), "runTime":time.time(),
+            "writeOut":True,"writePlot":True,"eShift":0.0,"convertUnit":"au"}
     
     if status is not None:
         givenkeys = status.keys()
@@ -136,7 +140,7 @@ def checkConvergence(ev,ref,sigma,eConv,status):
     idx, ev_nearest = find_nearest(ev,sigma)
     if _convergence(ev_nearest,ref) <= eConv: isConverged = True
     status["isConverged"] = isConverged
-    status["endTime"] = time.time()
+    status["runTime"] = time.time() - status["startTime"]
     if status["writePlot"]:
         writeFile("plot",status,ev_nearest,ref)
     ref = ev_nearest
@@ -175,15 +179,15 @@ def analyzeStatus(status):
         bool param continueIteration
         to make main function clean'''
 
-    it = status["outerIter"]
     isConverged = status["isConverged"]
     lindep = status["lindep"]
+    it = status["outerIter"]
     maxit = status["maxit"]
     continueIteration = True
     
     if isConverged or lindep:
         continueIteration = False
-    if status['isConverged'] and it == maxit -1: 
+    if isConverged and it == maxit -1: 
         print("Alert: Lanczos iterations is not converged!")
     if status['lindep']: print("Alert: Got linear dependent basis!")
     if not status["properFit"]:
@@ -250,3 +254,34 @@ def inexactDiagonalization(H,v0,sigma,L,maxit,eConv,status=None):
             status = checkFitting(qtAq,ev[idx],eConv,status)
 
     return ev,Ylist,status
+# -----------------------------------------------------
+if __name__ == "__main__":
+    n = 100
+    ev = np.linspace(1,300,n)
+    np.random.seed(10)
+    Q = sp.linalg.qr(np.random.rand(n,n))[0]
+    A = Q.T @ np.diag(ev) @ Q
+
+    target = 30
+    maxit = 4 
+    L = 6 
+    eConv = 1e-8
+
+    optionDict = {"linearSolver":"gcrotmk","linearIter":1000,"linear_tol":1e-04}
+    status = {"writeOut": False,"writePlot": False}
+    Y0 = NumpyVector(np.random.random((n)),optionDict)
+    sigma = target
+
+    headerBot("Inexact Lanczos")
+    print("{:50} :: {: <4}".format("Sigma",sigma))
+    print("{:50} :: {: <4}".format("Krylov space dimension",L+1))
+    print("{:50} :: {: <4}".format("Eigenvalue convergence tolarance",eConv))
+    print("\n")
+    t1 = time.time()
+    lf,xf,status =  inexactDiagonalization(A,Y0,sigma,L,maxit,eConv,status)
+    t2 = time.time()
+
+    print("{:50} :: {: <4}".format("Eigenvalue nearest to sigma",round(find_nearest(lf,sigma)[1],8)))
+    print("{:50} :: {: <4}".format("Actual eigenvalue nearest to sigma",round(find_nearest(ev,sigma)[1],8)))
+    print("{:50} :: {: <4}".format("Time taken (in sec)",round((t2-t1),2)))
+    headerBot("Lanczos",yesBot=True)

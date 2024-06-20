@@ -111,13 +111,13 @@ def fileHeader(fstring,options,sigma,zpve,L,maxit,eConv,
     if printInfo:
         print(line)
 
-    line = "{:6} {:>10} :: {:20}".format("D",guess,"Guess TTNS\n\n")
+    line = "{:6} {:>10} :: {:20}".format("Guess",guess,"Guess TTNS\n\n")
     file.write(line+"\n")
     if printInfo:
         print(line)
     
     if file == fplot:
-        line = "it\ti\tnCum\tev_nearest\tcheck_ev\trel_ev\ttime\n"
+        line = "it\ti\tnCum\tev_nearest\t\tabs_ev\t\trel_ev\t\ttime (seconds)\n"
         file.write(line)
     
     fout.close()
@@ -150,16 +150,21 @@ def _outputFile(status,args):
     if args[0] == "overlap":
         file.write("OVERLAP MATRIX\n")
         file.write(f"{args[1]}")
+        file.write("\n")
+        file.write("\n")
         
     elif args[0] == "hamiltonian":
         file.write("HAMILTONIAN MATRIX\n")
         hmat = convert(args[1],status["eShift"],status["convertUnit"])
         file.write(f"{hmat}")
+        file.write("\n")
+        file.write("\n")
         
     elif args[0] == "eigenvalues":
         file.write("Eigenvalues\n")
         evalues = convert(args[1],status["eShift"],status["convertUnit"])
         file.write(f"{evalues}")
+        file.write("\n")
     
     elif args[0] == "results":
         # same as 'eigenvalues', with ev_nearest and final message
@@ -189,7 +194,7 @@ def _outputFile(status,args):
         file.write("\n")
         file.write("Lanczos iteration: "+str(status["outerIter"]+1))
         file.write("\tKrylov iteration: "+str(status["microIter"]))
-        file.write("\tCumulative Krylov iteration: "+str("cummIter"))
+        file.write("\tCumulative Krylov iteration: "+str(status["cumIter"]))
         file.write("\n")
     file.close()
 
@@ -198,10 +203,10 @@ def _plotFile(status,args):
 
     file = open("data2Plot.out","a")
     
-    it = status["iteration"]
-    i = status["microIteration"]
-    nCum = status["cummulativeIteration"]
-    runTime = status["endTime"]-status["startTime"]
+    it = status["outerIter"]
+    i = status["microIter"]
+    nCum = status["cumIter"]
+    runTime = status["runTime"]
     evalue = args[0]; ref = args[1]
     abs_diff = np.abs(evalue - ref)
     rel_ev = abs_diff/np.abs(evalue)
