@@ -207,12 +207,13 @@ def _plotFile(status,args):
     i = status["microIter"]
     nCum = status["cumIter"]
     runTime = status["runTime"]
-    evalue = convert(args[0],status["eShift"],status["convertUnit"])
-    ref = convert(args[1],status["eShift"],status["convertUnit"])
+    evalue = util.au2unit(args[0],status["convertUnit"])
+    ref = util.au2unit(args[1],status["convertUnit"])
     abs_diff = np.abs(evalue - ref)
     rel_ev = abs_diff/np.abs(evalue)
+    exEnergy = evalue - status["eShift"]
     file.write(f'{it}\t{i}\t{nCum}\t')
-    file.write(f'{evalue}\t{abs_diff}\t{rel_ev}\t{runTime}\n')
+    file.write(f'{exEnergy}\t{abs_diff}\t{rel_ev}\t{runTime}\n')
     file.close()
 
 def writeFile(filestring,status,*args):
