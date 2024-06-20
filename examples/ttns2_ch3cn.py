@@ -117,8 +117,8 @@ tnsList, energies = eigenStateComputations(tns, Hop,
 '''
 # ---------- USER INPUT -----------------------
 target = 722
-maxit = 4 
-L = 10 
+maxit = 10 
+L = 20 
 eConv = 1e-6 
 zpve = 9837.4069  
 nsweepOrtho = 800
@@ -138,15 +138,15 @@ optionsOrtho = {"nSweep":nsweepOrtho, "convTol":orthoTol, "optShift":optShift, "
 optionsLinear = {"nSweep":nsweepLinear, "iterativeLinearSystemOptions":optsCheck,"convTol":globalLinearTol,"bondDimensionAdaptions":bondDimensionAdaptions}
 optionsFitting = {"nSweep":nsweepFitting, "convTol":fittingTol,"bondDimensionAdaptions":bondDimensionAdaptions}
 options = {"orthogonalizationArgs":optionsOrtho, "linearSystemArgs":optionsLinear, "stateFittingArgs":optionsFitting}
-printChoices = {"writeOut":True,"writePlot":True,"eShift":zpve, "convertUnit":"cm-1"}
+status = {"eShift":zpve, "convertUnit":"cm-1"}
 
 fileHeader("out",options,target,zpve,L, maxit,eConv,MAX_D)
 fileHeader("plot",options,target,zpve,L,maxit,eConv,MAX_D,printInfo=False)
 tns = TTNSVector(tns,options)
 sigma = util.unit2au((target+zpve),unit="cm-1")
 eConvAU = util.unit2au(eConv,unit="cm-1")
-ev, tnsList = inexactDiagonalization(Hop,tns,sigma,L,maxit,eConvAU,printChoices)[0:2]
-writeFile("out","results",ev,target,choices=printChoices)
+ev, tnsList = inexactDiagonalization(Hop,tns,sigma,L,maxit,eConvAU,status)[0:2]
+writeFile(status,"out","results",ev,target)
 fileFooter("out")
 fileFooter("plot",printInfo=False)
 # -----------------   EOF  -----------------------

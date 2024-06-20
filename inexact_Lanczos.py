@@ -1,15 +1,52 @@
 import numpy as np
 import scipy as sp
 from util_funcs import find_nearest, lowdinOrtho
-from printUtils import *
+from printUtils import writeFile
 import warnings
 import time
 import util
 
+# -----------------------------------------------------
+# Order of inputs
+# working function -> operator, vectors, matrix,
+# system inputs, status (in last)
+# writeFile -> plotfile, status, args
 
 # -----------------------------------------------------
 # Diving in to functions for better readability 
 # and convenient testing
+def getStatus(status,maxit,eConv):
+    """ 
+    Initialize and update status dictionary
+    
+    Status contains following information
+    (i)     Inputs : eConv, maxit
+    (ii)    Stage of iteration
+    (iii)   Convergence info
+    (iv)    Time
+    (iv)    print choices
+
+    keys: ["eConv","maxit",
+    "outerIter","microIter","cummIter"],
+    "isConverged","lindep","properFit",
+    "startTime","endTime",
+    "outputFile", "plotFile", "eShift","convertUnit"
+    """
+    
+    statusUp = {"eConv":eConv,"maxit":maxit,"properFit":True,
+            "startTime":time.time(), "outputFile":True,
+            "plotFile":True, "eShift":0.0, "convertUnit":"au"}
+    
+    if status is not None:
+        givenkeys = status.keys()
+    
+        for item in givenkeys:       # overwrite defults
+            if item in status:
+                statusUp[item] = status[item]
+    
+    return statusUp
+
+
 def generateSubspace(Hop,Ylist,sigma,eConv):
     ''' Builds Krylov space with solving linear system
     and subsequent normalization after checking norm > 0.001*eConv'''
@@ -22,7 +59,7 @@ def generateSubspace(Hop,Ylist,sigma,eConv):
         print("Alert: Not normalizing add basis; norm <=0.001*eConv")
     return Ylist
 
-def transformationMatrix(Ylist,status,S,printChoices):
+def transformationMatrix(Ylist,S,status):
     ''' Calculates transformation matrix from 
     overlap matrix in Ylist basis
     In: Ylist (list of basis)
@@ -36,13 +73,14 @@ def transformationMatrix(Ylist,status,S,printChoices):
     
     typeClass = Ylist[0].__class__
     S = typeClass.extendOverlapMatrix(Ylist,S)
-    if printChoices["writeOut"]:
-        writeFile("out","overlap",S,choices=printChoices)
+    if status["writeOut"]:
+        writeFile("out",status,"iteration")
+        writeFile("out",status,"overlap",S)
     linIndep, uS = lowdinOrtho(S)
     status["lindep"] = not linIndep
     return status, uS, S
     
-def diagonalizeHamiltonian(Hop,bases,X,qtAq,printChoices):
+def diagonalizeHamiltonian(Hop,bases,X,qtAq,status):
     ''' Calculates matrix representation of Hop (qtAq),
     forms truncated matrix (Hmat)
     and finally solves eigenvalue problem for Hmat
@@ -65,9 +103,9 @@ def diagonalizeHamiltonian(Hop,bases,X,qtAq,printChoices):
     qtAq = typeClass.extendMatrixRepresentation(Hop,bases,qtAq)   
     Hmat = X.T.conj()@qtAq@X                      
     ev, uv = sp.linalg.eigh(Hmat)  
-    if printChoices["writeOut"]:
-        writeFile("out","hamiltonian",Hmat,choices=printChoices)
-        writeFile("out","eigenvalues",ev,choices=printChoices)
+    if status["writeOut"]:
+        writeFile("out",status,"hamiltonian",Hmat)
+        writeFile("out",status,"eigenvalues",ev)
     return Hmat,ev,uv,qtAq
 
 
@@ -80,7 +118,7 @@ def _convergence(value,ref):
     return check_ev
 
 
-def checkConvergence(ev,ref,sigma,eConv,status,printChoices):
+def checkConvergence(ev,ref,sigma,eConv,status):
     ''' checks eigenvalue convergence
 
     In: ev -> eigenvalues
@@ -99,8 +137,8 @@ def checkConvergence(ev,ref,sigma,eConv,status,printChoices):
     if _convergence(ev_nearest,ref) <= eConv: isConverged = True
     status["isConverged"] = isConverged
     status["endTime"] = time.time()
-    if printChoices["writePlot"]:
-        writePlotfile(status,ev_nearest,ref)
+    if status["writePlot"]:
+        writeFile("plot",status,ev_nearest,ref)
     ref = ev_nearest
     return status, idx, ref
  
@@ -137,7 +175,7 @@ def analyzeStatus(status):
         bool param continueIteration
         to make main function clean'''
 
-    it = status["iteration"]
+    it = status["outerIter"]
     isConverged = status["isConverged"]
     lindep = status["lindep"]
     maxit = status["maxit"]
@@ -145,7 +183,7 @@ def analyzeStatus(status):
     
     if isConverged or lindep:
         continueIteration = False
-    if status['isConverged'] and status['iteration'] == maxit -1: 
+    if status['isConverged'] and it == maxit -1: 
         print("Alert: Lanczos iterations is not converged!")
     if status['lindep']: print("Alert: Got linear dependent basis!")
     if not status["properFit"]:
@@ -159,7 +197,7 @@ def analyzeStatus(status):
 #    Inexact Lanczos with AbstractClass interface
 #------------------------------------------------------
 
-def inexactDiagonalization(H,v0,sigma,L,maxit,eConv,printChoices=None):
+def inexactDiagonalization(H,v0,sigma,L,maxit,eConv,status=None):
     '''
     This is core function to calculate eigenvalues and eigenvectors
     with inexact Lanczos method
@@ -181,24 +219,20 @@ def inexactDiagonalization(H,v0,sigma,L,maxit,eConv,printChoices=None):
     Ylist = [typeClass.normalize(v0)]
     S = typeClass.overlapMatrix(Ylist)
     qtAq = typeClass.matrixRepresentation(H,Ylist)
-    ref = np.inf
-    nCum = 0
-    status = {"eConv":eConv,"maxit":maxit,"properFit":True,
-            "startTime":time.time()}
+    ref = np.inf; nCum = 0
+    status = getStatus(status,maxit,eConv)
   
     for it in range(maxit):
-        status["iteration"] = it
+        status["outerIter"] = it
         for i in range(1,L):
             nCum += 1
-            status["microIteration"] = i
-            status["cummulativeIteration"] = nCum
-            if printChoices["writeOut"]:
-                writeFile("out","iteration",it,i,nCum)
+            status["microIter"] = i
+            status["cumIter"] = nCum
             
             Ylist = generateSubspace(H,Ylist,sigma,eConv)
-            status, uS, S = transformationMatrix(Ylist,status,S,printChoices)
-            ev, uv, qtAq = diagonalizeHamiltonian(H,Ylist,uS,qtAq,printChoices)[1:4]
-            status,idx,ref = checkConvergence(ev,ref,sigma,eConv,status,printChoices)
+            status, uS, S = transformationMatrix(Ylist,S,status)
+            ev, uv, qtAq = diagonalizeHamiltonian(H,Ylist,uS,qtAq,status)[1:4]
+            status,idx,ref = checkConvergence(ev,ref,sigma,eConv,status)
             continueIteration = analyzeStatus(status)
             uSH = uS@uv
             

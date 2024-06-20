@@ -21,7 +21,7 @@ L = 6
 eConv = 1e-8
     
 optionDict = {"linearSolver":"gcrotmk","linearIter":1000,"linear_tol":1e-04}
-printChoices = {"writeOut": False,"writePlot": False}
+status = {"writeOut": False,"writePlot": False}
 Y0 = NumpyVector(np.random.random((n)),optionDict)
 sigma = target
 
@@ -30,7 +30,7 @@ print("{:50} :: {: <4}".format("Sigma",sigma))
 print("{:50} :: {: <4}".format("Krylov space dimension",L+1))
 print("{:50} :: {: <4}".format("Eigenvalue convergence tolarance",eConv))
 print("\n")
-lf,xf,status = inexactDiagonalization(A,Y0,sigma,L,maxit,eConv,printChoices)
+lf,xf,status = inexactDiagonalization(A,Y0,sigma,L,maxit,eConv,status)
 
 print("{:50} :: {: <4}".format("Eigenvalue nearest to sigma",round(find_nearest(lf,sigma)[1],8)))
 print("{:50} :: {: <4}".format("Actual eigenvalue nearest to sigma",round(find_nearest(ev,sigma)[1],8)))

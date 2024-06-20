@@ -29,8 +29,7 @@ class Test_lanczos(unittest.TestCase):
         
 
         optionDict = {"linearSolver":"gcrotmk","linearIter":1000,"linear_tol":1e-04}
-        self.printChoices = {"writeOut": False,"writePlot": False,
-                "eShift":0.0, "convertUnit":"au"}
+        self.printChoices = {"writeOut": False,"writePlot": False}
         Y0 = NumpyVector(np.random.random((n)),optionDict)
         
         self.guess = Y0
@@ -54,9 +53,9 @@ class Test_lanczos(unittest.TestCase):
         typeClass = uvLanczos[0].__class__
         S = typeClass.overlapMatrix(uvLanczos[:-1])
         qtAq = typeClass.matrixRepresentation(self.mat,uvLanczos[:-1])
-        uS = transformationMatrix(uvLanczos,status,S,self.printChoices)[1]
+        uS = transformationMatrix(uvLanczos,S,status)[1]
         typeClass = uvLanczos[0].__class__
-        Hmat1 = diagonalizeHamiltonian(self.mat,uvLanczos,uS,qtAq,self.printChoices)[0]  
+        Hmat1 = diagonalizeHamiltonian(self.mat,uvLanczos,uS,qtAq,status)[0]  
         qtAq = typeClass.matrixRepresentation(self.mat,uvLanczos)
         Hmat2 = uS.T.conj()@qtAq@uS
         np.testing.assert_allclose(Hmat1,Hmat2,rtol=1e-5,atol=0)
@@ -69,8 +68,8 @@ class Test_lanczos(unittest.TestCase):
         S = typeClass.overlapMatrix(uvLanczos[:-1])
         assert len(uvLanczos) > 1
         qtAq = typeClass.matrixRepresentation(self.mat,uvLanczos[:-1])
-        uS = transformationMatrix(uvLanczos,status,S,self.printChoices)[1]
-        uv = diagonalizeHamiltonian(self.mat,uvLanczos,uS,qtAq,self.printChoices)[2] 
+        uS = transformationMatrix(uvLanczos,S,status)[1]
+        uv = diagonalizeHamiltonian(self.mat,uvLanczos,uS,qtAq,status)[2] 
         uSH = uS@uv
         bases = basisTransformation(uvLanczos,uSH)
         np.testing.assert_allclose(uvLanczos[0].array,bases[0].array,atol=1e-5)
@@ -93,8 +92,8 @@ class Test_lanczos(unittest.TestCase):
         assert len(uvLanczos) > 1
         S1 = typeClass.overlapMatrix(uvLanczos[:-1])
         qtAq = typeClass.matrixRepresentation(self.mat,uvLanczos[:-1])
-        uS = transformationMatrix(uvLanczos,status,S1,self.printChoices)[1]
-        uv = diagonalizeHamiltonian(self.mat,uvLanczos,uS,qtAq,self.printChoices)[2] 
+        uS = transformationMatrix(uvLanczos,S1,status)[1]
+        uv = diagonalizeHamiltonian(self.mat,uvLanczos,uS,qtAq,status)[2] 
         uSH = uS@uv
         mat = uSH.T.conj()@S@uSH
         np.testing.assert_allclose(mat,np.eye(mat.shape[0]),atol=1e-5) 
