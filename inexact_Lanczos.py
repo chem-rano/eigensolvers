@@ -40,7 +40,7 @@ def _getStatus(status,maxit,eConv):
     if status is not None:
         givenkeys = status.keys()
     
-        for item in givenkeys:       # overwrite defults
+        for item in givenkeys:       # overwrite defaults
             if item in status:
                 statusUp[item] = status[item]
     
