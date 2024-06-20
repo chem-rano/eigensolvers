@@ -31,14 +31,14 @@ def _getStatus(status,maxit,eConv):
     keys: ["eConv","maxit",
     "outerIter","microIter","cumIter"],
     "isConverged","lindep","properFit",
-    "startTime","endTime",
-    "outputFile", "plotFile", "eShift","convertUnit"
+    "startTime","runTime",
+    "writeOut", "writeOut", "eShift","convertUnit"
     """
     
     statusUp = {"eConv":eConv,"maxit":maxit,
             "outerIter":0, "microIter":0,"cumIter":0,
             "isConverged":False,"lindep":False,"properFit":True,
-            "startTime":time.time(), "runTime":time.time(),
+            "startTime":time.time(), "runTime":0.0,
             "writeOut":True,"writePlot":True,"eShift":0.0,"convertUnit":"au"}
     
     if status is not None:
@@ -54,6 +54,7 @@ def _getStatus(status,maxit,eConv):
 def generateSubspace(Hop,Ylist,sigma,eConv):
     ''' Builds Krylov space with solving linear system
     and subsequent normalization after checking norm > 0.001*eConv'''
+
     typeClass = Ylist[0].__class__
     Ysolved = typeClass.solve(Hop,Ylist[-1],sigma)
     if typeClass.norm(Ysolved) > 0.001*eConv:
@@ -85,7 +86,7 @@ def transformationMatrix(Ylist,S,status):
     return status, uS, S
     
 def diagonalizeHamiltonian(Hop,bases,X,qtAq,status):
-    ''' Calculates matrix representation of Hop (qtAq),
+    ''' Calculates matrix representation of Hop,
     forms truncated matrix (Hmat)
     and finally solves eigenvalue problem for Hmat
 
@@ -123,7 +124,7 @@ def _convergence(value,ref):
 
 
 def checkConvergence(ev,ref,sigma,eConv,status):
-    ''' checks eigenvalue convergence
+    ''' Checks eigenvalue convergence
 
     In: ev -> eigenvalues
         ref -> eigenvalue of last iteration
@@ -214,9 +215,12 @@ def inexactDiagonalization(H,v0,sigma,L,maxit,eConv,status=None):
              L => Krylov space dimension
              maxit => Maximum Lanczos iterations
              eConv => relative eigenvalue convergence tolerance
+             status (optional) => Additional information dictionary
+                    (more details see _getStatus doc)
 
     Output:: ev as inexact Lanczos eigenvalues
              uv as inexact Lanczos eigenvectors
+             status for convergence information
     '''
     
     typeClass = v0.__class__

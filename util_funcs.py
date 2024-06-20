@@ -40,12 +40,10 @@ def eigRegularized(A, B, Q, tol):
     idx = eBq > tol
     eBq = eBq[idx]
     uBq = uBq[:,idx]
-    # TODO Here space is being truncated
     uBqTraf = uBq * eBq**(-0.5)
     Q_trun = Q @ uBqTraf # HRL suggested
 
     AqTraf = Q_trun.T.conj() @ (A @ Q_trun)
-    #AqTraf = Q_trun.T.conj() @ Q_trun
     ev, uvTraf = la.eigh(AqTraf)
 
     uv = uBqTraf @ uvTraf
@@ -62,7 +60,6 @@ def eigRegularized_list(Amat,B, Q, atol):
         for i in range(mQ):
             qtAq[i,j] = np.vdot(Q[i],Aqj)
             qtAq[j,i] = qtAq[i,j]
-    #if B is None:
     evals, uvals = la.eigh(qtAq)
     
     mu,nu = uvals.shape

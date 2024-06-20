@@ -22,7 +22,7 @@ from ttns2.diagonalization import IterativeLinearSystemOptions
 
 timeStarting = time.time()
 #######################################################
-MAX_D = 20 
+MAX_D = 10 
 # if EPS < 0: EPS = None
 # 5e-9 ok
 EPS = 5e-9
@@ -135,6 +135,7 @@ nsweepFitting = 1000
 
 optsCheck = IterativeLinearSystemOptions(solver="gcrotmk",tol=siteLinearTol) 
 optionsOrtho = {"nSweep":nsweepOrtho, "convTol":orthoTol, "optShift":optShift, "bondDimensionAdaptions":bondDimensionAdaptions}
+#optionsLinear = {"nSweep":nsweepLinear, "iterativeLinearSystemOptions":optsCheck,"maxIter":500,"convTol":globalLinearTol,"bondDimensionAdaptions":bondDimensionAdaptions}
 optionsLinear = {"nSweep":nsweepLinear, "iterativeLinearSystemOptions":optsCheck,"convTol":globalLinearTol,"bondDimensionAdaptions":bondDimensionAdaptions}
 optionsFitting = {"nSweep":nsweepFitting, "convTol":fittingTol,"bondDimensionAdaptions":bondDimensionAdaptions}
 options = {"orthogonalizationArgs":optionsOrtho, "linearSystemArgs":optionsLinear, "stateFittingArgs":optionsFitting}

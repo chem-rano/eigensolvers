@@ -8,14 +8,6 @@ from numpyVector import NumpyVector
 from util_funcs import find_nearest
 import time
 
-# Test 1 :  Checks Krylov expansion basis
-# Test 2 :  Checks overlap matrix in above basis
-# Test 3 :  Checks Hamiltonian matrix in above basis
-# Test 4 :  Checks overlap matrix is unitary or not
-# Test 5 :  Checks type of eigenvalues and eigenvectors
-# Test 6 :  Checks accuracy of the eigenvalue
-
-
 class Test_lanczos(unittest.TestCase):
 
     def setUp(self):
