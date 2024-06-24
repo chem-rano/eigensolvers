@@ -17,7 +17,7 @@ from util_funcs import headerBot
 # -----------------------------------------------------
 # Diving in to functions for better readability 
 # and convenient testing
-def _getStatus(status,maxit,eConv):
+def _getStatus(status,v,maxit,eConv):
     """ 
     Initialize and update status dictionary
     
@@ -39,7 +39,9 @@ def _getStatus(status,maxit,eConv):
             "outerIter":0, "microIter":0,"cumIter":0,
             "isConverged":False,"lindep":False,"properFit":True,
             "startTime":time.time(), "runTime":0.0,
-            "writeOut":True,"writePlot":True,"eShift":0.0,"convertUnit":"au"}
+            "writeOut":True,"writePlot":True,"eShift":0.0,"convertUnit":"au",
+            "flagAddition":v.hasExactAddition,
+            "futileRestart":0}
     
     if status is not None:
         givenkeys = status.keys()
@@ -169,9 +171,23 @@ def checkFitting(qtAq, ev_nearest, eConv, status):
     
     Out: status -> (dict: updates properFit)
     '''
-    if _convergence(qtAq[0],ev_nearest) > eConv:
-        status["properFit"] = False
+    if status["flagAddition"]:
+        status["properFit"] = True
+    else:
+        if _convergence(qtAq[0],ev_nearest) > eConv:
+            status["properFit"] = False
     return status
+
+def checkRestart(status,qtAq,ref):
+    """ If energy has not changed up to 
+    at least third decimal place, counts a ineffective restart """
+    decision = False
+    if _convergence(qtAq[0],ref) < 1e-4:
+        status["futileRestart"] += 1
+    if status["futileRestart"] > 3:
+        decision = True
+    return decision
+
 
 def analyzeStatus(status):
     ''' Wrapper of all decision parameters for iteration
@@ -227,7 +243,7 @@ def inexactDiagonalization(H,v0,sigma,L,maxit,eConv,status=None):
     S = typeClass.overlapMatrix(Ylist)
     qtAq = typeClass.matrixRepresentation(H,Ylist)
     ref = np.inf; nCum = 0
-    status = _getStatus(status,maxit,eConv)
+    status = _getStatus(status,Ylist[0],maxit,eConv)
   
     for it in range(maxit):
         status["outerIter"] = it
@@ -261,6 +277,7 @@ def inexactDiagonalization(H,v0,sigma,L,maxit,eConv,status=None):
             S = typeClass.overlapMatrix(Ylist)
             qtAq=typeClass.matrixRepresentation(H,Ylist)
             status = checkFitting(qtAq,ev[idx],eConv,status)
+            if checkRestart(status,qtAq,ref): break
 
     return ev,Ylist,status
 # -----------------------------------------------------

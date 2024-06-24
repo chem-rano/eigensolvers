@@ -16,7 +16,7 @@ A = Q.T @ np.diag(ev) @ Q
 
 target = 1290
 maxit = 20 
-L = 34
+L = 50 
 eConv = 1e-12
     
 optionDict = {"linearSolver":"gcrotmk","linearIter":5000,"linear_tol":2e-1}
