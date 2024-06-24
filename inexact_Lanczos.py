@@ -35,7 +35,7 @@ def _getStatus(status,v,maxit,eConv):
     "writeOut", "writeOut", "eShift","convertUnit"
     """
     
-    statusUp = {"eConv":eConv,"maxit":maxit,"ref":np.inf,
+    statusUp = {"eConv":eConv,"maxit":maxit,"ref":[np.inf],
             "outerIter":0, "microIter":0,"cumIter":0,
             "isConverged":False,"lindep":False,"properFit":True,
             "startTime":time.time(), "runTime":0.0,
@@ -141,13 +141,14 @@ def checkConvergence(ev,sigma,eConv,status):
     
     isConverged = False
     idx, ev_nearest = find_nearest(ev,sigma)
-    if _convergence(ev_nearest,status["ref"]) <= eConv:
+    if _convergence(ev_nearest,status["ref"][-1]) <= eConv:
         isConverged = True
     status["isConverged"] = isConverged
     status["runTime"] = time.time() - status["startTime"]
     if status["writePlot"]:
-        writeFile("plot",status,ev_nearest,status["ref"])
-    status["ref"] = ev_nearest
+        writeFile("plot",status,ev_nearest,status["ref"][-1])
+    status["ref"].append(ev_nearest)
+    if len(status["ref"]) > 2:status["ref"].pop(0)
     return status, idx
  
 def basisTransformation(newBases,coeffs):
@@ -184,7 +185,8 @@ def checkRestart(qtAq,status):
     at least third decimal place, counts a ineffective restart """
     
     decision = False
-    if abs(qtAq[0]-status["ref"]) < 1e-6:
+    print(abs(qtAq[0]-status["ref"][0]))
+    if abs(qtAq[0]-status["ref"][0]) < 1e-4:
         status["futileRestart"] += 1
     if status["futileRestart"] > 3:
         decision = True
@@ -256,8 +258,7 @@ def inexactDiagonalization(H,v0,sigma,L,maxit,eConv,status=None):
             status, uS, S = transformationMatrix(Ylist,S,status)
             if status['lindep']:
                 print("Restarting calculation: Got linearly dependent basis!")
-                Ylist = Ylist[:-1]
-                S = S[:-1,:-1]
+                Ylist = Ylist[:-1]; S = S[:-1,:-1]
                 status['lindep'] = False #For restart!
                 break
             ev, uv, qtAq = diagonalizeHamiltonian(H,Ylist,uS,qtAq,status)[1:4]
@@ -277,7 +278,7 @@ def inexactDiagonalization(H,v0,sigma,L,maxit,eConv,status=None):
             S = typeClass.overlapMatrix(Ylist)
             qtAq=typeClass.matrixRepresentation(H,Ylist)
             status = checkFitting(qtAq,ev[idx],eConv,status)
-            #if checkRestart(qtAq,status):break
+            if checkRestart(qtAq,status):break
 
     return ev,Ylist,status
 # -----------------------------------------------------
