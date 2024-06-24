@@ -35,7 +35,7 @@ def _getStatus(status,v,maxit,eConv):
     "writeOut", "writeOut", "eShift","convertUnit"
     """
     
-    statusUp = {"eConv":eConv,"maxit":maxit,
+    statusUp = {"eConv":eConv,"maxit":maxit,"ref":np.inf,
             "outerIter":0, "microIter":0,"cumIter":0,
             "isConverged":False,"lindep":False,"properFit":True,
             "startTime":time.time(), "runTime":0.0,
@@ -125,7 +125,7 @@ def _convergence(value,ref):
     return check_ev
 
 
-def checkConvergence(ev,ref,sigma,eConv,status):
+def checkConvergence(ev,sigma,eConv,status):
     ''' Checks eigenvalue convergence
 
     In: ev -> eigenvalues
@@ -141,13 +141,14 @@ def checkConvergence(ev,ref,sigma,eConv,status):
     
     isConverged = False
     idx, ev_nearest = find_nearest(ev,sigma)
-    if _convergence(ev_nearest,ref) <= eConv: isConverged = True
+    if _convergence(ev_nearest,status["ref"]) <= eConv:
+        isConverged = True
     status["isConverged"] = isConverged
     status["runTime"] = time.time() - status["startTime"]
     if status["writePlot"]:
-        writeFile("plot",status,ev_nearest,ref)
-    ref = ev_nearest
-    return status, idx, ref
+        writeFile("plot",status,ev_nearest,status["ref"])
+    status["ref"] = ev_nearest
+    return status, idx
  
 def basisTransformation(newBases,coeffs):
     ''' basis transformation with eigenvectors 
@@ -178,11 +179,12 @@ def checkFitting(qtAq, ev_nearest, eConv, status):
             status["properFit"] = False
     return status
 
-def checkRestart(status,qtAq,ref):
+def checkRestart(qtAq,status):
     """ If energy has not changed up to 
     at least third decimal place, counts a ineffective restart """
+    
     decision = False
-    if _convergence(qtAq[0],ref) < 1e-4:
+    if abs(qtAq[0]-status["ref"]) < 1e-6:
         status["futileRestart"] += 1
     if status["futileRestart"] > 3:
         decision = True
@@ -242,15 +244,13 @@ def inexactDiagonalization(H,v0,sigma,L,maxit,eConv,status=None):
     Ylist = [typeClass.normalize(v0)]
     S = typeClass.overlapMatrix(Ylist)
     qtAq = typeClass.matrixRepresentation(H,Ylist)
-    ref = np.inf; nCum = 0
     status = _getStatus(status,Ylist[0],maxit,eConv)
   
     for it in range(maxit):
         status["outerIter"] = it
         for i in range(1,L):
-            nCum += 1
             status["microIter"] = i
-            status["cumIter"] = nCum
+            status["cumIter"] += 1
             
             Ylist = generateSubspace(H,Ylist,sigma,eConv)
             status, uS, S = transformationMatrix(Ylist,S,status)
@@ -261,7 +261,7 @@ def inexactDiagonalization(H,v0,sigma,L,maxit,eConv,status=None):
                 status['lindep'] = False #For restart!
                 break
             ev, uv, qtAq = diagonalizeHamiltonian(H,Ylist,uS,qtAq,status)[1:4]
-            status,idx,ref = checkConvergence(ev,ref,sigma,eConv,status)
+            status,idx = checkConvergence(ev,sigma,eConv,status)
             continueIteration = analyzeStatus(status)
             uSH = uS@uv
             
@@ -277,7 +277,7 @@ def inexactDiagonalization(H,v0,sigma,L,maxit,eConv,status=None):
             S = typeClass.overlapMatrix(Ylist)
             qtAq=typeClass.matrixRepresentation(H,Ylist)
             status = checkFitting(qtAq,ev[idx],eConv,status)
-            if checkRestart(status,qtAq,ref): break
+            #if checkRestart(qtAq,status):break
 
     return ev,Ylist,status
 # -----------------------------------------------------
