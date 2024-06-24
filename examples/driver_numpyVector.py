@@ -8,19 +8,19 @@ import util
 from numpyVector import NumpyVector
 from inexact_Lanczos import inexactDiagonalization
 
-n = 100
-ev = np.linspace(1,300,n)
+n = 2500
+ev = np.linspace(1,1400,n)
 np.random.seed(10)
 Q = sp.linalg.qr(np.random.rand(n,n))[0]
 A = Q.T @ np.diag(ev) @ Q
 
-target = 30
-maxit = 4 
-L = 6 
-eConv = 1e-8
+target = 1290
+maxit = 20 
+L = 34
+eConv = 1e-12
     
-optionDict = {"linearSolver":"gcrotmk","linearIter":1000,"linear_tol":1e-04}
-status = {"writeOut": False,"writePlot": False}
+optionDict = {"linearSolver":"gcrotmk","linearIter":5000,"linear_tol":2e-1}
+status = {"writeOut": True,"writePlot": True}
 Y0 = NumpyVector(np.random.random((n)),optionDict)
 sigma = target
 
@@ -30,6 +30,7 @@ print("{:50} :: {: <4}".format("Krylov space dimension",L+1))
 print("{:50} :: {: <4}".format("Eigenvalue convergence tolarance",eConv))
 print("\n")
 lf,xf,status = inexactDiagonalization(A,Y0,sigma,L,maxit,eConv,status)
+print(status)
 
 print("{:50} :: {: <4}".format("Eigenvalue nearest to sigma",round(find_nearest(lf,sigma)[1],8)))
 print("{:50} :: {: <4}".format("Actual eigenvalue nearest to sigma",round(find_nearest(ev,sigma)[1],8)))

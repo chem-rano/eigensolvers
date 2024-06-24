@@ -186,11 +186,10 @@ def analyzeStatus(status):
     maxit = status["maxit"]
     continueIteration = True
     
-    if isConverged or lindep:
+    if isConverged:
         continueIteration = False
     if isConverged and it == maxit -1: 
         print("Alert: Lanczos iterations is not converged!")
-    if status['lindep']: print("Alert: Got linear dependent basis!")
     if not status["properFit"]:
         print("Alert: Linearcombination inaccurate")
         continueIteration = False
@@ -239,6 +238,12 @@ def inexactDiagonalization(H,v0,sigma,L,maxit,eConv,status=None):
             
             Ylist = generateSubspace(H,Ylist,sigma,eConv)
             status, uS, S = transformationMatrix(Ylist,S,status)
+            if status['lindep']:
+                print("Restarting calculation: Got linearly dependent basis!")
+                Ylist = Ylist[:-1]
+                S = S[:-1,:-1]
+                status['lindep'] = False #For restart!
+                break
             ev, uv, qtAq = diagonalizeHamiltonian(H,Ylist,uS,qtAq,status)[1:4]
             status,idx,ref = checkConvergence(ev,ref,sigma,eConv,status)
             continueIteration = analyzeStatus(status)
