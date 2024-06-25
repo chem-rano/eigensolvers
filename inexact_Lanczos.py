@@ -180,13 +180,12 @@ def checkFitting(qtAq, ev_nearest, eConv, status):
             status["properFit"] = False
     return status
 
-def checkRestart(qtAq,status):
+def terminateRestart(qtAq,status):
     """ If energy has not changed up to 
-    at least third decimal place, counts a ineffective restart """
+    at least fourth decimal place, counts a ineffective restart """
     
     decision = False
-    print(abs(qtAq[0]-status["ref"][0]))
-    if abs(qtAq[0]-status["ref"][0]) < 1e-4:
+    if abs(qtAq[0] - status["ref"][0]) < 1e-4:
         status["futileRestart"] += 1
     if status["futileRestart"] > 3:
         decision = True
@@ -278,7 +277,7 @@ def inexactDiagonalization(H,v0,sigma,L,maxit,eConv,status=None):
             S = typeClass.overlapMatrix(Ylist)
             qtAq=typeClass.matrixRepresentation(H,Ylist)
             status = checkFitting(qtAq,ev[idx],eConv,status)
-            if checkRestart(qtAq,status):break
+            if terminateRestart(qtAq,status):break
 
     return ev,Ylist,status
 # -----------------------------------------------------
