@@ -33,6 +33,11 @@ def _getStatus(status,v,maxit,eConv):
     "isConverged","lindep","properFit",
     "startTime","runTime",
     "writeOut", "writeOut", "eShift","convertUnit"
+    "Ref" is a list -> always contains maximum two values
+    Nearest eigenvalues are stored as reference for convergence
+    check and restart purpose
+    First one is the previous Lanczos iteration & second is the
+    current Lanczos iteration
     """
     
     statusUp = {"eConv":eConv,"maxit":maxit,"ref":[np.inf],
