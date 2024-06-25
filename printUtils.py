@@ -192,7 +192,7 @@ def _outputFile(status,args):
         file.write("\tInfo per iteration\t")
         file.write("."*20)
         file.write("\n")
-        file.write("Lanczos iteration: "+str(status["outerIter"]+1))
+        file.write("Lanczos iteration: "+str(status["outerIter"]))
         file.write("\tKrylov iteration: "+str(status["microIter"]))
         file.write("\tCumulative Krylov iteration: "+str(status["cumIter"]))
         file.write("\n")
