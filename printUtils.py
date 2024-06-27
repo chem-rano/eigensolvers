@@ -193,7 +193,7 @@ def _outputFile(status,args):
         file.write("."*20)
         file.write("\n")
         file.write("Lanczos iteration: "+str(status["outerIter"]))
-        file.write("\tKrylov iteration: "+str(status["microIter"]))
+        file.write("\tKrylov iteration: "+str(status["innerIter"]))
         file.write("\tCumulative Krylov iteration: "+str(status["cumIter"]))
         file.write("\n")
     file.close()
@@ -204,7 +204,7 @@ def _plotFile(status,args):
     file = open("data2Plot.out","a")
     
     it = status["outerIter"]
-    i = status["microIter"]
+    i = status["innerIter"]
     nCum = status["cumIter"]
     runTime = status["runTime"]
     evalue = util.au2unit(args[0],status["convertUnit"])

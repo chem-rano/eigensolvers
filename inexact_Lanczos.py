@@ -11,50 +11,52 @@ from util_funcs import headerBot
 # -----------------------------------------------------
 # Order of inputs
 # working function -> operator, vectors, matrix,
-# system inputs, status (in last)
+# system inputs, status (in last) unless for keyword (optional)
+# arguments 
 # writeFile -> plotfile, status, args
 
 # -----------------------------------------------------
-# Diving in to functions for better readability 
+# Dividing in to functions for better readability 
 # and convenient testing
-def _getStatus(status,vector,maxit,eConv):
+def _getStatus(status,vector,maxit,maxKrylov,eConv):
     """ 
     Initialize and update status dictionary
     
     In: status -> param dictionary
         vector -> guess vector to get the
         hasExactAddition property 
-        maxit -> maximum iteration
+        maxit -> maximum Lanczos iteration
+        maxKrylov -> maximum Krylov dimension
         eConv -> eigenvalue convergence
-    Out: status  -> initialized and updated
+    Out: statusUp  -> initialized and updated
 
     Status contains following information
-    (i)     Inputs : vector (hasExactAddition),
+    (i)     Inputs : vector property, hasExactAddition,
                     maxit, eConv
     (ii)    Stage of iteration
     (iii)   Convergence info
-    (iv)    Time
+    (iv)    Run time
     (iv)    print choices
 
-    keys: ["eConv","maxit","ref","flagAddition",
-    "outerIter","microIter","cumIter",
-    "isConverged","lindep","properFit","futileRestart",
+    keys: ["eConv","maxit","maxKrylov","ref","flagAddition",
+    "outerIter","innerIter","cumIter",
+    "isConverged","lindep","futileRestart",
     "startTime","runTime",
-    "writeOut", "writeOut", "eShift","convertUnit"]
+    "writeOut", "writePlot", "eShift","convertUnit"]
 
 
     "Ref" is a list -> always contains maximum two values
     Nearest eigenvalues are stored as reference for convergence
     check and restart purpose
-    First one is the previous Lanczos iteration & second is the
-    current Lanczos iteration
+    First one is for the previous Lanczos iteration & second is for 
+    the current Lanczos iteration
     """
     
-    statusUp = {"eConv":eConv,"maxit":maxit,"ref":[np.inf],
+    statusUp = {"eConv":eConv,"maxit":maxit,"maxKrylov":maxKrylov,"ref":[np.inf],
             "flagAddition":vector.hasExactAddition,
-            "outerIter":0, "microIter":0,"cumIter":0,
-            "isConverged":False,"lindep":False,"properFit":True,
-            "futileRestart":0
+            "outerIter":0, "innerIter":0,"cumIter":0,
+            "isConverged":False,"lindep":False,
+            "futileRestart":0,
             "startTime":time.time(), "runTime":0.0,
             "writeOut":True,"writePlot":True,"eShift":0.0,"convertUnit":"au"}
     
@@ -172,64 +174,69 @@ def checkConvergence(ev,sigma,eConv,status):
     if len(status["ref"]) > 2:status["ref"].pop(0)
     return status, idx
  
-def basisTransformation(Bases,coeffs):
-    ''' basis transformation with eigenvectors 
+def basisTransformation(bases,coeffs):
+    ''' Basis transformation with eigenvectors 
     and Krylov bases
 
-    In: Bases -> List of bases for combination
+    In: bases -> List of bases for combination
         coeffs -> coefficients used for the combination
 
     Out: combBases -> combination results'''
 
-    typeClass = Bases[0].__class__
+    typeClass = bases[0].__class__
     ndim = coeffs.shape
     combBases = []
     if len(ndim)==1:
-        combBases.append(typeClass.linearCombination(Bases,coeffs))
+        combBases.append(typeClass.linearCombination(bases,coeffs))
     else:
         for j in range(ndim[1]):
-            combBases.append(typeClass.linearCombination(Bases,coeffs[:,j]))
+            combBases.append(typeClass.linearCombination(bases,coeffs[:,j]))
     return combBases
 
-def checkFitting(qtAq, ev_nearest, status):
+def properFitting(qtAq, ev_nearest, status):
     ''' Checks the eigenvalue after fitting
     (at the end of Lanczos iteration)
-    In : qtAq -> matrix element of the basis nearest to sigma
-         ev_nearest -> nearest eigenvalue form previous iteration
+    In : qtAq -> Hamiltonian matrix element of nearest eigenvector 
+                after fitting
+         ev_nearest -> nearest eigenvalue before fitting
          status -> Param dictionary
     
-    Out: status -> (dict: updates properFit)
+    Out: properFit -> (bool: True for accurate linear combination)
     '''
+    properFit = True
+    
     if status["flagAddition"]:
-        status["properFit"] = True
+        properFit = True
     else:
         if _convergence(qtAq[0],ev_nearest) > status["eConv"]:
-            status["properFit"] = False
-    return status
+           properFit = False
+           print("Alert: Linearcombination inaccurate")
+    return properFit
 
-def terminateRestart(qtAq,status,ndecimal=4,num=3):
-    """ If energy has not changed up to 
-    at least fourth decimal place, counts a ineffective restart 
+def terminateRestart(energy,status,num=3):
+    """ If the eigenvalue change is lower than eConv,
+    counted as an ineffective restart 
 
-    In: qtAq -> Hamiltonian matrix element after fitting
+    In: energy -> Energy after fitting
         status -> param dictionary
-        ndecimal (optional) -> Absolute accuray of eigenvalues
-                    Default is 1e-4
         num (optional) -> Number of futile restarts
-                    Default is 3
-                    """
+                          Default is 3"""
     
     decision = False
-    if abs(qtAq[0] - status["ref"][0]) < 10**(-ndecimal):
-        status["futileRestart"] += 1
+    prevEnergy = status["ref"][0]
+
+    if status["lindep"]:    
+        if _convergence(energy,prevEnergy) < max(1e-9,status["eConv"]):
+            status["futileRestart"] += 1
+    
     if status["futileRestart"] > num:
         decision = True
+
     return decision
 
 
 def analyzeStatus(status):
-    ''' Wrapper of all decision parameters for iteration
-        e.g., isConverged, properFit, lindep'
+    ''' Wrapper of decision parameter for iteration, isConverged'
         in a separate function and conclude to a single 
         bool param continueIteration
         to make main function clean
@@ -237,18 +244,18 @@ def analyzeStatus(status):
     In: status -> param dictionary'''
 
     isConverged = status["isConverged"]
-    lindep = status["lindep"]
     it = status["outerIter"]
+    i = status["innerIter"]
     maxit = status["maxit"]
     continueIteration = True
     
     if isConverged:
         continueIteration = False
-    if isConverged and it == maxit -1: 
-        print("Alert: Lanczos iterations is not converged!")
-    if not status["properFit"]:
-        print("Alert: Linearcombination inaccurate")
-        continueIteration = False
+    
+    if it == maxit -1 and i == status["maxKrylov"]-1: 
+        if not isConverged: 
+            print("Alert: Lanczos iterations is not converged!")
+            continueIteration = False
 
     return continueIteration
 # -----------------------------------------------------
@@ -282,20 +289,19 @@ def inexactDiagonalization(H,v0,sigma,L,maxit,eConv,status=None):
     Ylist = [typeClass.normalize(v0)]
     S = typeClass.overlapMatrix(Ylist)
     qtAq = typeClass.matrixRepresentation(H,Ylist)
-    status = _getStatus(status,Ylist[0],maxit,eConv)
+    status = _getStatus(status,Ylist[0],maxit,L,eConv)
   
     for it in range(maxit):
         status["outerIter"] = it
         for i in range(1,L):
-            status["microIter"] = i
+            status["innerIter"] = i
             status["cumIter"] += 1
             
             Ylist = generateSubspace(H,Ylist,sigma,eConv)
             status, uS, S = transformationMatrix(Ylist,S,status)
             if status['lindep']:
                 print("Restarting calculation: Got linearly dependent basis!")
-                Ylist = Ylist[:-1]; S = S[:-1,:-1]
-                status['lindep'] = False #For restart!
+                Ylist = Ylist[:-1] # Excluding the last vector added to the Ylist
                 break
             ev, uv, qtAq = diagonalizeHamiltonian(H,Ylist,uS,qtAq,status)[1:4]
             status,idx = checkConvergence(ev,sigma,eConv,status)
@@ -310,11 +316,12 @@ def inexactDiagonalization(H,v0,sigma,L,maxit,eConv,status=None):
             break
         else:
             y = basisTransformation(Ylist,uSH[:,idx])
-            Ylist = [typeClass.normalize(y[0])]
-            S = typeClass.overlapMatrix(Ylist)
-            qtAq=typeClass.matrixRepresentation(H,Ylist)
-            status = checkFitting(qtAq,ev[idx],eConv,status)
-            if terminateRestart(qtAq,status):break
+            YlistNew = [typeClass.normalize(y[0])]
+            S = typeClass.overlapMatrix(YlistNew)
+            qtAq=typeClass.matrixRepresentation(H,YlistNew)
+            if not properFitting(qtAq,ev[idx],status):break
+            if terminateRestart(qtAq[0],status):break
+            Ylist = YlistNew # when Lanczos iteration continues
 
     return ev,Ylist,status
 # -----------------------------------------------------
