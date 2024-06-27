@@ -73,7 +73,7 @@ class Test_lanczos(unittest.TestCase):
         fittingTol = 1e-9
         nsweepFitting = 1000
 
-        optsCheck = IterativeLinearSystemOptions(solver="gcrotmk",tol=siteLinearTol,maxIter=500) 
+        optsCheck = IterativeLinearSystemOptions(solver="gcrotmk",tol=siteLinearTol,maxIter=2000) 
         optionsOrtho = {"nSweep":nsweepOrtho, "convTol":orthoTol, "optShift":optShift, "bondDimensionAdaptions":bondDimensionAdaptions}
         optionsLinear = {"nSweep":nsweepLinear, "iterativeLinearSystemOptions":optsCheck,"convTol":globalLinearTol,"bondDimensionAdaptions":bondDimensionAdaptions}
         optionsFitting = {"nSweep":nsweepFitting, "convTol":fittingTol,"bondDimensionAdaptions":bondDimensionAdaptions}
@@ -176,7 +176,7 @@ class Test_lanczos(unittest.TestCase):
         
             target_value = find_nearest(evLanczos,sigma)[1]
             closest_value = find_nearest(self.evEigh,sigma)[1]
-            self.assertTrue((abs(target_value-closest_value)<= 1e-6),'Not accurate up to 6th decimal place')
+            self.assertTrue((abs(target_value-closest_value)<= 10*self.eConv),'Not accurate up to 10*eConv')
     
     def test_eigenvector(self):
         ''' Checks if the calculated eigenvector is accurate up to 1e-4
