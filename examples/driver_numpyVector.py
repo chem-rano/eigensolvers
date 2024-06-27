@@ -9,18 +9,8 @@ from numpyVector import NumpyVector
 from inexact_Lanczos import inexactDiagonalization
 
 
-# Default small matrix
-n = 100
-ev = np.linspace(1,300,n)
-np.random.seed(10)
-target = 30
-maxit = 4
-L = 6
-eConv = 1e-8
-optionDict = {"linearSolver":"gcrotmk","linearIter":1000,"linear_tol":1e-4}
-
-
 largerDenserSpetra = False
+
 if largerDenserSpetra:
     n = 2500
     ev = np.linspace(1,1400,n)
@@ -30,6 +20,17 @@ if largerDenserSpetra:
     L = 50
     eConv = 1e-12
     optionDict = {"linearSolver":"gcrotmk","linearIter":5000,"linear_tol":1e-4}
+
+else:# Default small matrix
+    n = 100
+    ev = np.linspace(1,300,n)
+    np.random.seed(10)
+    target = 30
+    maxit = 4
+    L = 6
+    eConv = 1e-8
+    optionDict = {"linearSolver":"gcrotmk","linearIter":1000,"linear_tol":1e-4}
+
     
 Q = sp.linalg.qr(np.random.rand(n,n))[0]
 A = Q.T @ np.diag(ev) @ Q
