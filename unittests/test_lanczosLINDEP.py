@@ -10,22 +10,20 @@ class Test_lanczos(unittest.TestCase):
     def setUp(self):
         # This is a specific case where linearly dependent vectors
         # generation happens
-        n = 2500
-        ev = np.linspace(1,1400,n)
+        n = 1200
+        ev = np.linspace(1,600,n)
         np.random.seed(10)
         Q = la.qr(np.random.rand(n,n))[0]
-        #A = Q.T @ np.diag(ev) @ Q
-        A = np.load("A.npy")
+        A = Q.T @ np.diag(ev) @ Q
 
         optionDict = {"linearSolver":"gcrotmk","linearIter":5000,"linear_tol":2e-1}
         self.printChoices = {"writeOut": False,"writePlot": False}
-        #Y0 = NumpyVector(np.random.random((n)),optionDict)
-        Y0 = NumpyVector(np.load("Y0.npy"))
+        Y0 = NumpyVector(np.random.random((n)),optionDict)
         
         self.guess = Y0
         self.mat = A
         self.ev = ev 
-        self.sigma = 1290
+        self.sigma = 290
         self.eShift = 0.0
         self.L = 100     # make sufficiently large to get LINDEP
         self.maxit = 1000 # same as above
