@@ -7,6 +7,7 @@ import time
 import util
 from numpyVector import NumpyVector
 from util_funcs import headerBot
+from pickState import pick_maxOvlp
 
 # -----------------------------------------------------
 # Order of inputs
@@ -58,7 +59,8 @@ def _getStatus(status,vector,maxit,maxKrylov,eConv):
             "isConverged":False,"lindep":False,
             "futileRestart":0,
             "startTime":time.time(), "runTime":0.0,
-            "writeOut":True,"writePlot":True,"eShift":0.0,"convertUnit":"au"}
+            "writeOut":True,"writePlot":True,"eShift":0.0,"convertUnit":"au",
+            "stateFollowing":"sigma"}
     
     if status is not None:
         givenkeys = status.keys()
@@ -315,6 +317,8 @@ def inexactDiagonalization(H,v0,sigma,L,maxit,eConv,status=None):
             Ylist = basisTransformation(Ylist,uSH)
             break
         else:
+            if status["stateFollowing"]=="maxOvlp":
+                idx = pick_maxOvlp(Ylist,Ylist[1])
             y = basisTransformation(Ylist,uSH[:,idx])
             YlistNew = [typeClass.normalize(y[0])]
             S = typeClass.overlapMatrix(YlistNew)
@@ -338,7 +342,8 @@ if __name__ == "__main__":
     eConv = 1e-8
 
     optionDict = {"linearSolver":"gcrotmk","linearIter":1000,"linear_tol":1e-04}
-    status = {"writeOut": False,"writePlot": False}
+    status = {"writeOut": True,"writePlot": True, "stateFollowing":"maxOvlp"}
+    #status = {"writeOut": True,"writePlot": True}
     Y0 = NumpyVector(np.random.random((n)),optionDict)
     sigma = target
 
