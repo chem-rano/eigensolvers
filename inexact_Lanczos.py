@@ -138,10 +138,12 @@ def diagonalizeHamiltonian(Hop,bases,X,qtAq,status):
 
     typeClass = bases[0].__class__
     qtAq = typeClass.extendMatrixRepresentation(Hop,bases,qtAq)   
-    Hmat = X.T.conj()@qtAq@X                      
-    ev, uv = sp.linalg.eig(Hmat) #NOTE eig is slower 
-    ev = ev.real; uv = uv.real
-    #ev, uv = sp.linalg.eigh(Hmat)  
+    Hmat = X.T.conj()@qtAq@X
+    if status["stateFollowing"]=="maxOvlp":
+        ev, uv = sp.linalg.eig(Hmat) #NOTE eig is slower 
+        ev = ev.real; uv = uv.real
+    else:
+        ev, uv = sp.linalg.eigh(Hmat)  
     if status["writeOut"]:
         writeFile("out",status,"hamiltonian",Hmat)
         writeFile("out",status,"eigenvalues",ev)

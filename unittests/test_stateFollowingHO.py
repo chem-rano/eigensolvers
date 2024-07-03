@@ -26,7 +26,6 @@ class Test_stateFollowing(unittest.TestCase):
         options = {"linearSolver":"gcrotmk","linearIter":30000,"linear_tol":1e-04}
         optionDict = {"linearSystemArgs":options}
         self.printChoices = {"writeOut": False,"writePlot": False,"stateFollowing":"maxOvlp"}
-        #self.printChoices["target"] = self.sigma
         idx = find_nearest(evEigh,self.sigma)[0]
         self.printChoices["ovlpRef"] = NumpyVector(uvEigh[:,idx],optionDict)
         np.random.seed(13)
