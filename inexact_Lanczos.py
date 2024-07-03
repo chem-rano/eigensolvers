@@ -62,7 +62,8 @@ def _getStatus(status,vector,sigma,maxit,maxKrylov,eConv):
             "futileRestart":0,
             "startTime":time.time(), "runTime":0.0,
             "writeOut":True,"writePlot":True,"eShift":0.0,"convertUnit":"au",
-            "stateFollowing":"sigma","ovlpRef":None}
+            "stateFollowing":"close2sigma","ovlpRef":None}
+    # better name for "close2sigma"
     
     if status is not None:
         givenkeys = status.keys()
@@ -349,7 +350,7 @@ if __name__ == "__main__":
 
     options = {"linearSolver":"gcrotmk","linearIter":1000,"linear_tol":1e-04}
     optionDict = {"linearSystemArgs":options}
-    status = {"writeOut": False,"writePlot": False, "stateFollowing":"sigma"}
+    status = {"writeOut": False,"writePlot": False, "stateFollowing":"close2sigma"}
     Y0 = NumpyVector(np.random.random((n)),optionDict)
     sigma = target
 
