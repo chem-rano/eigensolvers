@@ -238,12 +238,14 @@ def calculateTarget(eigenvalues, indx, tol=1e-14):
 
 def pickStates_maxOvlp(vectors,status,nstates=1):
     """ Picks eigenstates of maximum overlap to reference
-    In: vectors-> eigenvectors (list)
-        refVector -> Reference for evaluating overlap
-        refIncld -> True if reference is inluded in the vectors
-                    This is the case for random guess vector
+    In: vectors->   eigenvectors (list)
+        status ->   Param dictionary
+                    Here for: Reference for evaluating overlap
+                    If ovlpRef is not provided in status, 
+                    first element of the vectors list 
+                    is taken as default
         nstates -> number of states to pick
-                   TODO type(idx) number and np array
+                   (optional) Default is 1
 
     Out: idx -> index (or indices) of eigenvectors"""
     
@@ -256,27 +258,30 @@ def pickStates_maxOvlp(vectors,status,nstates=1):
     typeClass = refVector.__class__
     ovlp = np.array([abs(refVector.vdot(vectors[i],True)) for i in range(len(vectors))])
     idxArray = np.argsort(-ovlp)
-    #idxArray = np.argsort(ovlp)[::-1]
     # maximum overlap is the first one unless ref included in Ylist 
     idx = idxArray[1:nstates+1] if refIncld else idxArray[0:nstates]
-    #return idx    
-    return idx[0]    # just for initial phase
+    if nstates == 1: idx = idx[0]  # as a number
+    return idx    
 
-def pickStates_sigma(eigenvalues,target,nstates=1):
+def pickStates_sigma(eigenvalues,status,nstates=1):
     """ Picks eigenstates closest to target eigenvalue
     In: eigenvalues -> all eigenvalues for evaluation
-        target -> Target energy 
+        status ->   Param dictiuonary
+                    Here for target: Target energy 
         nstates -> number of states to pick
-        (optional) Default is 1
+                   (optional) Default is 1
         If nstates > 1; it picks up states nearby states too
 
     Out: idx -> index (or indices) of eigenstates 
-         Number or list (nstates > 1)
+         Number (nstates = 1) or list (nstates > 1)
     """ 
     idx = []
+    target = status["sigma"]
     for i in range(nstates):
         item = find_nearest(eigenvalues,target)[0]
         idx.append(find_nearest(eigenvalues,target)[0])
         np.delete(eigenvalues,item)
-    return idx[:nstates][0]
-    #return idx[:nstates]
+    
+    idx = idx[:nstates]
+    if nstates == 1: idx = idx[0]  # as a number
+    return idx

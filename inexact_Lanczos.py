@@ -172,7 +172,7 @@ def checkConvergence(vectors,ev,status):
     if status["stateFollowing"]=="maxOvlp":
         idx = pickStates_maxOvlp(vectors,status)
     else:
-        idx = pickStates_sigma(ev,status["sigma"])
+        idx = pickStates_sigma(ev,status)
     ev_nearest = ev[idx]
     if _convergence(ev_nearest,status["ref"][-1]) <= status["eConv"]:
         isConverged = True
