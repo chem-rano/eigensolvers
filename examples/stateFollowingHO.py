@@ -17,11 +17,6 @@ T = -sincInfInf.mat_dx2
 V = np.diag(sincInfInf.xi**2)
 H  = T + V
 evEigh, uvEigh = la.eigh(H)
-ax = plt.subplot(111)
-plt.title("xRange [10, 10], N = 45, DVR: sincInfInf")
-for i in range(N):
-    ax.plot([4,5],[evEigh[i],evEigh[i]], marker=" ", linestyle ="-",lw=2.5, color="olive",label="")
-plt.savefig('energyLevels.png')
 
 optionsLinear = {"linearSolver":"gcrotmk","linear_tol":1e-04}
 options = {"linearSystemArgs":optionsLinear}
