@@ -347,7 +347,8 @@ if __name__ == "__main__":
     L = 6 
     eConv = 1e-8
 
-    optionDict = {"linearSolver":"gcrotmk","linearIter":1000,"linear_tol":1e-04}
+    options = {"linearSolver":"gcrotmk","linearIter":1000,"linear_tol":1e-04}
+    optionDict = {"linearSystemArgs":options}
     status = {"writeOut": False,"writePlot": False, "stateFollowing":"sigma"}
     Y0 = NumpyVector(np.random.random((n)),optionDict)
     sigma = target

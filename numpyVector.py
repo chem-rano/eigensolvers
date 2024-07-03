@@ -22,13 +22,14 @@ class NumpyVector(AbstractVector):
         self.array = array
         self.size = array.size
         self.shape = array.shape
-        self.optionsDict = options
-        
-        optsLinear = options.get("linearSystemArgs",dict())
-        self.optionsDict["linearSystemArgs"]["linearSolver"] = optsLinear.get("linearSolver", "minres")
-        self.optionsDict["linearSystemArgs"]["linearIter"] = optsLinear.get("linearIter", 1000)
-        self.optionsDict["linearSystemArgs"]["linear_tol"] = optsLinear.get("linear_tol", 1e-4)
-        self.optionsDict["linearSystemArgs"]["linear_atol"] = optsLinear.get("linear_atol", 1e-4)
+        self.optionsDict = dict()
+         
+        opt = options.get("linearSystemArgs",dict())
+        opt["linearSolver"] = opt.get("linearSolver", "minres")
+        opt["linearIter"] = opt.get("linearIter", 1000)
+        opt["linear_tol"] = opt.get("linear_tol", 1e-4)
+        opt["linear_atol"] = opt.get("linear_atol", 1e-4)
+        self.optionsDict["linearSystemArgs"] = opt
     
     @property
     def hasExactAddition(self):
