@@ -18,15 +18,17 @@ import warnings
 # -------------------------------------------------------------
 class NumpyVector(AbstractVector):
 
-    def __init__(self,array,optionsDict=dict()):
+    def __init__(self,array,options=dict()):
         self.array = array
         self.size = array.size
         self.shape = array.shape
-        self.optionsDict = optionsDict
-        self.optionsDict["linearSolver"] = self.optionsDict.get("linearSolver","minres")
-        self.optionsDict["linearIter"] = self.optionsDict.get("linearIter",1000)
-        self.optionsDict["linear_tol"] = self.optionsDict.get("linear_tol",1e-4)
-        self.optionsDict["linear_atol"] = self.optionsDict.get("linear_atol",1e-4)
+        self.optionsDict = options
+        
+        optsLinear = options.get("linearSystemArgs",dict())
+        self.optionsDict["linearSystemArgs"]["linearSolver"] = optsLinear.get("linearSolver", "minres")
+        self.optionsDict["linearSystemArgs"]["linearIter"] = optsLinear.get("linearIter", 1000)
+        self.optionsDict["linearSystemArgs"]["linear_tol"] = optsLinear.get("linear_tol", 1e-4)
+        self.optionsDict["linearSystemArgs"]["linear_atol"] = optsLinear.get("linear_atol", 1e-4)
     
     @property
     def hasExactAddition(self):
@@ -134,13 +136,14 @@ class NumpyVector(AbstractVector):
         n = H.shape[0]
         dtype = np.result_type(sigma, H.dtype, b.dtype)
         linOp = LinearOperator((n,n),matvec = lambda x, sigma=sigma, H=H:(sigma*x-H@x),dtype=dtype)
-
-        tol = b.optionsDict["linear_tol"]
-        atol = b.optionsDict["linear_atol"]
-        maxiter = b.optionsDict["linearIter"]
-        if b.optionsDict["linearSolver"] == "gcrotmk":
+        
+        options = b.optionsDict["linearSystemArgs"]
+        tol = options["linear_tol"]
+        atol = options["linear_atol"]
+        maxiter = options["linearIter"]
+        if options["linearSolver"] == "gcrotmk":
             wk,conv = scipy.sparse.linalg.gcrotmk(linOp,b.array,x0, tol=tol,atol=atol,maxiter=maxiter)
-        elif b.optionsDict["linearSolver"] == "minres":
+        elif options["linearSolver"] == "minres":
             wk,conv = scipy.sparse.linalg.minres(linOp,b.array,x0, tol=tol,maxiter=maxiter)
 
         if conv != 0:

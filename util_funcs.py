@@ -236,7 +236,7 @@ def calculateTarget(eigenvalues, indx, tol=1e-14):
     target = eigenvalues[indx] + min(ediff1,ediff2)*0.25
     return target
 
-def pickStates_maxOvlp(vectors,refVector,refIncld="True",nstates=1):
+def pickStates_maxOvlp(vectors,status,nstates=1):
     """ Picks eigenstates of maximum overlap to reference
     In: vectors-> eigenvectors (list)
         refVector -> Reference for evaluating overlap
@@ -246,13 +246,21 @@ def pickStates_maxOvlp(vectors,refVector,refIncld="True",nstates=1):
                    TODO type(idx) number and np array
 
     Out: idx -> index (or indices) of eigenvectors"""
-
+    
+    refIncld = True
+    if status["ovlpRef"] is None:
+        refVector = vectors[0]     # manual
+    else:
+        refVector  = status["ovlpRef"]
+        refIncld = False 
     typeClass = refVector.__class__
-    ovlp = [abs(refVector.vdot(vectors[i],True)) for i in range(len(vectors))]
-    idxArray = np.argsort(ovlp)[::-1]
+    ovlp = np.array([abs(refVector.vdot(vectors[i],True)) for i in range(len(vectors))])
+    idxArray = np.argsort(-ovlp)
+    #idxArray = np.argsort(ovlp)[::-1]
     # maximum overlap is the first one unless ref included in Ylist 
-    idx = idxArray[1:nstates+1] if refIncld else idxArray[0:nstates]  
-    return idx 
+    idx = idxArray[1:nstates+1] if refIncld else idxArray[0:nstates]
+    #return idx    
+    return idx[0]    # just for initial phase
 
 def pickStates_sigma(eigenvalues,target,nstates=1):
     """ Picks eigenstates closest to target eigenvalue
@@ -267,6 +275,8 @@ def pickStates_sigma(eigenvalues,target,nstates=1):
     """ 
     idx = []
     for i in range(nstates):
-        idx.append(find_nearest(eigenvalues,target))
-        del eigenvalue[idx]
-    return idx[:nstates]
+        item = find_nearest(eigenvalues,target)[0]
+        idx.append(find_nearest(eigenvalues,target)[0])
+        np.delete(eigenvalues,item)
+    return idx[:nstates][0]
+    #return idx[:nstates]

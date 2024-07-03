@@ -16,7 +16,8 @@ class Test_lanczos(unittest.TestCase):
         Q = la.qr(np.random.rand(n,n))[0]
         A = Q.T @ np.diag(ev) @ Q
 
-        optionDict = {"linearSolver":"gcrotmk","linearIter":5000,"linear_tol":2e-1}
+        options = {"linearSolver":"gcrotmk","linearIter":5000,"linear_tol":2e-1}
+        optionDict = {"linearSystemArgs":options}
         self.printChoices = {"writeOut": False,"writePlot": False}
         Y0 = NumpyVector(np.random.random((n)),optionDict)
         

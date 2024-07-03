@@ -7,7 +7,7 @@ import time
 import util
 from numpyVector import NumpyVector
 from util_funcs import headerBot
-from pickState import pick_maxOvlp
+from util_funcs import pickStates_sigma, pickStates_maxOvlp
 
 # -----------------------------------------------------
 # Order of inputs
@@ -19,13 +19,14 @@ from pickState import pick_maxOvlp
 # -----------------------------------------------------
 # Dividing in to functions for better readability 
 # and convenient testing
-def _getStatus(status,vector,maxit,maxKrylov,eConv):
+def _getStatus(status,vector,sigma,maxit,maxKrylov,eConv):
     """ 
     Initialize and update status dictionary
     
     In: status -> param dictionary
         vector -> guess vector to get the
         hasExactAddition property 
+        sigma -> target after adjustment of eShift (zpve)
         maxit -> maximum Lanczos iteration
         maxKrylov -> maximum Krylov dimension
         eConv -> eigenvalue convergence
@@ -53,14 +54,15 @@ def _getStatus(status,vector,maxit,maxKrylov,eConv):
     the current Lanczos iteration
     """
     
-    statusUp = {"eConv":eConv,"maxit":maxit,"maxKrylov":maxKrylov,"ref":[np.inf],
+    statusUp = {"sigma":sigma,"eConv":eConv,"maxit":maxit,
+            "maxKrylov":maxKrylov,"ref":[np.inf],
             "flagAddition":vector.hasExactAddition,
             "outerIter":0, "innerIter":0,"cumIter":0,
             "isConverged":False,"lindep":False,
             "futileRestart":0,
             "startTime":time.time(), "runTime":0.0,
             "writeOut":True,"writePlot":True,"eShift":0.0,"convertUnit":"au",
-            "stateFollowing":"sigma"}
+            "stateFollowing":"sigma","ovlpRef":None}
     
     if status is not None:
         givenkeys = status.keys()
@@ -136,7 +138,9 @@ def diagonalizeHamiltonian(Hop,bases,X,qtAq,status):
     typeClass = bases[0].__class__
     qtAq = typeClass.extendMatrixRepresentation(Hop,bases,qtAq)   
     Hmat = X.T.conj()@qtAq@X                      
-    ev, uv = sp.linalg.eigh(Hmat)  
+    ev, uv = sp.linalg.eig(Hmat) #NOTE eig is slower 
+    ev = ev.real; uv = uv.real
+    #ev, uv = sp.linalg.eigh(Hmat)  
     if status["writeOut"]:
         writeFile("out",status,"hamiltonian",Hmat)
         writeFile("out",status,"eigenvalues",ev)
@@ -152,12 +156,11 @@ def _convergence(value,ref):
     return check_ev
 
 
-def checkConvergence(ev,sigma,eConv,status):
+def checkConvergence(vectors,ev,status):
     ''' Checks eigenvalue convergence
-
-    In: ev -> eigenvalues
-        sigma -> eigenvalue target
-        eConv -> convergence threshold 
+    
+    In: vectors -> Krylov vectors (for overalp evaluation)
+        ev -> eigenvalues
         status -> params dictionary
     
     Out: status (dict: updated isConverged, ref)
@@ -165,8 +168,12 @@ def checkConvergence(ev,sigma,eConv,status):
          '''
     
     isConverged = False
-    idx, ev_nearest = find_nearest(ev,sigma)
-    if _convergence(ev_nearest,status["ref"][-1]) <= eConv:
+    if status["stateFollowing"]=="maxOvlp":
+        idx = pickStates_maxOvlp(vectors,status)
+    else:
+        idx = pickStates_sigma(ev,status["sigma"])
+    ev_nearest = ev[idx]
+    if _convergence(ev_nearest,status["ref"][-1]) <= status["eConv"]:
         isConverged = True
     status["isConverged"] = isConverged
     status["runTime"] = time.time() - status["startTime"]
@@ -232,6 +239,7 @@ def terminateRestart(energy,status,num=3):
             status["futileRestart"] += 1
     
     if status["futileRestart"] > num:
+        print("Lindep and did not have fruitful restarts")
         decision = True
 
     return decision
@@ -291,7 +299,7 @@ def inexactDiagonalization(H,v0,sigma,L,maxit,eConv,status=None):
     Ylist = [typeClass.normalize(v0)]
     S = typeClass.overlapMatrix(Ylist)
     qtAq = typeClass.matrixRepresentation(H,Ylist)
-    status = _getStatus(status,Ylist[0],maxit,L,eConv)
+    status = _getStatus(status,Ylist[0],sigma,maxit,L,eConv)
   
     for it in range(maxit):
         status["outerIter"] = it
@@ -306,7 +314,7 @@ def inexactDiagonalization(H,v0,sigma,L,maxit,eConv,status=None):
                 Ylist = Ylist[:-1] # Excluding the last vector added to the Ylist
                 break
             ev, uv, qtAq = diagonalizeHamiltonian(H,Ylist,uS,qtAq,status)[1:4]
-            status,idx = checkConvergence(ev,sigma,eConv,status)
+            status,idx = checkConvergence(Ylist,ev,status)
             continueIteration = analyzeStatus(status)
             uSH = uS@uv
             
@@ -317,8 +325,6 @@ def inexactDiagonalization(H,v0,sigma,L,maxit,eConv,status=None):
             Ylist = basisTransformation(Ylist,uSH)
             break
         else:
-            if status["stateFollowing"]=="maxOvlp":
-                idx = pick_maxOvlp(Ylist,Ylist[1])
             y = basisTransformation(Ylist,uSH[:,idx])
             YlistNew = [typeClass.normalize(y[0])]
             S = typeClass.overlapMatrix(YlistNew)
@@ -342,8 +348,7 @@ if __name__ == "__main__":
     eConv = 1e-8
 
     optionDict = {"linearSolver":"gcrotmk","linearIter":1000,"linear_tol":1e-04}
-    status = {"writeOut": True,"writePlot": True, "stateFollowing":"maxOvlp"}
-    #status = {"writeOut": True,"writePlot": True}
+    status = {"writeOut": False,"writePlot": False, "stateFollowing":"sigma"}
     Y0 = NumpyVector(np.random.random((n)),optionDict)
     sigma = target
 

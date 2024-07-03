@@ -18,33 +18,32 @@ def convert(arr,eShift=0.0,unit='au'):
 
 # -----------------------------------------------------
 
-def fileHeader(fstring,options,sigma,zpve,L,maxit,eConv,
-        D=None,guess="Random",printInfo=True):
+def fileHeader(fstring,options,sigma,L,maxit,eConv,
+        zpve=0.0,D=None,guess="Random",printInfo=True):
     """ Prints header with all input informations 
     printInfo prints this header to the screen, recorded in sweepOutputs"""
     
-    fout = open("iterations.out","a");fplot = open("data2Plot.out","a")
-    file = fout if fstring == "out" else fplot
-
-    optionsOrtho = options["orthogonalizationArgs"]
-    optionsLinear = options["linearSystemArgs"]
-    optionsFitting = options["stateFittingArgs"]
+    file = open("iterations.out","a") if fstring == "out" else open("data2Plot.out","a")
    
-    siteOptions = optionsLinear["iterativeLinearSystemOptions"]
-    if isinstance(siteOptions, IterativeLinearSystemOptions):
+    # This can be more organized  in three groups
+    optionsLinear = options["linearSystemArgs"]
+    sweepAlgo = False
+    if len(options) >= 2:
+        sweepAlgo = True
+        optionsOrtho = options["orthogonalizationArgs"]
+        optionsFitting = options["stateFittingArgs"]
+    
+    if "iterativeLinearSystemOptions" in optionsLinear:
         solver = optionsLinear["iterativeLinearSystemOptions"].solver
         siteLinearTol = optionsLinear["iterativeLinearSystemOptions"].tol
+        globalLinearTol = optionsLinear["convTol"]
+        nsweepLinear = optionsLinear["nSweep"]
     else:
         solver = optionsLinear["linearSolver"]
-        siteLinearTol = optionsLinear["linear_tol"]
-
-    globalLinearTol = optionsLinear["convTol"]
-    nsweepLinear = optionsLinear["nSweep"]
+        globalLinearTol = optionsLinear["linear_tol"]
+        nsweepLinear = optionsLinear["linearIter"]
     
-    fittingTol = optionsFitting["convTol"]
-    nsweepFitting = optionsFitting["nSweep"]
-    
-    if file == fplot:    # for data extractor code
+    if fstring == "plot":    # for data extractor code
         line = "startingPoint"
         file.write(line+"\n")
 
@@ -80,21 +79,24 @@ def fileHeader(fstring,options,sigma,zpve,L,maxit,eConv,
         file.write(line+"\n")
         if printInfo:
             print(line)
-    
-    line = "{:6} {:>10} :: {:20}".format("ftol",fittingTol,"Fitting Tolerance")
-    file.write(line+"\n")
-    if printInfo:
-        print(line)
+    if sweepAlgo: 
+        fittingTol = optionsFitting["convTol"]
+        nsweepFitting = optionsFitting["nSweep"]
+        line = "{:6} {:>10} :: {:20}".format("ftol",fittingTol,"Fitting Tolerance")
+        file.write(line+"\n")
+        if printInfo:
+            print(line)
 
-    line = "{:6} {:>10} :: {:20}".format("fsweep",nsweepFitting,"Number of sweeps: fitting")
-    file.write(line+"\n")
-    if printInfo:
-        print(line)
+        line = "{:6} {:>10} :: {:20}".format("fsweep",nsweepFitting,"Number of sweeps: fitting")
+        file.write(line+"\n")
+        if printInfo:
+            print(line)
 
-    line = "{:6} {:>10} :: {:20}".format("ltol1",siteLinearTol,"Site tolerance: Linear solver")
-    file.write(line+"\n")
-    if printInfo:
-        print(line)
+    if sweepAlgo: 
+        line = "{:6} {:>10} :: {:20}".format("ltol1",siteLinearTol,"Site tolerance: Linear solver")
+        file.write(line+"\n")
+        if printInfo:
+            print(line)
 
     line = "{:6} {:>10} :: {:20}".format("ltol2",globalLinearTol,"global tolerance: Linear solver")
     file.write(line+"\n")
@@ -111,26 +113,30 @@ def fileHeader(fstring,options,sigma,zpve,L,maxit,eConv,
     if printInfo:
         print(line)
 
-    line = "{:6} {:>10} :: {:20}".format("Guess",guess,"Guess TTNS\n\n")
+    line = "{:6} {:>10} :: {:20}".format("Guess",guess,"Guess vector\n\n")
     file.write(line+"\n")
     if printInfo:
         print(line)
     
-    if file == fplot:
-        line = "it\ti\tnCum\tev_nearest\t\tabs_ev\t\trel_ev\t\ttime (seconds)\n"
+    #line = "{:16}  :: {:20}".format("Statefollowing",status["Statefollowing"]\n\n")
+    #file.write(line+"\n")
+    #if printInfo:
+    #    print(line)
+    
+    if fstring == "plot":
+        line = "it\ti\tnCum\ttarget\tReference\t\tev_nearest\t\tabs_ev"
+        line += "\t\trel_ev\t\ttime (seconds)\n"
         file.write(line)
     
-    fout.close()
-    fplot.close()
+    file.close()
 
 def fileFooter(fstring,printInfo=True):
     """ Prints footer with job complete message
     printInfo prints this footer to the screen, recorded in sweepOutputs"""
     
-    fout = open("iterations.out","a");fplot = open("data2Plot.out","a")
-    file = fout if fstring == "out" else fplot
+    file = open("iterations.out","a") if fstring == "out" else open("data2Plot.out","a")
     
-    if file == fplot:    # for data extractor code
+    if fstring == "plot":    # for data extractor code
         line = "endingPoint"
         file.write(line+"\n")
     
@@ -141,8 +147,7 @@ def fileFooter(fstring,printInfo=True):
     if printInfo:
         print(line)
     
-    fout.close()
-    fplot.close()
+    file.close()
 
 def _outputFile(status,args):
     file = open("iterations.out","a")
@@ -206,13 +211,18 @@ def _plotFile(status,args):
     it = status["outerIter"]
     i = status["innerIter"]
     nCum = status["cumIter"]
+    target = status.get("target",status["sigma"])
     runTime = status["runTime"]
     evalue = util.au2unit(args[0],status["convertUnit"])
     ref = util.au2unit(args[1],status["convertUnit"])
     abs_diff = np.abs(evalue - ref)
     rel_ev = abs_diff/np.abs(evalue)
     exEnergy = evalue - status["eShift"]
-    file.write(f'{it}\t{i}\t{nCum}\t')
+    file.write(f'{it}\t{i}\t{nCum}\t{target}\t')
+    if "actualEvalues" in status.keys():
+        ev = status["actualEvalues"]
+        reference = find_nearest(ev,target)[1]
+        file.write(f'{reference}\t')
     file.write(f'{exEnergy}\t{abs_diff}\t{rel_ev}\t{runTime}\n')
     file.close()
 

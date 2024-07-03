@@ -20,7 +20,8 @@ class Test_lanczos(unittest.TestCase):
         assert(la.ishermitian(A, atol=1e-08, rtol=1e-08))
         
 
-        optionDict = {"linearSolver":"gcrotmk","linearIter":1000,"linear_tol":1e-04}
+        options = {"linearSolver":"gcrotmk","linearIter":1000,"linear_tol":1e-04}
+        optionDict = {"linearSystemArgs":options}
         self.printChoices = {"writeOut": False,"writePlot": False}
         Y0 = NumpyVector(np.random.random((n)),optionDict)
         
@@ -64,7 +65,11 @@ class Test_lanczos(unittest.TestCase):
         uv = diagonalizeHamiltonian(self.mat,uvLanczos,uS,qtAq,status)[2] 
         uSH = uS@uv
         bases = basisTransformation(uvLanczos,uSH)
-        np.testing.assert_allclose(uvLanczos[0].array,bases[0].array,atol=1e-5)
+        for m in range(len(uvLanczos)):
+            ovlp = bases[m].vdot(uvLanczos[m],True)
+            np.testing.assert_allclose(abs(ovlp), 1, rtol=1e-5, err_msg 
+                    = f"{ovlp=} but it should be +-1")
+            np.testing.assert_allclose(uvLanczos[m].array,ovlp*bases[m].array,atol=1e-5)
 
     def test_orthogonalization(self):
         ''' Returned basis in old form is orthogonal'''
