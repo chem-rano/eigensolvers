@@ -236,52 +236,54 @@ def calculateTarget(eigenvalues, indx, tol=1e-14):
     target = eigenvalues[indx] + min(ediff1,ediff2)*0.25
     return target
 
-def pickStates_maxOvlp(vectors,status,nstates=1):
-    """ Picks eigenstates of maximum overlap to reference
-    In: vectors->   eigenvectors (list)
-        status ->   Param dictionary
-                    Here for: Reference for evaluating overlap
-                    If ovlpRef is not provided in status, 
-                    first element of the vectors list 
-                    is taken as default
-        nstates -> number of states to pick
+def get_pick_function_maxOvlp(toCompare):
+    """ Returns pick function 
+        toCompare -> Reference for overlap evaluation"""
+    def pick(transformMat,vectors,eigenvalues,nstates=1):
+        """ Picks eigenstate index of maximum overlap to reference
+        In: transformMat -> transformation matrix from Krylov
+                            vectors to Lanczos eigenvectors
+            vectors->   Krylov vectors (list)
+            eigenvalues ->   Lanczos eigenvalues
+            nstates -> number of states to pick
                    (optional) Default is 1
 
-    Out: idx -> index (or indices) of eigenvectors"""
+         Out: idx -> index (or indices) of eigenvectors"""
     
-    refIncld = True
-    if status["ovlpRef"] is None:
-        refVector = vectors[0]     # manual
-    else:
-        refVector  = status["ovlpRef"]
-        refIncld = False 
-    typeClass = refVector.__class__
-    ovlp = np.array([abs(refVector.vdot(vectors[i],True)) for i in range(len(vectors))])
-    idxArray = np.argsort(-ovlp)
-    # maximum overlap is the first one unless ref included in Ylist 
-    idx = idxArray[1:nstates+1] if refIncld else idxArray[0:nstates]
-    if nstates == 1: idx = idx[0]  # as a number
-    return idx    
+        iKrylov, ivecs = transformMat.shape
+        ovlp = np.empty(ivecs,dtype=float)
+        for i1 in range(ivecs):
+            for i2 in range(iKrylov):
+                ovlp[i1] += transformMat[i2,i1]*(abs(toCompare.vdot(vectors[i2]))) 
+        idxArray = np.argsort(-ovlp)
+        idx = idxArray[0:nstates]
+        if nstates == 1: idx = idx[0]  # as a number
+        return idx
+    return pick
 
-def pickStates_sigma(eigenvalues,status,nstates=1):
-    """ Picks eigenstates closest to target eigenvalue
-    In: eigenvalues -> all eigenvalues for evaluation
-        status ->   Param dictiuonary
-                    Here for target: Target energy 
-        nstates -> number of states to pick
+def get_pick_function_close_to_sigma(toCompare):
+    """ Returns pick function 
+        toCompare -> Reference for nearest eigenvalue evaluation"""
+    def pick(transformMat,vectors,eigenvalues,nstates=1):
+        """ Picks eigenstates closest to target eigenvalue
+        In: transformMat -> transformation matrix from Krylov
+                            vectors to Lanczos eigenvectors
+            vectors->   Krylov vectors (list)
+            eigenvalues ->   Lanczos eigenvalues
+            nstates -> number of states to pick
                    (optional) Default is 1
-        If nstates > 1; it picks up states nearby states too
+            If nstates > 1; it picks up states nearby states too
 
-    Out: idx -> index (or indices) of eigenstates 
-         Number (nstates = 1) or list (nstates > 1)
-    """ 
-    idx = []
-    target = status["sigma"]
-    for i in range(nstates):
-        item = find_nearest(eigenvalues,target)[0]
-        idx.append(find_nearest(eigenvalues,target)[0])
-        np.delete(eigenvalues,item)
+        Out: idx -> index (or indices) of eigenstates 
+            Number (nstates = 1) or list (nstates > 1)
+        """ 
+        idx = []
+        for i in range(len(eigenvalues)):
+            item = find_nearest(eigenvalues,toCompare)[0]
+            idx.append(find_nearest(eigenvalues,toCompare)[0])
+            np.delete(eigenvalues,item)
     
-    idx = idx[:nstates]
-    if nstates == 1: idx = idx[0]  # as a number
-    return idx
+        idx = idx[:nstates]
+        if nstates == 1: idx = idx[0]  # as a number
+        return idx
+    return pick

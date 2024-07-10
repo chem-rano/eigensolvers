@@ -7,7 +7,8 @@ import time
 import util
 from numpyVector import NumpyVector
 from util_funcs import headerBot
-from util_funcs import pickStates_sigma, pickStates_maxOvlp
+from util_funcs import get_pick_function_close_to_sigma
+from util_funcs import get_pick_function_maxOvlp
 
 # -----------------------------------------------------
 # Order of inputs
@@ -61,9 +62,7 @@ def _getStatus(status,vector,sigma,maxit,maxKrylov,eConv):
             "isConverged":False,"lindep":False,
             "futileRestart":0,
             "startTime":time.time(), "runTime":0.0,
-            "writeOut":True,"writePlot":True,"eShift":0.0,"convertUnit":"au",
-            "stateFollowing":"close2sigma","ovlpRef":None}
-    # better name for "close2sigma"
+            "writeOut":True,"writePlot":True,"eShift":0.0,"convertUnit":"au"}
     
     if status is not None:
         givenkeys = status.keys()
@@ -73,7 +72,6 @@ def _getStatus(status,vector,sigma,maxit,maxKrylov,eConv):
                 statusUp[item] = status[item]
     
     return statusUp
-
 
 def generateSubspace(Hop,Ylist,sigma,eConv):
     ''' Builds Krylov space with solving linear system
@@ -139,11 +137,7 @@ def diagonalizeHamiltonian(Hop,bases,X,qtAq,status):
     typeClass = bases[0].__class__
     qtAq = typeClass.extendMatrixRepresentation(Hop,bases,qtAq)   
     Hmat = X.T.conj()@qtAq@X
-    if status["stateFollowing"]=="maxOvlp":
-        ev, uv = sp.linalg.eig(Hmat) #NOTE eig is slower 
-        ev = ev.real; uv = uv.real
-    else:
-        ev, uv = sp.linalg.eigh(Hmat)  
+    ev, uv = sp.linalg.eigh(Hmat)
     if status["writeOut"]:
         writeFile("out",status,"hamiltonian",Hmat)
         writeFile("out",status,"eigenvalues",ev)
@@ -159,7 +153,7 @@ def _convergence(value,ref):
     return check_ev
 
 
-def checkConvergence(vectors,ev,status):
+def checkConvergence(ev,idx,status):
     ''' Checks eigenvalue convergence
     
     In: vectors -> Krylov vectors (for overalp evaluation)
@@ -171,10 +165,6 @@ def checkConvergence(vectors,ev,status):
          '''
     
     isConverged = False
-    if status["stateFollowing"]=="maxOvlp":
-        idx = pickStates_maxOvlp(vectors,status)
-    else:
-        idx = pickStates_sigma(ev,status)
     ev_nearest = ev[idx]
     if _convergence(ev_nearest,status["ref"][-1]) <= status["eConv"]:
         isConverged = True
@@ -184,7 +174,7 @@ def checkConvergence(vectors,ev,status):
         writeFile("plot",status,ev_nearest,status["ref"][-1])
     status["ref"].append(ev_nearest)
     if len(status["ref"]) > 2:status["ref"].pop(0)
-    return status, idx
+    return status
  
 def basisTransformation(bases,coeffs):
     ''' Basis transformation with eigenvectors 
@@ -277,7 +267,7 @@ def analyzeStatus(status):
 #    Inexact Lanczos with AbstractClass interface
 #------------------------------------------------------
 
-def inexactDiagonalization(H,v0,sigma,L,maxit,eConv,status=None):
+def inexactDiagonalization(H,v0,sigma,L,maxit,eConv,pick=None,status=None):
     '''
     This is core function to calculate eigenvalues and eigenvectors
     with inexact Lanczos method
@@ -303,6 +293,7 @@ def inexactDiagonalization(H,v0,sigma,L,maxit,eConv,status=None):
     S = typeClass.overlapMatrix(Ylist)
     qtAq = typeClass.matrixRepresentation(H,Ylist)
     status = _getStatus(status,Ylist[0],sigma,maxit,L,eConv)
+    if pick is None:pick=get_pick_function_close_to_sigma(status["sigma"])
   
     for it in range(maxit):
         status["outerIter"] = it
@@ -317,9 +308,10 @@ def inexactDiagonalization(H,v0,sigma,L,maxit,eConv,status=None):
                 Ylist = Ylist[:-1] # Excluding the last vector added to the Ylist
                 break
             ev, uv, qtAq = diagonalizeHamiltonian(H,Ylist,uS,qtAq,status)[1:4]
-            status,idx = checkConvergence(Ylist,ev,status)
-            continueIteration = analyzeStatus(status)
             uSH = uS@uv
+            idx = pick(uSH,Ylist,ev)
+            status = checkConvergence(ev,idx,status)
+            continueIteration = analyzeStatus(status)
             
             if not continueIteration:
                 break
@@ -352,7 +344,7 @@ if __name__ == "__main__":
 
     options = {"linearSolver":"gcrotmk","linearIter":1000,"linear_tol":1e-04}
     optionDict = {"linearSystemArgs":options}
-    status = {"writeOut": False,"writePlot": False, "stateFollowing":"close2sigma"}
+    status = {"writeOut": False,"writePlot": False}
     Y0 = NumpyVector(np.random.random((n)),optionDict)
     sigma = target
 
@@ -362,7 +354,9 @@ if __name__ == "__main__":
     print("{:50} :: {: <4}".format("Eigenvalue convergence tolarance",eConv))
     print("\n")
     t1 = time.time()
-    lf,xf,status =  inexactDiagonalization(A,Y0,sigma,L,maxit,eConv,status)
+    #pick =  get_pick_function_close_to_sigma(sigma)
+    pick =  get_pick_function_maxOvlp(Y0)
+    lf,xf,status =  inexactDiagonalization(A,Y0,sigma,L,maxit,eConv,pick=pick,status=status)
     t2 = time.time()
 
     print("{:50} :: {: <4}".format("Eigenvalue nearest to sigma",round(find_nearest(lf,sigma)[1],8)))
