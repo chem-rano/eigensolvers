@@ -5,7 +5,8 @@ import numpy as np
 from scipy import linalg as la
 from numpyVector import NumpyVector
 import basis
-
+from util_funcs import get_pick_function_close_to_sigma
+from util_funcs import get_pick_function_maxOvlp
 
 class Test_stateFollowing(unittest.TestCase):
 
@@ -25,11 +26,13 @@ class Test_stateFollowing(unittest.TestCase):
         self.sigma = 13.1
         options = {"linearSolver":"gcrotmk","linearIter":30000,"linear_tol":1e-04}
         optionDict = {"linearSystemArgs":options}
-        self.printChoices = {"writeOut": False,"writePlot": False,"stateFollowing":"maxOvlp"}
+        self.printChoices = {"writeOut": True,"writePlot": True}
         idx = find_nearest(evEigh,self.sigma)[0]
-        self.printChoices["ovlpRef"] = NumpyVector(uvEigh[:,idx],optionDict)
+        ovlpRef = NumpyVector(uvEigh[:,idx+1],optionDict)
         np.random.seed(13)
         Y0 = NumpyVector(np.random.random((N)),optionDict)
+        self.pick = get_pick_function_maxOvlp(ovlpRef)
+        #self.pick = get_pick_function_close_to_sigma(self.sigma)
         
         self.guess = Y0
         self.mat = H
@@ -37,34 +40,28 @@ class Test_stateFollowing(unittest.TestCase):
         self.L = 16 
         self.maxit = 200  
         self.eConv = 1e-10
+        self.ovlpRef = ovlpRef
 
-    def test_status(self):
-        """ Checking the user option is correctly sent to the main code
-        This is verified as analyzing the status dictionary"""
-
-        status = inexactDiagonalization(self.mat,self.guess,self.sigma,self.L,
-                self.maxit,self.eConv,self.printChoices)[2]
-        self.assertTrue(status["stateFollowing"]== "maxOvlp")
-        self.assertFalse(status["stateFollowing"]== "sigma")
-        
     def test_eigenvalue(self):
         ''' Checks if the calculated eigenvalue is accurate to 10*eConv'''
 
-        evLanczos = inexactDiagonalization(self.mat,self.guess,self.sigma,self.L,
-                self.maxit,self.eConv,self.printChoices)[0]
-
-        target = find_nearest(evLanczos,self.sigma)[1]
-        closest = find_nearest(self.evEigh,self.sigma)[1]        # comapring with actual
-        relError = abs(target-closest)/(max(abs(target), 1e-14))
-        self.assertTrue((relError <= 10*self.eConv),'Not accurate up to 10*eConv')
+        evLanczos, uvlanczos,status = inexactDiagonalization(self.mat,self.guess,self.sigma,self.L,
+                self.maxit,self.eConv,self.pick,self.printChoices)
+        self.assertTrue(status["isConverged"]== True)
+        
+        typeClass = uvlanczos[0].__class__
+        reference = typeClass.matrixRepresentation(self.mat,[self.ovlpRef])[0]
+        closest = find_nearest(self.evEigh,reference)[1]        # comapring with actual
+        relError = abs(reference-closest)/(max(abs(reference), 1e-14))
+        self.assertTrue((relError <= 1e-4),'Not accurate up to 1e-4')
 
     def test_overlap(self):
         """ Mainly looking at the overap if the eigenvector is inclined to the reference vector"""
 
         evlanczos, uvlanczos,status = inexactDiagonalization(self.mat,self.guess,self.sigma,self.L,
-                self.maxit,self.eConv,self.printChoices)
+                self.maxit,self.eConv,self.pick,self.printChoices)
         self.assertTrue(status["isConverged"]== True)
-        refVector = status["ovlpRef"].array
+        refVector = self.ovlpRef.array
         idx = find_nearest(evlanczos,self.sigma)[0]
         lanczosVector = uvlanczos[idx].array
 

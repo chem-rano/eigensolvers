@@ -255,7 +255,7 @@ def get_pick_function_maxOvlp(toCompare):
         overlapKrylov = np.zeros(nKrylov,dtype=dtype)
         
         for i in range(nKrylov):
-            overlapKrylov[i] = vectors[i].dot(toCompare)
+            overlapKrylov[i] = vectors[i].vdot(toCompare)
         overlap = abs(transformMat.T.conj() @ overlapKrylov)
         
         idx = np.argsort(-overlap)
