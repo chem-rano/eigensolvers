@@ -259,7 +259,7 @@ def get_pick_function_maxOvlp(toCompare):
         overlap = abs(transformMat.T.conj() @ overlapKrylov)
         
         idx = np.argsort(-overlap)
-        idx = idx[0:nstates]
+        idx = idx[:nstates]
 
         return idx
     return pick
@@ -278,13 +278,8 @@ def get_pick_function_close_to_sigma(toCompare):
             If nstates > 1; it picks up states nearby states too
 
         Out: idx (np array) -> index (or indices) of eigenstates 
-        """ 
-        idx = []
-        for i in range(nstates):
-            item = find_nearest(eigenvalues,toCompare)[0]
-            idx.append(find_nearest(eigenvalues,toCompare)[0])
-            np.delete(eigenvalues,item)
-    
+        """
+        idx = np.argsort(np.abs(eigenvalues - toCompare))
         idx = idx[:nstates]
         return idx
     return pick
