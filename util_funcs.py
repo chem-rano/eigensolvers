@@ -249,15 +249,18 @@ def get_pick_function_maxOvlp(toCompare):
                    (optional) Default is 1
 
          Out: idx -> index (or indices) of eigenvectors"""
-    
-        iKrylov, ivecs = transformMat.shape
-        ovlp = np.empty(ivecs,dtype=float)
-        for i1 in range(ivecs):
-            for i2 in range(iKrylov):
-                ovlp[i1] += transformMat[i2,i1]*(abs(toCompare.vdot(vectors[i2]))) 
-        idxArray = np.argsort(-ovlp)
-        idx = idxArray[0:nstates]
-        if nstates == 1: idx = idx[0]  # as a number
+        
+        nKrylov = transformMat.shape[0]
+        dtype = transformMat[0].dtype
+        overlapKrylov = np.zeros(nKrylov,dtype=dtype)
+        
+        for i in range(nKrylov):
+            overlapKrylov[i] = vectors[i].dot(toCompare)
+        overlap = abs(transformMat.T.conj() @ overlapKrylov)
+        
+        idx = np.argsort(-overlap)
+        idx = idx[0:nstates]
+
         return idx
     return pick
 
@@ -274,16 +277,14 @@ def get_pick_function_close_to_sigma(toCompare):
                    (optional) Default is 1
             If nstates > 1; it picks up states nearby states too
 
-        Out: idx -> index (or indices) of eigenstates 
-            Number (nstates = 1) or list (nstates > 1)
+        Out: idx (np array) -> index (or indices) of eigenstates 
         """ 
         idx = []
-        for i in range(len(eigenvalues)):
+        for i in range(nstates):
             item = find_nearest(eigenvalues,toCompare)[0]
             idx.append(find_nearest(eigenvalues,toCompare)[0])
             np.delete(eigenvalues,item)
     
         idx = idx[:nstates]
-        if nstates == 1: idx = idx[0]  # as a number
         return idx
     return pick

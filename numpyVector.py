@@ -146,6 +146,8 @@ class NumpyVector(AbstractVector):
             wk,conv = scipy.sparse.linalg.gcrotmk(linOp,b.array,x0, tol=tol,atol=atol,maxiter=maxiter)
         elif options["linearSolver"] == "minres":
             wk,conv = scipy.sparse.linalg.minres(linOp,b.array,x0, tol=tol,maxiter=maxiter)
+        else:
+            raise Exception("Got linear solver other than gcrotmk and minres!")
 
         if conv != 0:
             warnings.simplefilter('error', UserWarning)

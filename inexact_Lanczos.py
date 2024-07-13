@@ -156,16 +156,15 @@ def _convergence(value,ref):
 def checkConvergence(ev,idx,status):
     ''' Checks eigenvalue convergence
     
-    In: vectors -> Krylov vectors (for overalp evaluation)
-        ev -> eigenvalues
+    In: ev -> eigenvalues
+        idx -> index of eigenstate for convergence check
         status -> params dictionary
     
     Out: status (dict: updated isConverged, ref)
-         idx -> index of the nearest eigenvalue
          '''
     
     isConverged = False
-    ev_nearest = ev[idx]
+    ev_nearest = ev[idx][0]   # one state for inexact Lanczos
     if _convergence(ev_nearest,status["ref"][-1]) <= status["eConv"]:
         isConverged = True
     status["isConverged"] = isConverged
@@ -280,6 +279,8 @@ def inexactDiagonalization(H,v0,sigma,L,maxit,eConv,pick=None,status=None):
              L => Krylov space dimension
              maxit => Maximum Lanczos iterations
              eConv => relative eigenvalue convergence tolerance
+             pick (optional) => pick function for eigenstate 
+                            Default is get_pick_function_close_to_sigma
              status (optional) => Additional information dictionary
                     (more details see _getStatus doc)
 
@@ -294,6 +295,7 @@ def inexactDiagonalization(H,v0,sigma,L,maxit,eConv,pick=None,status=None):
     qtAq = typeClass.matrixRepresentation(H,Ylist)
     status = _getStatus(status,Ylist[0],sigma,maxit,L,eConv)
     if pick is None:pick=get_pick_function_close_to_sigma(status["sigma"])
+    assert callable(pick)
   
     for it in range(maxit):
         status["outerIter"] = it
@@ -338,7 +340,7 @@ if __name__ == "__main__":
     A = Q.T @ np.diag(ev) @ Q
 
     target = 30
-    maxit = 4 
+    maxit = 4
     L = 6 
     eConv = 1e-8
 
@@ -354,8 +356,8 @@ if __name__ == "__main__":
     print("{:50} :: {: <4}".format("Eigenvalue convergence tolarance",eConv))
     print("\n")
     t1 = time.time()
-    #pick =  get_pick_function_close_to_sigma(sigma)
-    pick =  get_pick_function_maxOvlp(Y0)
+    pick =  get_pick_function_close_to_sigma(sigma)
+    #pick =  get_pick_function_maxOvlp(Y0)
     lf,xf,status =  inexactDiagonalization(A,Y0,sigma,L,maxit,eConv,pick=pick,status=status)
     t2 = time.time()
 
