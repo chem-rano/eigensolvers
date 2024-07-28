@@ -193,12 +193,11 @@ def basisTransformation(bases,coeffs):
             combBases.append(typeClass.linearCombination(bases,coeffs[:,j]))
     return combBases
 
-def properFitting(qtAq, ev_nearest, status):
+def properFitting(evNew, evSum, status):
     ''' Checks the eigenvalue after fitting
     (at the end of Lanczos iteration)
-    In : qtAq -> Hamiltonian matrix element of nearest eigenvector 
-                after fitting
-         ev_nearest -> nearest eigenvalue before fitting
+    In : evNew -> energy after fitting sum of states
+         evSum -> energy of sum of states
          status -> Param dictionary
     
     Out: properFit -> (bool: True for accurate linear combination)
@@ -208,9 +207,9 @@ def properFitting(qtAq, ev_nearest, status):
     if status["flagAddition"]:
         properFit = True
     else:
-        if _convergence(qtAq[0],ev_nearest) > status["eConv"]:
+        if _convergence(evNew,evSum) > status["eConv"]:
            properFit = False
-           print("Alert: Linearcombination inaccurate")
+           print(f"Alert: Linearcombination inaccurate: Energy of sum of states: {evNew}. Energy of fitted state: {evSum}")
     return properFit
 
 def terminateRestart(energy,status,num=3):
@@ -332,8 +331,9 @@ def inexactDiagonalization(H,v0,sigma,L,maxit,eConv,pick=None,status=None):
             YlistNew = [typeClass.normalize(y[0])]
             S = typeClass.overlapMatrix(YlistNew)
             qtAq=typeClass.matrixRepresentation(H,YlistNew)
-            if not properFitting(qtAq,ev[0],status):break
-            if terminateRestart(qtAq[0],status):break
+            evNew = qtAq[0,0]
+            if not properFitting(evNew,ev[0],status):break
+            if terminateRestart(evNew,status):break
             Ylist = YlistNew # when Lanczos iteration continues
 
     return ev,Ylist,status
