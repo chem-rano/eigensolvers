@@ -29,6 +29,7 @@ class Test_stateFollowing(unittest.TestCase):
         self.printChoices = {"writeOut": True,"writePlot": True}
         idx = find_nearest(evEigh,self.sigma)[0]
         ovlpRef = NumpyVector(uvEigh[:,idx+1],optionDict)
+        self.energyRef = evEigh[idx+1]
         np.random.seed(13)
         Y0 = NumpyVector(np.random.random((N)),optionDict)
         self.pick = get_pick_function_maxOvlp(ovlpRef)
@@ -42,31 +43,20 @@ class Test_stateFollowing(unittest.TestCase):
         self.eConv = 1e-10
         self.ovlpRef = ovlpRef
 
-    def test_eigenvalue(self):
-        ''' Checks if the calculated eigenvalue is accurate to 10*eConv'''
-
-        evLanczos, uvlanczos,status = inexactDiagonalization(self.mat,self.guess,self.sigma,self.L,
+    def test_following(self):
+        evLanczos, uvLanczos,status = inexactDiagonalization(self.mat,self.guess,self.sigma,self.L,
                 self.maxit,self.eConv,self.pick,self.printChoices)
         self.assertTrue(status["isConverged"]== True)
-        
-        typeClass = uvlanczos[0].__class__
-        reference = typeClass.matrixRepresentation(self.mat,[self.ovlpRef])[0]
-        closest = find_nearest(self.evEigh,reference)[1]        # comapring with actual
-        relError = abs(reference-closest)/(max(abs(reference), 1e-14))
-        self.assertTrue((relError <= 1e-4),'Not accurate up to 1e-4')
+        with self.subTest("eigenvalue"):
+            evCalc = evLanczos[0]
+            relError = abs(evCalc-self.energyRef)/(max(abs(self.energyRef), 1e-14))
+            self.assertTrue((relError <= 1e-4),f'{evLanczos=}; reference: {self.energyRef=} ; {self.evEigh[:10]:}; \n Not accurate up to 1e-4')
 
-    def test_overlap(self):
-        """ Mainly looking at the overap if the eigenvector is inclined to the reference vector"""
-
-        evlanczos, uvlanczos,status = inexactDiagonalization(self.mat,self.guess,self.sigma,self.L,
-                self.maxit,self.eConv,self.pick,self.printChoices)
-        self.assertTrue(status["isConverged"]== True)
-        refVector = self.ovlpRef.array
-        idx = find_nearest(evlanczos,self.sigma)[0]
-        lanczosVector = uvlanczos[idx].array
-
-        ovlp = np.vdot(refVector,lanczosVector)
-        np.testing.assert_allclose(abs(ovlp), 1, rtol=1e-2, err_msg = f"{ovlp=} but it should be +-1")
+        with self.subTest("eigenvector"):
+            refVector = self.ovlpRef.array
+            lanczosVector = uvLanczos[0].array
+            ovlp = np.vdot(refVector,lanczosVector)
+            np.testing.assert_allclose(abs(ovlp), 1, rtol=1e-2, err_msg = f"{ovlp=} but it should be +-1")
 
 if __name__ == "__main__":
     unittest.main()

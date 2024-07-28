@@ -22,15 +22,14 @@ from util_funcs import find_nearest
 class Test_stateFollowing(unittest.TestCase):
 
     def setUp(self):
-        MAX_D = 10 
         EPS = 5e-9
         convTol = 1e-5
-        N_STATES = 8
+        N_STATES = 6 # also sets eigenvalue index below. sigma is 
 
         fOp = '../examples/ch3cn.op'  # this one is used for HRL's 2019 jcp work
         Hop = mctdh_stuff.translateOperatorFile(fOp, verbose=False)
 
-        N = 42
+        N = 8
         DVRopts = [
             basis.Hermite.getOptions(N=N , HOx0=0, HOw=1, HOm=1),
             basis.Hermite.getOptions(N=N , HOx0=0, HOw=1, HOm=1),
@@ -80,13 +79,14 @@ class Test_stateFollowing(unittest.TestCase):
         tns = parseTree(treeString, basisDict, returnType="TTNS")
         np.random.seed(13)
         tns.setRandom()
-        tns.toPdf()
+        #tns.toPdf()
 
 
         davidsonOptions = [IterativeDiagonalizationOptions(tol=1e-7, maxIter=500,maxSpaceFac=200)] * 8
         # tighter convergence 
         davidsonOptions.append(IterativeDiagonalizationOptions(tol=1e-8, maxIter=500,maxSpaceFac=200))
-        bondDimensionAdaptions = [TruncationEps(EPS, maxD=MAX_D, offset=2, truncateViaDiscardedSum=False)]
+        # Do a loose calc with just maxD=2
+        bondDimensionAdaptions = [TruncationEps(EPS, maxD=2, offset=2, truncateViaDiscardedSum=False)]
         noises = [1e-6] * 4 + [1e-7] * 4 + [1e-8] * 6
         tnsList, energies = eigenStateComputations(tns, Hop,
                                      nStates=N_STATES,
@@ -99,15 +99,16 @@ class Test_stateFollowing(unittest.TestCase):
                                      saveDir=None,
                                      convTol=convTol)
         bondDimensionAdaptionsOrtho = [TruncationEps(EPS, maxD=10, offset=2, truncateViaDiscardedSum=False)]
-        bondDimensionAdaptionsFitting = [TruncationEps(EPS, maxD=10, offset=2, truncateViaDiscardedSum=False)]
+        # TODO try to decrease maxD of bondDimensionAdaptionsFitting once test is working
+        bondDimensionAdaptionsFitting = [TruncationEps(EPS, maxD=45, offset=2, truncateViaDiscardedSum=False)]
+        bondDimensionAdaptionsLinear =  [TruncationEps(EPS, maxD=5, offset=2, truncateViaDiscardedSum=False)] # TODO adapt
 
         maxit = 10
         L = 6
         eConv = 1e-6 
         zpve = 9837.4069  
-        idx = 1 
-        #target = energies[idx]
-        target = (energies[idx]-zpve)+1.0
+        idx = N_STATES-2  # states 1,2 and 3,4 are degenerate
+        target = energies[idx] * 1.001 # making sure it is not an eigenvalue
         nsweepOrtho = 800
         orthoTol = 1e-08
         optShift = 0.0
@@ -124,8 +125,9 @@ class Test_stateFollowing(unittest.TestCase):
         nsweepFitting = 1000
 
         optsCheck = IterativeLinearSystemOptions(solver="gcrotmk",tol=siteLinearTol,maxIter=70000) 
-        optionsOrtho = {"nSweep":nsweepOrtho, "convTol":orthoTol, "optShift":optShift, "bondDimensionAdaptions":bondDimensionAdaptionsOrtho}
-        optionsLinear = {"nSweep":nsweepLinear, "iterativeLinearSystemOptions":optsCheck,"convTol":globalLinearTol}
+        verbose = False
+        optionsOrtho = None # not used
+        optionsLinear = {"nSweep":nsweepLinear, "iterativeLinearSystemOptions":optsCheck,"convTol":globalLinearTol, "verbose": verbose, "bondDimensionAdaptions": bondDimensionAdaptionsLinear}
         optionsFitting = {"nSweep":nsweepFitting, "convTol":fittingTol,"bondDimensionAdaptions":bondDimensionAdaptionsFitting}
         #options = {"linearSystemArgs":optionsLinear}
         options = {"orthogonalizationArgs":optionsOrtho, "linearSystemArgs":optionsLinear, "stateFittingArgs":optionsFitting}
@@ -133,6 +135,8 @@ class Test_stateFollowing(unittest.TestCase):
         status = {"eShift":zpve, "convertUnit":"cm-1",
                 "writeOut": True,"writePlot": True}
         ovlpRef = TTNSVector(tnsList[idx+1],options)
+        self.energyRef = energies[idx+1]
+        tns.setRandom() # Important as this is the last optimized state of eigenStateComputations
         tns = TTNSVector(tns,options)
         self.pick = get_pick_function_maxOvlp(ovlpRef)
         
@@ -148,33 +152,18 @@ class Test_stateFollowing(unittest.TestCase):
         self.ovlpRef = ovlpRef
         self.status = status
 
-    def test_eigenvalue(self):
-        ''' Checks if the calculated eigenvalue is accurate to 10*eConv'''
-
-        sigma = util.unit2au((self.target+self.eShift),unit="cm-1")
-        eConvAU = util.unit2au(self.eConv,unit="cm-1")
-        evLanczos, uvlanczos,status = inexactDiagonalization(self.mat,self.guess,sigma,self.L,
+    def test_following(self):
+        sigma = self.target
+        evLanczos, uvLanczos,status = inexactDiagonalization(self.mat,self.guess,sigma,self.L,
                 self.maxit,self.eConv,self.pick,self.status)
-        
-        typeClass = uvlanczos[0].__class__
-        reference = typeClass.matrixRepresentation(self.mat,[self.ovlpRef])[0]
-        closest = find_nearest(self.evEigh,reference)[1]        # comapring with actual
-        relError = abs(reference-closest)/(max(abs(reference), 1e-14))
-        self.assertTrue((relError <= 1e-4),'Not accurate up to 1e-4')
 
-    def test_overlap(self):
-        """ Mainly looking at the overap if the eigenvector is inclined to the reference vector"""
-
-        sigma = util.unit2au((self.target+self.eShift),"cm-1")
-        eConvAU = util.unit2au(self.eConv,unit="cm-1")
-        evlanczos, uvlanczos,status = inexactDiagonalization(self.mat,self.guess,sigma,self.L,
-                self.maxit,eConvAU,self.pick,self.status)
-        idx = find_nearest(evlanczos,sigma)[0]
-
-        refTree = np.ravel(self.ovlpRef.ttns.fullTensor(canonicalOrder=True)[0])
-        ttnsT = np.ravel(uvLanczos[idx].ttns.fullTensor(canonicalOrder=True)[0])
-        ovlp = np.vdot(ttnsT,refTree)
-        np.testing.assert_allclose(abs(ovlp), 1, rtol=1e-5, err_msg = f"{ovlp=} but it should be +-1")
+        with self.subTest("eigenvalue"):
+            evCalc = evLanczos[0]
+            relError = abs(evCalc-self.energyRef)/(max(abs(self.energyRef), 1e-14))
+            self.assertTrue((relError <= 1e-4),f'{evLanczos=}; reference: {self.energyRef=} ; {self.evEigh:}; \n Not accurate up to 1e-4')
+        with self.subTest("eigenvector"):
+            ovlp = self.ovlpRef.vdot( uvLanczos[0] )
+            np.testing.assert_allclose(abs(ovlp), 1, rtol=1e-5, err_msg = f"{ovlp=} but it should be +-1")
 
 if __name__ == "__main__":
     unittest.main()
