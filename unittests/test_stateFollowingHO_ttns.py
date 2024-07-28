@@ -95,7 +95,8 @@ class Test_stateFollowing(unittest.TestCase):
                                      iterativeDiagonalizationOptions=davidsonOptions,
                                      bondDimensionAdaptions= bondDimensionAdaptions,
                                      noises = noises,
-                                     allowRestart=True,
+                                     allowRestart=False,
+                                     saveDir=None,
                                      convTol=convTol)
         bondDimensionAdaptionsOrtho = [TruncationEps(EPS, maxD=10, offset=2, truncateViaDiscardedSum=False)]
         bondDimensionAdaptionsFitting = [TruncationEps(EPS, maxD=10, offset=2, truncateViaDiscardedSum=False)]
