@@ -153,18 +153,17 @@ def _convergence(value,ref):
     return check_ev
 
 
-def checkConvergence(ev,idx,status):
+def checkConvergence(ev,status):
     ''' Checks eigenvalue convergence
     
-    In: ev -> eigenvalues
-        idx -> index of eigenstate for convergence check
+    In: ev -> eigenvalues, sorted based on `pick`
         status -> params dictionary
     
     Out: status (dict: updated isConverged, ref)
          '''
     
     isConverged = False
-    ev_nearest = ev[idx][0]   # one state for inexact Lanczos
+    ev_nearest = ev[0]   # one state for inexact Lanczos
     if _convergence(ev_nearest,status["ref"][-1]) <= status["eConv"]:
         isConverged = True
     status["isConverged"] = isConverged
@@ -312,7 +311,10 @@ def inexactDiagonalization(H,v0,sigma,L,maxit,eConv,pick=None,status=None):
             ev, uv, qtAq = diagonalizeHamiltonian(H,Ylist,uS,qtAq,status)[1:4]
             uSH = uS@uv
             idx = pick(uSH,Ylist,ev)
-            status = checkConvergence(ev,idx,status)
+            assert len(idx) == len(ev), f"{len(ev)=} {len(idx)=}"
+            ev = ev[idx]
+            uSH = uSH[:,idx]
+            status = checkConvergence(ev,status)
             continueIteration = analyzeStatus(status)
             
             if not continueIteration:
@@ -322,11 +324,11 @@ def inexactDiagonalization(H,v0,sigma,L,maxit,eConv,pick=None,status=None):
             Ylist = basisTransformation(Ylist,uSH)
             break
         else:
-            y = basisTransformation(Ylist,uSH[:,idx])
+            y = basisTransformation(Ylist,uSH[:,0])
             YlistNew = [typeClass.normalize(y[0])]
             S = typeClass.overlapMatrix(YlistNew)
             qtAq=typeClass.matrixRepresentation(H,YlistNew)
-            if not properFitting(qtAq,ev[idx],status):break
+            if not properFitting(qtAq,ev[0],status):break
             if terminateRestart(qtAq[0],status):break
             Ylist = YlistNew # when Lanczos iteration continues
 

@@ -239,14 +239,12 @@ def calculateTarget(eigenvalues, indx, tol=1e-14):
 def get_pick_function_maxOvlp(toCompare):
     """ Returns pick function 
         toCompare -> Reference for overlap evaluation"""
-    def pick(transformMat,vectors,eigenvalues,nstates=1):
+    def pick(transformMat,vectors,eigenvalues):
         """ Picks eigenstate index of maximum overlap to reference
         In: transformMat -> transformation matrix from Krylov
                             vectors to Lanczos eigenvectors
             vectors->   Krylov vectors (list)
             eigenvalues ->   Lanczos eigenvalues
-            nstates -> number of states to pick
-                   (optional) Default is 1
 
          Out: idx -> index (or indices) of eigenvectors"""
         
@@ -259,7 +257,6 @@ def get_pick_function_maxOvlp(toCompare):
         overlap = abs(transformMat.T.conj() @ overlapKrylov)
         
         idx = np.argsort(-overlap)
-        idx = idx[:nstates]
 
         return idx
     return pick
@@ -267,19 +264,15 @@ def get_pick_function_maxOvlp(toCompare):
 def get_pick_function_close_to_sigma(toCompare):
     """ Returns pick function 
         toCompare -> Reference for nearest eigenvalue evaluation"""
-    def pick(transformMat,vectors,eigenvalues,nstates=1):
+    def pick(transformMat,vectors,eigenvalues):
         """ Picks eigenstates closest to target eigenvalue
         In: transformMat -> transformation matrix from Krylov
                             vectors to Lanczos eigenvectors
             vectors->   Krylov vectors (list)
             eigenvalues ->   Lanczos eigenvalues
-            nstates -> number of states to pick
-                   (optional) Default is 1
-            If nstates > 1; it picks up states nearby states too
 
         Out: idx (np array) -> index (or indices) of eigenstates 
         """
         idx = np.argsort(np.abs(eigenvalues - toCompare))
-        idx = idx[:nstates]
         return idx
     return pick
