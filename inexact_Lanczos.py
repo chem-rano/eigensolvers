@@ -298,16 +298,15 @@ def inexactDiagonalization(H,v0,sigma,L,maxit,eConv,pick=None,status=None):
   
     for it in range(maxit):
         status["outerIter"] = it
-        for i in range(1,L):
+        for i in range(1,L): # starts with 1 because Y0 is used as first basis vector
             status["innerIter"] = i
             status["cumIter"] += 1
             
             Ylist = generateSubspace(H,Ylist,sigma,eConv)
             status, uS, S = transformationMatrix(Ylist,S,status)
-            if status['lindep']:
+            if status['lindep'] and i != 1: # Corner case for 1st iteration
                 print("Restarting calculation: Got linearly dependent basis!")
                 Ylist = Ylist[:-1] # Excluding the last vector added to the Ylist
-                continueIteration = False
                 break
             ev, uv, qtAq = diagonalizeHamiltonian(H,Ylist,uS,qtAq,status)[1:4]
             uSH = uS@uv
@@ -317,6 +316,10 @@ def inexactDiagonalization(H,v0,sigma,L,maxit,eConv,pick=None,status=None):
             uSH = uSH[:,idx]
             status = checkConvergence(ev,status)
             continueIteration = analyzeStatus(status)
+            if status['lindep'] and i == 1: # Corner case for 1st iteration
+                print("Restarting calculation: Got linearly dependent basis!")
+                Ylist = Ylist[:-1] # Excluding the last vector added to the Ylist
+                break
             
             if not continueIteration:
                 break
