@@ -307,6 +307,7 @@ def inexactDiagonalization(H,v0,sigma,L,maxit,eConv,pick=None,status=None):
             if status['lindep']:
                 print("Restarting calculation: Got linearly dependent basis!")
                 Ylist = Ylist[:-1] # Excluding the last vector added to the Ylist
+                continueIteration = True
                 break
             ev, uv, qtAq = diagonalizeHamiltonian(H,Ylist,uS,qtAq,status)[1:4]
             uSH = uS@uv
