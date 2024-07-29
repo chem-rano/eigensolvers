@@ -12,10 +12,11 @@ import basis
 import operatornD
 from ttns2.driver import eigenStateComputations
 from ttns2.diagonalization import IterativeDiagonalizationOptions
-from ttns2.parseInput import parseTree
+from ttns2.parseInput import parseTree, getMPS
 from ttns2.contraction import TruncationEps
 from inexact_Lanczos import inexactDiagonalization
 from ttns2.diagonalization import IterativeLinearSystemOptions
+from ttns2.contraction import TruncationFixed
 import util
 from util_funcs import find_nearest
 
@@ -27,57 +28,27 @@ class Test_stateFollowing(unittest.TestCase):
         convTol = 1e-5
         N_STATES = 6 # also sets eigenvalue index below. sigma is 
 
-        fOp = '../examples/ch3cn.op'  # this one is used for HRL's 2019 jcp work
+        fOp = 'pyr4+.op'
         Hop = mctdh_stuff.translateOperatorFile(fOp, verbose=False)
 
-        N = 8
+        FAC = 2
         DVRopts = [
-            basis.Hermite.getOptions(N=N , HOx0=0, HOw=1, HOm=1),
-            basis.Hermite.getOptions(N=N , HOx0=0, HOw=1, HOm=1),
-            basis.Hermite.getOptions(N=N , HOx0=0, HOw=1, HOm=1),
-            basis.Hermite.getOptions(N=N , HOx0=0, HOw=1, HOm=1),
-            basis.Hermite.getOptions(N=N , HOx0=0, HOw=1, HOm=1),
-            basis.Hermite.getOptions(N=N , HOx0=0, HOw=1, HOm=1),
-            basis.Hermite.getOptions(N=N , HOx0=0, HOw=1, HOm=1),
-            basis.Hermite.getOptions(N=N , HOx0=0, HOw=1, HOm=1),
-            basis.Hermite.getOptions(N=N , HOx0=0, HOw=1, HOm=1),
-            basis.Hermite.getOptions(N=N , HOx0=0, HOw=1, HOm=1),
-            basis.Hermite.getOptions(N=N, HOx0=0, HOw=1, HOm=1),
-            basis.Hermite.getOptions(N=N, HOx0=0, HOw=1, HOm=1),
+            basis.Hermite.getOptions(N=40//FAC, HOx0=0, HOw=1, HOm=1),
+            basis.Hermite.getOptions(N=32//FAC, HOx0=0, HOw=1, HOm=1),
+            basis.Hermite.getOptions(N=16//FAC, HOx0=0, HOw=1, HOm=1),
+            basis.Hermite.getOptions(N=12//FAC, HOx0=0, HOw=1, HOm=1),
         ]
-        
-        treeString = """
-            0> 3 3 3
-                1> 3 3
-                    2> [x1]
-                    2> 3 3
-                        3> [x5]
-                        3> [x6]
-                1> 3 3
-                    2> 3 3
-                        3> [x7]
-                        3> [x8]
-                    2> 3 3
-                        3> [x9]
-                        3> [x10]
-                1> 3 3
-                    2> 3 3 
-                        3> [x3]
-                        3> 3 3
-                            4> [x2]
-                            4> [x4]
-                    2> 3 3 
-                        3> [x11] 
-                        3> [x12]
-            """
-        bases = [basis.basisFactory(o) for o in DVRopts]
+        bases = [basis.electronic(2)]
+        for DVRopt in DVRopts:
+            bases.append(basis.basisFactory(DVRopt))
+
         nBas = [b.N for b in bases]
         Hop.storeMatrices(bases)
         Hop = operatornD.contractSoPOperatorSimpleUsage(Hop)
         operatornD.absorbCoeff(Hop)
         Hop.obtainMultiplyOp(bases)
         basisDict = {l:b for l,b in zip(Hop.DoFlabel, bases)}
-        tns = parseTree(treeString, basisDict, returnType="TTNS")
+        tns = getMPS(basisDict, 3)
         np.random.seed(13)
         tns.setRandom()
         #tns.toPdf()
@@ -87,7 +58,7 @@ class Test_stateFollowing(unittest.TestCase):
         # tighter convergence 
         davidsonOptions.append(IterativeDiagonalizationOptions(tol=1e-8, maxIter=500,maxSpaceFac=200))
         # Do a loose calc with just maxD=2
-        bondDimensionAdaptions = [TruncationEps(EPS, maxD=2, offset=2, truncateViaDiscardedSum=False)]
+        bondDimensionAdaptions = [TruncationEps(EPS, maxD=9, offset=2, truncateViaDiscardedSum=False)]
         noises = [1e-6] * 4 + [1e-7] * 4 + [1e-8] * 6
         tnsList, energies = eigenStateComputations(tns, Hop,
                                      nStates=N_STATES,
@@ -99,24 +70,15 @@ class Test_stateFollowing(unittest.TestCase):
                                      allowRestart=False,
                                      saveDir=None,
                                      convTol=convTol)
-        bondDimensionAdaptionsOrtho = [TruncationEps(EPS, maxD=10, offset=2, truncateViaDiscardedSum=False)]
-        # TODO try to decrease maxD of bondDimensionAdaptionsFitting once test is working
-        bondDimensionAdaptionsFitting = [TruncationEps(EPS, maxD=45, offset=2, truncateViaDiscardedSum=False)]
-        bondDimensionAdaptionsLinear =  [TruncationEps(EPS, maxD=5, offset=2, truncateViaDiscardedSum=False)] # TODO adapt
+        bondDimensionAdaptionsFitting = [TruncationEps(EPS, maxD=5, offset=1, truncateViaDiscardedSum=False)]
+        bondDimensionAdaptionsLinear =  [TruncationEps(EPS, maxD=5, offset=1, truncateViaDiscardedSum=False)] 
 
         maxit = 10
         L = 6
         eConv = 1e-6 
-        zpve = 9837.4069  
         idx = N_STATES-2  # states 1,2 and 3,4 are degenerate
         target = energies[idx] * 1.001 # making sure it is not an eigenvalue
-        nsweepOrtho = 800
-        orthoTol = 1e-08
-        optShift = 0.0
 
-        #from magic import ipsh
-        #ipsh()
-        #quit()
         siteLinearTol = 1e-3
         globalLinearTol = 1e-2
         nsweepLinear = 1000
@@ -129,24 +91,26 @@ class Test_stateFollowing(unittest.TestCase):
         verbose = False
         optionsOrtho = None # not used
         optionsLinear = {"nSweep":nsweepLinear, "iterativeLinearSystemOptions":optsCheck,"convTol":globalLinearTol, "verbose": verbose, "bondDimensionAdaptions": bondDimensionAdaptionsLinear}
-        optionsFitting = {"nSweep":nsweepFitting, "convTol":fittingTol,"bondDimensionAdaptions":bondDimensionAdaptionsFitting}
+        optionsFitting = {"nSweep":nsweepFitting, "convTol":fittingTol,"bondDimensionAdaptions":bondDimensionAdaptionsFitting, "noises":[1e-6]*4}
         #options = {"linearSystemArgs":optionsLinear}
         options = {"orthogonalizationArgs":optionsOrtho, "linearSystemArgs":optionsLinear, "stateFittingArgs":optionsFitting}
 
-        status = {"eShift":zpve, "convertUnit":"cm-1",
+        status = {"eShift":0, "convertUnit":"au",
                 "writeOut": True,"writePlot": True}
-        ovlpRef = TTNSVector(copy.deepcopy(tnsList[idx+1]),options)
+        ovlpRef = TTNSVector(tnsList[idx+1],options)
         self.energyRef = energies[idx+1]
-        tns.setRandom() # Important as this is the last optimized state of eigenStateComputations
-        tns = TTNSVector(tns,options)
         self.pick = get_pick_function_maxOvlp(ovlpRef)
         
         self.target = target
         self.evEigh = energies
         self.uvEigh = tnsList
-        self.guess = tns
+        # Note: the guess needs to be "close" to the reference
+        # Here: truncate it
+        guess = copy.deepcopy(ovlpRef.ttns)
+        #guess.setRandom() 
+        guess.adaptBondDimension(truncation=TruncationFixed(1))
+        self.guess = TTNSVector(guess,options)
         self.mat = Hop
-        self.eShift = zpve
         self.L = L
         self.eConv = eConv
         self.maxit = maxit
