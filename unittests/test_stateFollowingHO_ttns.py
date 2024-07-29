@@ -1,5 +1,6 @@
 import unittest
 import sys
+import copy
 import numpy as np
 from scipy import linalg as la
 from ttnsVector import TTNSVector
@@ -134,7 +135,7 @@ class Test_stateFollowing(unittest.TestCase):
 
         status = {"eShift":zpve, "convertUnit":"cm-1",
                 "writeOut": True,"writePlot": True}
-        ovlpRef = TTNSVector(tnsList[idx+1],options)
+        ovlpRef = TTNSVector(copy.deepcopy(tnsList[idx+1]),options)
         self.energyRef = energies[idx+1]
         tns.setRandom() # Important as this is the last optimized state of eigenStateComputations
         tns = TTNSVector(tns,options)
