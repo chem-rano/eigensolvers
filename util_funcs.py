@@ -6,7 +6,8 @@ import copy
 from numpyVector import NumpyVector
 import util
 
-LINDEP_DEFAULT_VALUE = 1e-9 # Global variable
+LINDEP_DEFAULT_VALUE = 1e-14 # Global variable
+#LINDEP_DEFAULT_VALUE = 1e-9 # Global variable
 
 # -----------------------------------------------------
 def trapezoidal(nc):

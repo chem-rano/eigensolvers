@@ -26,20 +26,19 @@ class Test_stateFollowing(unittest.TestCase):
         self.sigma = 13.1
         options = {"linearSolver":"gcrotmk","linearIter":30000,"linear_tol":1e-04}
         optionDict = {"linearSystemArgs":options}
-        self.printChoices = {"writeOut": True,"writePlot": True}
+        self.printChoices = {"writeOut": False,"writePlot": False}
         idx = find_nearest(evEigh,self.sigma)[0]
         ovlpRef = NumpyVector(uvEigh[:,idx+1],optionDict)
         self.energyRef = evEigh[idx+1]
         np.random.seed(13)
         Y0 = NumpyVector(np.random.random((N)),optionDict)
         self.pick = get_pick_function_maxOvlp(ovlpRef)
-        #self.pick = get_pick_function_close_to_sigma(self.sigma)
         
         self.guess = Y0
         self.mat = H
         self.eShift = 0.0
         self.L = 16 
-        self.maxit = 200  
+        self.maxit = 200
         self.eConv = 1e-10
         self.ovlpRef = ovlpRef
 
