@@ -39,7 +39,7 @@ class Test_lanczos(unittest.TestCase):
         check if status["lindep"] is indeed True or not'''
 
         status = inexactDiagonalization(self.mat,self.guess,self.sigma,
-                self.L,self.maxit,self.eConv,pick=None,status=self.printChoices)[2]
+                self.L,self.maxit,self.eConv,pick=None,status = self.printChoices)[2]
         self.assertTrue(status["lindep"]== True)
 
         
@@ -48,7 +48,7 @@ class Test_lanczos(unittest.TestCase):
             or the length of vectors list should be iKrylov'''
 
         uvLanczos, status = inexactDiagonalization(self.mat,self.guess,self.sigma,
-                self.L,self.maxit,self.eConv,pick=None,status=self.printChoices)[1:3]
+                self.L,self.maxit,self.eConv,pick=None,status = self.printChoices)[1:3]
         iKrylov = status["innerIter"]
         nvectors = len(uvLanczos)
         self.assertTrue(nvectors == iKrylov)
@@ -58,7 +58,7 @@ class Test_lanczos(unittest.TestCase):
 
         eConv = 1e-14 # stoping from early convergence
         status = inexactDiagonalization(self.mat,self.guess,self.sigma,
-                self.L,self.maxit,eConv,pick=None,status=self.printChoices)[2]
+                self.L,self.maxit,eConv,pick=None,status = self.printChoices)[2]
         nfutileRestarts = status["futileRestart"]
         if status["outerIter"] < status["maxit"]-1:
             self.assertTrue(nfutileRestarts > 3)
