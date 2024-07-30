@@ -308,6 +308,7 @@ def inexactDiagonalization(H,v0,sigma,L,maxit,eConv,pick=None,status=None):
                 Ylist = Ylist[:-1] # Excluding the last vector added to the Ylist
                 break
             ev, uv, qtAq = diagonalizeHamiltonian(H,Ylist,uS,qtAq,status)[1:4]
+            print(ev)
             uSH = uS@uv
             idx = pick(uSH,Ylist,ev)
             assert len(idx) == len(ev), f"{len(ev)=} {len(idx)=}"
@@ -327,7 +328,7 @@ def inexactDiagonalization(H,v0,sigma,L,maxit,eConv,pick=None,status=None):
             Ylist = basisTransformation(Ylist,uSH)
             break
         else:
-            y = basisTransformation(Ylist,uSH[:,0])
+            y = basisTransformation(Ylist,uSH[0])
             YlistNew = [typeClass.normalize(y[0])]
             S = typeClass.overlapMatrix(YlistNew)
             qtAq=typeClass.matrixRepresentation(H,YlistNew)
