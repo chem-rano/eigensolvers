@@ -11,12 +11,12 @@ class Test_lanczos(unittest.TestCase):
         # This is a specific case where linearly dependent vectors
         # generation happens
         n = 1200
-        ev = np.linspace(1,600,n)
+        ev = np.linspace(1,500,n)
         np.random.seed(10)
         Q = la.qr(np.random.rand(n,n))[0]
         A = Q.T @ np.diag(ev) @ Q
 
-        options = {"linearSolver":"gcrotmk","linearIter":5000,"linear_tol":2e-1}
+        options = {"linearSolver":"gcrotmk","linearIter":5000,"linear_tol":5e-1}
         optionDict = {"linearSystemArgs":options}
         self.printChoices = {"writeOut": False,"writePlot": False}
         Y0 = NumpyVector(np.random.random((n)),optionDict)
@@ -24,7 +24,7 @@ class Test_lanczos(unittest.TestCase):
         self.guess = Y0
         self.mat = A
         self.ev = ev 
-        self.sigma = 290
+        self.sigma = 390
         self.eShift = 0.0
         self.L = 100     # make sufficiently large to get LINDEP
         self.maxit = 1000 # same as above
@@ -56,7 +56,7 @@ class Test_lanczos(unittest.TestCase):
     def test_futileRestarts(self):
         ''' For this specific case, number of futile restarts is larger than 3'''
 
-        eConv = 1e-14 # stoping from early convergence
+        eConv = 1e-18 # stoping from early convergence
         status = inexactDiagonalization(self.mat,self.guess,self.sigma,
                 self.L,self.maxit,eConv,pick=None,status = self.printChoices)[2]
         nfutileRestarts = status["futileRestart"]
