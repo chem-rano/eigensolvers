@@ -61,7 +61,7 @@ class Test_lanczos(unittest.TestCase):
                 self.L,self.maxit,eConv,pick=None,status = self.printChoices)[2]
         nfutileRestarts = status["futileRestart"]
         if status["outerIter"] < status["maxit"]-1:
-            self.assertTrue(nfutileRestarts >= 1)
+            self.assertTrue(nfutileRestarts > 3)
 
 if __name__ == "__main__":
     unittest.main()
