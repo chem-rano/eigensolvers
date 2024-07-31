@@ -140,8 +140,8 @@ optionsFitting = {"nSweep":nsweepFitting, "convTol":fittingTol,"bondDimensionAda
 options = {"orthogonalizationArgs":optionsOrtho, "linearSystemArgs":optionsLinear, "stateFittingArgs":optionsFitting}
 status = {"eShift":zpve, "convertUnit":"cm-1"}
 
-fileHeader("out",options,target,zpve,L, maxit,eConv,MAX_D)
-fileHeader("plot",options,target,zpve,L,maxit,eConv,MAX_D,printInfo=False)
+fileHeader("out",options,target,L, maxit,eConv,zpve,MAX_D)
+fileHeader("plot",options,target,L,maxit,eConv,zpve,MAX_D,printInfo=False)
 tns = TTNSVector(tns,options)
 sigma = util.unit2au((target+zpve),unit="cm-1")
 eConvAU = util.unit2au(eConv,unit="cm-1")

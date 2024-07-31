@@ -11,19 +11,20 @@ class Test_lanczos(unittest.TestCase):
         # This is a specific case where linearly dependent vectors
         # generation happens
         n = 1200
-        ev = np.linspace(1,600,n)
+        ev = np.linspace(1,500,n)
         np.random.seed(10)
         Q = la.qr(np.random.rand(n,n))[0]
         A = Q.T @ np.diag(ev) @ Q
 
-        optionDict = {"linearSolver":"gcrotmk","linearIter":5000,"linear_tol":2e-1}
+        options = {"linearSolver":"gcrotmk","linearIter":5000,"linear_tol":5e-1}
+        optionDict = {"linearSystemArgs":options}
         self.printChoices = {"writeOut": False,"writePlot": False}
         Y0 = NumpyVector(np.random.random((n)),optionDict)
         
         self.guess = Y0
         self.mat = A
         self.ev = ev 
-        self.sigma = 290
+        self.sigma = 390
         self.eShift = 0.0
         self.L = 100     # make sufficiently large to get LINDEP
         self.maxit = 1000 # same as above
@@ -38,7 +39,7 @@ class Test_lanczos(unittest.TestCase):
         check if status["lindep"] is indeed True or not'''
 
         status = inexactDiagonalization(self.mat,self.guess,self.sigma,
-                self.L,self.maxit,self.eConv,self.printChoices)[2]
+                self.L,self.maxit,self.eConv,pick=None,status = self.printChoices)[2]
         self.assertTrue(status["lindep"]== True)
 
         
@@ -47,7 +48,7 @@ class Test_lanczos(unittest.TestCase):
             or the length of vectors list should be iKrylov'''
 
         uvLanczos, status = inexactDiagonalization(self.mat,self.guess,self.sigma,
-                self.L,self.maxit,self.eConv,self.printChoices)[1:3]
+                self.L,self.maxit,self.eConv,pick=None,status = self.printChoices)[1:3]
         iKrylov = status["innerIter"]
         nvectors = len(uvLanczos)
         self.assertTrue(nvectors == iKrylov)
@@ -55,9 +56,9 @@ class Test_lanczos(unittest.TestCase):
     def test_futileRestarts(self):
         ''' For this specific case, number of futile restarts is larger than 3'''
 
-        eConv = 1e-14 # stoping from early convergence
+        eConv = 1e-18 # stoping from early convergence
         status = inexactDiagonalization(self.mat,self.guess,self.sigma,
-                self.L,self.maxit,eConv,self.printChoices)[2]
+                self.L,self.maxit,eConv,pick=None,status = self.printChoices)[2]
         nfutileRestarts = status["futileRestart"]
         if status["outerIter"] < status["maxit"]-1:
             self.assertTrue(nfutileRestarts > 3)

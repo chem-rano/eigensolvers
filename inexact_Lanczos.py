@@ -7,6 +7,8 @@ import time
 import util
 from numpyVector import NumpyVector
 from util_funcs import headerBot
+from util_funcs import get_pick_function_close_to_sigma
+from util_funcs import get_pick_function_maxOvlp
 
 # -----------------------------------------------------
 # Order of inputs
@@ -18,13 +20,14 @@ from util_funcs import headerBot
 # -----------------------------------------------------
 # Dividing in to functions for better readability 
 # and convenient testing
-def _getStatus(status,vector,maxit,maxKrylov,eConv):
+def _getStatus(status,vector,sigma,maxit,maxKrylov,eConv):
     """ 
     Initialize and update status dictionary
     
     In: status -> param dictionary
         vector -> guess vector to get the
         hasExactAddition property 
+        sigma -> target after adjustment of eShift (zpve)
         maxit -> maximum Lanczos iteration
         maxKrylov -> maximum Krylov dimension
         eConv -> eigenvalue convergence
@@ -52,7 +55,8 @@ def _getStatus(status,vector,maxit,maxKrylov,eConv):
     the current Lanczos iteration
     """
     
-    statusUp = {"eConv":eConv,"maxit":maxit,"maxKrylov":maxKrylov,"ref":[np.inf],
+    statusUp = {"sigma":sigma,"eConv":eConv,"maxit":maxit,
+            "maxKrylov":maxKrylov,"ref":[np.inf],
             "flagAddition":vector.hasExactAddition,
             "outerIter":0, "innerIter":0,"cumIter":0,
             "isConverged":False,"lindep":False,
@@ -68,7 +72,6 @@ def _getStatus(status,vector,maxit,maxKrylov,eConv):
                 statusUp[item] = status[item]
     
     return statusUp
-
 
 def generateSubspace(Hop,Ylist,sigma,eConv):
     ''' Builds Krylov space with solving linear system
@@ -133,8 +136,8 @@ def diagonalizeHamiltonian(Hop,bases,X,qtAq,status):
 
     typeClass = bases[0].__class__
     qtAq = typeClass.extendMatrixRepresentation(Hop,bases,qtAq)   
-    Hmat = X.T.conj()@qtAq@X                      
-    ev, uv = sp.linalg.eigh(Hmat)  
+    Hmat = X.T.conj()@qtAq@X
+    ev, uv = sp.linalg.eigh(Hmat)
     if status["writeOut"]:
         writeFile("out",status,"hamiltonian",Hmat)
         writeFile("out",status,"eigenvalues",ev)
@@ -150,21 +153,18 @@ def _convergence(value,ref):
     return check_ev
 
 
-def checkConvergence(ev,sigma,eConv,status):
+def checkConvergence(ev,status):
     ''' Checks eigenvalue convergence
-
-    In: ev -> eigenvalues
-        sigma -> eigenvalue target
-        eConv -> convergence threshold 
+    
+    In: ev -> eigenvalues, sorted based on `pick`
         status -> params dictionary
     
     Out: status (dict: updated isConverged, ref)
-         idx -> index of the nearest eigenvalue
          '''
     
     isConverged = False
-    idx, ev_nearest = find_nearest(ev,sigma)
-    if _convergence(ev_nearest,status["ref"][-1]) <= eConv:
+    ev_nearest = ev[0]   # one state for inexact Lanczos
+    if _convergence(ev_nearest,status["ref"][-1]) <= status["eConv"]:
         isConverged = True
     status["isConverged"] = isConverged
     status["runTime"] = time.time() - status["startTime"]
@@ -172,7 +172,7 @@ def checkConvergence(ev,sigma,eConv,status):
         writeFile("plot",status,ev_nearest,status["ref"][-1])
     status["ref"].append(ev_nearest)
     if len(status["ref"]) > 2:status["ref"].pop(0)
-    return status, idx
+    return status
  
 def basisTransformation(bases,coeffs):
     ''' Basis transformation with eigenvectors 
@@ -193,12 +193,11 @@ def basisTransformation(bases,coeffs):
             combBases.append(typeClass.linearCombination(bases,coeffs[:,j]))
     return combBases
 
-def properFitting(qtAq, ev_nearest, status):
+def properFitting(evNew, evSum, status):
     ''' Checks the eigenvalue after fitting
     (at the end of Lanczos iteration)
-    In : qtAq -> Hamiltonian matrix element of nearest eigenvector 
-                after fitting
-         ev_nearest -> nearest eigenvalue before fitting
+    In : evNew -> energy after fitting sum of states
+         evSum -> energy of sum of states
          status -> Param dictionary
     
     Out: properFit -> (bool: True for accurate linear combination)
@@ -208,9 +207,9 @@ def properFitting(qtAq, ev_nearest, status):
     if status["flagAddition"]:
         properFit = True
     else:
-        if _convergence(qtAq[0],ev_nearest) > status["eConv"]:
+        if _convergence(evNew,evSum) > status["eConv"]:
            properFit = False
-           print("Alert: Linearcombination inaccurate")
+           print(f"Alert: Linearcombination inaccurate: Energy of sum of states: {evNew}. Energy of fitted state: {evSum}")
     return properFit
 
 def terminateRestart(energy,status,num=3):
@@ -230,6 +229,7 @@ def terminateRestart(energy,status,num=3):
             status["futileRestart"] += 1
     
     if status["futileRestart"] > num:
+        print("Lindep and did not have fruitful restarts")
         decision = True
 
     return decision
@@ -264,7 +264,7 @@ def analyzeStatus(status):
 #    Inexact Lanczos with AbstractClass interface
 #------------------------------------------------------
 
-def inexactDiagonalization(H,v0,sigma,L,maxit,eConv,status=None):
+def inexactDiagonalization(H,v0,sigma,L,maxit,eConv,pick=None,status=None):
     '''
     This is core function to calculate eigenvalues and eigenvectors
     with inexact Lanczos method
@@ -277,6 +277,8 @@ def inexactDiagonalization(H,v0,sigma,L,maxit,eConv,status=None):
              L => Krylov space dimension
              maxit => Maximum Lanczos iterations
              eConv => relative eigenvalue convergence tolerance
+             pick (optional) => pick function for eigenstate 
+                            Default is get_pick_function_close_to_sigma
              status (optional) => Additional information dictionary
                     (more details see _getStatus doc)
 
@@ -289,24 +291,34 @@ def inexactDiagonalization(H,v0,sigma,L,maxit,eConv,status=None):
     Ylist = [typeClass.normalize(v0)]
     S = typeClass.overlapMatrix(Ylist)
     qtAq = typeClass.matrixRepresentation(H,Ylist)
-    status = _getStatus(status,Ylist[0],maxit,L,eConv)
+    status = _getStatus(status,Ylist[0],sigma,maxit,L,eConv)
+    if pick is None:pick=get_pick_function_close_to_sigma(status["sigma"])
+    assert callable(pick)
   
     for it in range(maxit):
         status["outerIter"] = it
-        for i in range(1,L):
+        for i in range(1,L): # starts with 1 because Y0 is used as first basis vector
             status["innerIter"] = i
             status["cumIter"] += 1
             
             Ylist = generateSubspace(H,Ylist,sigma,eConv)
             status, uS, S = transformationMatrix(Ylist,S,status)
-            if status['lindep']:
+            if status['lindep'] and i != 1: # Corner case for 1st iteration
                 print("Restarting calculation: Got linearly dependent basis!")
                 Ylist = Ylist[:-1] # Excluding the last vector added to the Ylist
                 break
             ev, uv, qtAq = diagonalizeHamiltonian(H,Ylist,uS,qtAq,status)[1:4]
-            status,idx = checkConvergence(ev,sigma,eConv,status)
-            continueIteration = analyzeStatus(status)
             uSH = uS@uv
+            idx = pick(uSH,Ylist,ev)
+            assert len(idx) == len(ev), f"{len(ev)=} {len(idx)=}"
+            ev = ev[idx]
+            uSH = uSH[:,idx]
+            status = checkConvergence(ev,status)
+            continueIteration = analyzeStatus(status)
+            if status['lindep'] and i == 1: # Corner case for 1st iteration
+                print("Restarting calculation: Got linearly dependent basis!")
+                Ylist = Ylist[:-1] # Excluding the last vector added to the Ylist
+                break
             
             if not continueIteration:
                 break
@@ -315,12 +327,13 @@ def inexactDiagonalization(H,v0,sigma,L,maxit,eConv,status=None):
             Ylist = basisTransformation(Ylist,uSH)
             break
         else:
-            y = basisTransformation(Ylist,uSH[:,idx])
+            y = basisTransformation(Ylist,uSH[:,0])
             YlistNew = [typeClass.normalize(y[0])]
             S = typeClass.overlapMatrix(YlistNew)
             qtAq=typeClass.matrixRepresentation(H,YlistNew)
-            if not properFitting(qtAq,ev[idx],status):break
-            if terminateRestart(qtAq[0],status):break
+            evNew = qtAq[0,0]
+            if not properFitting(evNew,ev[0],status):break
+            if terminateRestart(evNew,status):break
             Ylist = YlistNew # when Lanczos iteration continues
 
     return ev,Ylist,status
@@ -333,11 +346,12 @@ if __name__ == "__main__":
     A = Q.T @ np.diag(ev) @ Q
 
     target = 30
-    maxit = 4 
+    maxit = 4
     L = 6 
     eConv = 1e-8
 
-    optionDict = {"linearSolver":"gcrotmk","linearIter":1000,"linear_tol":1e-04}
+    options = {"linearSolver":"gcrotmk","linearIter":1000,"linear_tol":1e-04}
+    optionDict = {"linearSystemArgs":options}
     status = {"writeOut": False,"writePlot": False}
     Y0 = NumpyVector(np.random.random((n)),optionDict)
     sigma = target
@@ -348,7 +362,9 @@ if __name__ == "__main__":
     print("{:50} :: {: <4}".format("Eigenvalue convergence tolarance",eConv))
     print("\n")
     t1 = time.time()
-    lf,xf,status =  inexactDiagonalization(A,Y0,sigma,L,maxit,eConv,status)
+    pick =  get_pick_function_close_to_sigma(sigma)
+    #pick =  get_pick_function_maxOvlp(Y0)
+    lf,xf,status =  inexactDiagonalization(A,Y0,sigma,L,maxit,eConv,pick=pick,status=status)
     t2 = time.time()
 
     print("{:50} :: {: <4}".format("Eigenvalue nearest to sigma",round(find_nearest(lf,sigma)[1],8)))

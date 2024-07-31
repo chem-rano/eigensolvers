@@ -7,6 +7,8 @@ from numpyVector import NumpyVector
 import util
 
 LINDEP_DEFAULT_VALUE = 1e-14 # Global variable
+# Lower value is better; TODO look for optimum value
+#LINDEP_DEFAULT_VALUE = 1e-9 # Global variable
 
 # -----------------------------------------------------
 def trapezoidal(nc):
@@ -236,3 +238,43 @@ def calculateTarget(eigenvalues, indx, tol=1e-14):
     target = eigenvalues[indx] + min(ediff1,ediff2)*0.25
     return target
 
+def get_pick_function_maxOvlp(toCompare):
+    """ Returns pick function 
+        toCompare -> Reference for overlap evaluation"""
+    def pick(transformMat,vectors,eigenvalues):
+        """ Picks eigenstate index of maximum overlap to reference
+        In: transformMat -> transformation matrix from Krylov
+                            vectors to Lanczos eigenvectors
+            vectors->   Krylov vectors (list)
+            eigenvalues ->   Lanczos eigenvalues
+
+         Out: idx -> index (or indices) of eigenvectors"""
+        
+        nKrylov = transformMat.shape[0]
+        dtype = transformMat[0].dtype
+        overlapKrylov = np.zeros(nKrylov,dtype=dtype)
+        
+        for i in range(nKrylov):
+            overlapKrylov[i] = vectors[i].vdot(toCompare)
+        overlap = abs(transformMat.T.conj() @ overlapKrylov)
+        
+        idx = np.argsort(-overlap)
+
+        return idx
+    return pick
+
+def get_pick_function_close_to_sigma(toCompare):
+    """ Returns pick function 
+        toCompare -> Reference for nearest eigenvalue evaluation"""
+    def pick(transformMat,vectors,eigenvalues):
+        """ Picks eigenstates closest to target eigenvalue
+        In: transformMat -> transformation matrix from Krylov
+                            vectors to Lanczos eigenvectors
+            vectors->   Krylov vectors (list)
+            eigenvalues ->   Lanczos eigenvalues
+
+        Out: idx (np array) -> index (or indices) of eigenstates 
+        """
+        idx = np.argsort(np.abs(eigenvalues - toCompare))
+        return idx
+    return pick
