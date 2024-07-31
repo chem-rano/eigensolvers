@@ -7,6 +7,7 @@ from numpyVector import NumpyVector
 import util
 
 LINDEP_DEFAULT_VALUE = 1e-14 # Global variable
+# Lower value is better; TODO look for optimum value
 #LINDEP_DEFAULT_VALUE = 1e-9 # Global variable
 
 # -----------------------------------------------------
