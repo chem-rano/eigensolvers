@@ -55,9 +55,9 @@ def feastDiagonalization(A,Y,nc,quad,rmin,rmax,eps,maxit):
                     Qadd = (-0.5*wk[k])*typeClass.real(r*np.exp(1j*theta)*Qkjloop)
                 else:
                     part1 = np.exp(1j*theta)*Qkjloop
-                    part2 = np.exp(-1j*theta)*Qkjloop
+                    part2 = np.exp(-1j*theta)*Qkjloop.conj()
                     Qadd = (-0.25*wk[k])*r*linearCombination([part1,part2],[1.0,1.0]) 
-                    #Qadd = (-0.25*wk[k])*r*((np.exp(1j*theta)*Qkjloop)+((np.exp(-1j*theta)*Qkjloop.conj()))) #HRL conj()
+                    #Qadd = (-0.25*wk[k])*r*((np.exp(1j*theta)*Qkjloop)+((np.exp(-1j*theta)*Qkjloop.conj())))
 
 
                 if k == 0:
@@ -118,7 +118,8 @@ if __name__ == "__main__":
     m0    = 4         # subspace dimension
     eps   = 1e-6      # residual convergence tolerance
     maxit = 10         # maximum FEAST iterations
-    optionsDict = {"linearSolver":"gcrotmk","linearIter":1000,"linear_tol":1e-02}
+    options = {"linearSolver":"gcrotmk","linearIter":1000,"linear_tol":1e-02}
+    optionsDict = {"linearSystemArgs":options}
     
     Y = []
     np.random.seed(10)
