@@ -74,6 +74,9 @@ class NumpyVector(AbstractVector):
     def real(self):
         return NumpyVector(np.real(self.array),self.optionsDict)
 
+    def conjugate(self):
+        return NumpyVector(self.array.conj(),self.optionsDict)
+
     def vdot(self,other,conjugate:bool=True):
         if conjugate:
             return np.vdot(self.array,other.array)
@@ -88,20 +91,21 @@ class NumpyVector(AbstractVector):
         return NumpyVector(other@self.array,self.optionsDict)
     
 
-    def linearCombination(other,coeff):
+    def linearCombination(vectors,coeffs):
         '''
         Returns the linear combination of n vectors [v1, v2, ..., vn]
         combArray = c1*v1 + c2*v2 + cn*vn 
         Useful for addition, subtraction: c1 = 1.0/-1.0, respectively
 
-        In:: other == list of vectors
-             coeff == list of coefficients, [c1,c2,...,cn]
+        In:: vectors == list of vectors
+             coeffs == list of coefficients, [c1,c2,...,cn]
         '''
-        dtype = other[0].dtype
-        combArray = np.zeros(len(other[0]),dtype=dtype)
-        for n in range(len(other)):
-            combArray += coeff[n]*other[n].array
-        return NumpyVector(combArray,other[0].optionsDict)
+        assert len(vectors) == len(coeffs)
+        dtype = vectors[0].dtype
+        combArray = np.zeros(len(vectors[0]),dtype=dtype)
+        for n in range(len(vectors)):
+            combArray += coeffs[n]*vectors[n].array
+        return NumpyVector(combArray,vectors[0].optionsDict)
 
     
 

@@ -89,6 +89,9 @@ class TTNSVector(AbstractVector):
     def real(self):
         raise NotImplementedError
 
+    def conjugate(self:TTNSVector) -> TTNSVector:
+        return TTNSVector(self.ttns.conj(),self.options)
+
     def vdot(self, other: TTNSVector, conjugate=True) -> Number:
         if not conjugate:
             # need to change RenormalizedDot accordingly

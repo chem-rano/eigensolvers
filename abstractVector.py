@@ -67,6 +67,10 @@ class AbstractVector(ABC):
         raise NotImplementedError
 
     @abstractmethod
+    def conjugate(self):
+        raise NotImplementedError
+
+    @abstractmethod
     def vdot(self,other,conjugate=True):
         raise NotImplementedError
      
