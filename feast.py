@@ -1,5 +1,5 @@
 import numpy as np
-import scipy
+import scipy as sp
 from scipy.sparse.linalg import LinearOperator
 from scipy import special
 from scipy import linalg as la
@@ -8,10 +8,108 @@ from util_funcs import lowdinOrtho
 from numpyVector import NumpyVector
 import time
 
+def _getStatus(status,guess,radius,maxit,nc,eConv):
+    
+    statusUp = {"radius":radius,"maxit":maxit,
+            "nquad":nc,"eConv":eConv,
+            "flagAddition":guess[0].hasExactAddition,
+            "outerIter":0, "innerIter":0,"cumIter":0,
+            "isConverged":False,"lindep":False,
+            "startTime":time.time(), "runTime":0.0,
+            "writeOut":True,"writePlot":True,"eShift":0.0,"convertUnit":"au"}
+    
+    if status is not None:
+        givenkeys = status.keys()
+    
+        for item in givenkeys:       # overwrite defaults
+            if item in status:
+                statusUp[item] = status[item]
+    
+    return statusUp
+
+def basisTransformation(bases,coeffs):
+    ''' Basis transformation with eigenvectors 
+    and feast bases
+
+    In: bases -> List of bases for combination
+        coeffs -> coefficients used for the combination
+
+    Out: combBases -> combination results'''
+
+    typeClass = bases[0].__class__
+    ndim = coeffs.shape
+    combBases = []
+    if len(ndim) == 1:
+        combBases.append(typeClass.linearCombination(bases,coeffs))
+    else:
+        for j in range(ndim[1]):
+            combBases.append(typeClass.linearCombination(bases,coeffs[:,j]))
+    return combBases
+
+def calculateQuadrature(gfVector,angle,radius,weight):
+    ''' Calculates k-th quadrature for real and complex classes'''
+
+    typeClass = gfVector.__class__
+    flag = gfVector.hasExactAddition
+    if flag:
+        Qadd = (-0.5*weight)*typeClass.real(radius*np.exp(1j*angle)*gfVector)
+    else:
+        part1 = gfVector 
+        part2 = typeClass.conjugate(gfVector)
+        c1 = np.exp(1j*angle)
+        c2 = np.exp(-1j*angle)
+        mult = -0.25*weight*radius
+        Qadd = typeClass.linearCombination([part1,part2],[c1,c2])*mult
+
+    return Qadd
+
+def updateQ(Q,im0,Qadd,k):
+    ''' Adds k-th quadrature solution to the existing Q'''
+
+    typeClass = Qadd.__class__
+    if k == 0:
+        Q[im0] = Qadd
+    else:
+        Q[im0] = typeClass.linearCombination([Q[im0],Qadd],[1.0,1.0])
+    return Q
+       
+def transformationMatrix(vectors):
+    ''' Calculates transformation matrix from 
+    overlap matrix in Q basis
+    In: vectors (list of basis)
+        lindep (default value is 1e-14, lowdinOrtho())
+    
+    Out: uS: transformation matrix'''
+    
+    typeClass = vectors[0].__class__
+    S = typeClass.overlapMatrix(vectors)
+    uS, idx = lowdinOrtho(S)[1:3]
+    return uS, idx
+
+def diagonalizeHamiltonian(Hop,vectors,X):
+    ''' Calculates matrix representation of Hop,
+    forms truncated matrix (Hmat)
+    and finally solves eigenvalue problem for Hmat
+
+    In: Hop -> Operator (either as matrix or linearOperator)
+        vectors -> list of basis
+        X -> transformation matrix
+
+    Out: Hmat -> Matrix represenation
+                 (mainly for unit tests)
+         ev -> eigenvalues
+         uv -> eigenvectors'''
+
+    typeClass = vectors[0].__class__
+    qtAq = typeClass.matrixRepresentation(Hop,vectors)   
+    Hmat = X.T.conj()@qtAq@X
+    ev, uv = sp.linalg.eigh(Hmat)
+    return Hmat,ev,uv
+
 # ***************************************************
 # Part 1: main FEAST function for contour integral
 # ------------------------------
-def feastDiagonalization(A,Y,nc,quad,rmin,rmax,eps,maxit):
+def feastDiagonalization(A,Y,nc,quad,rmin,rmax,eConv,maxit,status=None):
     """ FEAST diagonalization of A 
 
         In A     ::  matrix or linearoperator or SOP operator 
@@ -21,7 +119,7 @@ def feastDiagonalization(A,Y,nc,quad,rmin,rmax,eps,maxit):
                      Avaiable options - "legendre", "hermite", "trapezoidal"
         In rmin  ::  eigenvalue lower limit
         In rmax  ::  eigenvalue upper limit
-        In eps   ::  eigenvalue residual convergence tolerance
+        In eConv   ::  eigenvalue residual convergence tolerance
         In maxit ::  maximum feast iterations
 
         Out ev   ::  feast eigenvalues
@@ -31,71 +129,45 @@ def feastDiagonalization(A,Y,nc,quad,rmin,rmax,eps,maxit):
     typeClass = Y[0].__class__
     m0 = len(Y)
     r = (rmax-rmin)*0.5
-
-    ev = np.zeros(m0)
-    prev_ev = np.zeros(m0)
+    
+    # initialize Q
     Q = [np.nan for it in range(m0)]
 
     # numerical quadrature points.
     gk,wk = quad_func(nc,quad)
     pi = np.pi
-    
-    flag = Y[0].hasExactAddition
+    status = _getStatus(status,Y,r,nc,maxit,eConv)
     
     for i in range(maxit):
+        status["outerIter"] = i
         for k in range(nc):
-            theta = -(pi*0.5)*(gk[k]-1)
-            z = (rmin+rmax)/2+ np.exp(1.0j*theta)
+            status["innerIter"] = k
+            status["cumIter"] += 1
+            #print("iteration",i,"quadratue",k)
             
-            for jloop in range(m0):
-                b_in = Y[jloop]
-                Qkjloop = typeClass.solve(A,b_in,z)
-                
-                if flag:
-                    Qadd = (-0.5*wk[k])*typeClass.real(r*np.exp(1j*theta)*Qkjloop)
-                else:
-                    part1 = np.exp(1j*theta)*Qkjloop
-                    part2 = np.exp(-1j*theta)*Qkjloop.conj()
-                    Qadd = (-0.25*wk[k])*r*linearCombination([part1,part2],[1.0,1.0]) 
-                    #Qadd = (-0.25*wk[k])*r*((np.exp(1j*theta)*Qkjloop)+((np.exp(-1j*theta)*Qkjloop.conj())))
-
-
-                if k == 0:
-                    Q[jloop] = Qadd
-                else:
-                    Q[jloop] = typeClass.linearCombination([Q[jloop],Qadd],[1.0,1.0])
-       
-        # ------------------------------------- 
+            theta = -(pi*0.5)*(gk[k]-1)
+            z = ((rmin+rmax)*0.5)+ (r*np.exp(1.0j*theta))
+            
+            for im0 in range(m0):
+                b = Y[im0]
+                Qsolved = typeClass.solve(A,b,z)
+                Qe = calculateQuadrature(Qsolved,theta,r,wk[k])
+                Q = updateQ(Q,im0,Qe,k)
+        
         # eigh in Lowdin orthogonal basis
-        qtq = typeClass.overlapMatrix(Q)
-        uQ = lowdinOrtho(qtq)[1]
-        m0 = uQ.shape[1]  
-        for ivec in range(m0):
-            Q[ivec] = typeClass.linearCombination(Q,uQ[:,ivec])
-        Q = Q[0:m0]
-        qtAq = typeClass.matrixRepresentation(A,Q) 
-        ev, uvals = la.eigh(qtAq)
-        # ------------------------------------- 
-    
-        if i == 0: 
-            res = None   # Initialize res as None
-        else:
-            #calculate eigenvalue residuals
-            res = eigenvalueResidual(ev,prev_ev)     
-
-            print(f"{i:10d}   {res:20.14f}")
-
-            if res < eps:
+        uS, idx = transformationMatrix(Q)
+        ev, uv = diagonalizeHamiltonian(A,Q,uS)[1:3]
+        
+        if i != 0: 
+            res = eigenvalueResidual(ev,ref_ev[idx])     
+            if res < eConv:
                 break
        
-        uv = uQ@uvals 
-        Y = []
-        for jvec in range(m0):
-            Y.append(typeClass.linearCombination(Q,uv[:,jvec]))
-        
-        prev_ev = ev
+        uSH = uS@uv
+        Y = basisTransformation(Q,uSH)
+        m0 = len(Y);Q = Q[0:m0]
+        ref_ev = ev
 
-        
     return ev,Y
 
 
@@ -111,13 +183,13 @@ if __name__ == "__main__":
     linOp = LinearOperator((n,n), matvec = lambda x, A=A: A@x)
 
     # Specify FEAST parameters
-    ev_min = 10.0
-    ev_max = 14.0
-    nc    = 6          # number of contour points
+    ev_min = 9.0
+    ev_max = 16.0
+    nc    = 8          # number of contour points
     quad  = "legendre" # Choice of quadrature points # available options, legendre, Hermite (, trapezoidal !)
-    m0    = 4         # subspace dimension
+    m0    = 6         # subspace dimension
     eps   = 1e-6      # residual convergence tolerance
-    maxit = 10         # maximum FEAST iterations
+    maxit = 20         # maximum FEAST iterations
     options = {"linearSolver":"gcrotmk","linearIter":1000,"linear_tol":1e-02}
     optionsDict = {"linearSystemArgs":options}
     

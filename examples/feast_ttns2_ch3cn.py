@@ -85,7 +85,7 @@ Hop.obtainMultiplyOp(bases)
 basisDict = {l:b for l,b in zip(Hop.DoFlabel, bases)}
 tns = parseTree(treeString, basisDict, returnType="TTNS")
 np.random.seed(898989)
-tns.setRandom()
+tns.setRandom(dtype=complex)
 tns.toPdf()
 tns.label = "CH3CN using CSC PES"
 
@@ -98,11 +98,15 @@ noises = [1e-6] * 4 + [1e-7] * 4 + [1e-8] * 6
 # ---------- USER INPUT -----------------------
 rmin = 721
 rmax = 723
-maxit = 10 
-nc = 20 
+maxit = 5 
+nc = 10
 eps = 1e-6 
 quad = "legendre"
-zpve = 9837.4069  
+zpve = 9837.4069
+rmin += 9837.4069
+rmax += 9837.4069
+rmin = util.unit2au(rmin,"cm-1")
+rmax = util.unit2au(rmax,"cm-1")
 nsweepOrtho = 800
 orthoTol = 1e-08
 optShift = 0.0
@@ -131,6 +135,8 @@ for i in range(m0):
     Y.append(TTNSVector(tns,options))
 
 ev, tnsList = feastDiagonalization(Hop,Y,nc,quad,rmin,rmax,eps,maxit)
+target = (rmin+rmax)*0.5
+print("Eigenvalues",ev)
 writeFile(status,"out","results",ev,target)
 fileFooter("out")
 fileFooter("plot",printInfo=False)

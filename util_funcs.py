@@ -211,7 +211,7 @@ def lowdinOrtho(oMat, tol= LINDEP_DEFAULT_VALUE):
     
     info = all(idx)
     uvqTraf = uvq * evq**(-0.5)
-    return info, uvqTraf
+    return info, uvqTraf, idx
 
 def eigenvalueResidual(ev,prev_ev):
 
