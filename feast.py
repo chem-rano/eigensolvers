@@ -52,7 +52,8 @@ def calculateQuadrature(gfVector,angle,radius,weight):
     typeClass = gfVector.__class__
     flag = gfVector.hasExactAddition
     if flag:
-        Qadd = (-0.5*weight)*typeClass.real(radius*np.exp(1j*angle)*gfVector)
+        #Qadd = (-0.5*weight)*typeClass.real(radius*np.exp(1j*angle)*gfVector)
+        Qadd = (0.5*weight)*typeClass.real(radius*np.exp(1j*angle)*gfVector) # solved A-z instead z-A
     else:
         part1 = gfVector 
         part2 = typeClass.conjugate(gfVector)
@@ -136,35 +137,36 @@ def feastDiagonalization(A,Y,nc,quad,rmin,rmax,eConv,maxit,status=None):
     # numerical quadrature points.
     gk,wk = quad_func(nc,quad)
     pi = np.pi
-    status = _getStatus(status,Y,r,nc,maxit,eConv)
+    status = _getStatus(status,Y,r,nc,maxit,eConv) # will be used as lanczos 
     
-    for i in range(maxit):
-        status["outerIter"] = i
+    for it in range(maxit):
+        status["outerIter"] = it
         for k in range(nc):
             status["innerIter"] = k
             status["cumIter"] += 1
-            #print("iteration",i,"quadratue",k)
+            print("iteration",it,"quadratue",k)
             
             theta = -(pi*0.5)*(gk[k]-1)
             z = ((rmin+rmax)*0.5)+ (r*np.exp(1.0j*theta))
             
             for im0 in range(m0):
                 b = Y[im0]
-                Qsolved = typeClass.solve(A,b,z)
-                Qe = calculateQuadrature(Qsolved,theta,r,wk[k])
+                Qsolved = typeClass.solve(A,b,z)  # alright: complex128
+                Qe = calculateQuadrature(Qsolved,theta,r,wk[k]) # alright: float64
                 Q = updateQ(Q,im0,Qe,k)
         
         # eigh in Lowdin orthogonal basis
         uS, idx = transformationMatrix(Q)
         ev, uv = diagonalizeHamiltonian(A,Q,uS)[1:3]
         
-        if i != 0: 
-            res = eigenvalueResidual(ev,ref_ev[idx])     
+        uSH = uS@uv
+        Y = basisTransformation(Q,uSH)
+
+        if it != 0: 
+            res = eigenvalueResidual(ev,ref_ev[idx])
             if res < eConv:
                 break
        
-        uSH = uS@uv
-        Y = basisTransformation(Q,uSH)
         m0 = len(Y);Q = Q[0:m0]
         ref_ev = ev
 
@@ -183,8 +185,8 @@ if __name__ == "__main__":
     linOp = LinearOperator((n,n), matvec = lambda x, A=A: A@x)
 
     # Specify FEAST parameters
-    ev_min = 9.0
-    ev_max = 16.0
+    ev_min = 160.0
+    ev_max = 166.0
     nc    = 8          # number of contour points
     quad  = "legendre" # Choice of quadrature points # available options, legendre, Hermite (, trapezoidal !)
     m0    = 6         # subspace dimension
