@@ -120,7 +120,7 @@ def feastDiagonalization(A,Y,nc,quad,rmin,rmax,eConv,maxit,status=None):
                      Avaiable options - "legendre", "hermite", "trapezoidal"
         In rmin  ::  eigenvalue lower limit
         In rmax  ::  eigenvalue upper limit
-        In eConv   ::  eigenvalue residual convergence tolerance
+        In eConv ::  eigenvalue residual convergence tolerance
         In maxit ::  maximum feast iterations
 
         Out ev   ::  feast eigenvalues
@@ -158,6 +158,7 @@ def feastDiagonalization(A,Y,nc,quad,rmin,rmax,eConv,maxit,status=None):
         # eigh in Lowdin orthogonal basis
         uS, idx = transformationMatrix(Q)
         ev, uv = diagonalizeHamiltonian(A,Q,uS)[1:3]
+        print("iteration",it,"eigenvalues",ev)
         
         uSH = uS@uv
         Y = basisTransformation(Q,uSH)
@@ -195,11 +196,15 @@ if __name__ == "__main__":
     options = {"linearSolver":"gcrotmk","linearIter":1000,"linear_tol":1e-02}
     optionsDict = {"linearSystemArgs":options}
     
-    Y = []
-    np.random.seed(10)
-    aVector = NumpyVector(np.random.random((n)),optionsDict)
+    Y0    = np.random.random((n,m0)) # eigenvector initial guess
     for i in range(m0):
-        Y.append(aVector.copy())
+         Y0[:,i] = np.ones(n) * (i+1)
+    Y1 = la.qr(Y0,mode="economic")[0]
+
+
+    Y = []
+    for i in range(m0):
+        Y.append(NumpyVector(Y1[:,i], optionsDict))
 
     contour_ev = print_a_range(ev, ev_min, ev_max)
     print("actual",contour_ev)
