@@ -143,18 +143,16 @@ class Test_feast(unittest.TestCase):
                 self.eConv,self.maxit)
         
         contour_evs = print_a_range(self.evEigh, self.rmin, self.rmax)
-        feast_evs = print_a_range(evfeast, self.rmin, self.rmax)
-        #ipsh()
-        #quit()
         for i in range(len(contour_evs)):
             idxE = find_nearest(self.evEigh,contour_evs[i])[0]
-            idxT = find_nearest(feast_evs,contour_evs[i])[0]
+            idxT = find_nearest(evfeast,contour_evs[i])[0]
             exactVector = self.uvEigh[:,idxE]
             feastVector = uvfeast[idxT].array
 
             ovlp = np.vdot(exactVector,feastVector)
+            np.testing.assert_allclose(abs(ovlp), 1, rtol=1e-4, err_msg = f"{ovlp=} but it should be +-1")
             feastVector = feastVector * ovlp
-            np.testing.assert_allclose(exactVector,feastVector,rtol=1e-5,atol=1e-4) 
+            np.testing.assert_allclose(exactVector,feastVector,rtol=1e-5,atol=1e-4)
 
 
 if __name__ == '__main__':
