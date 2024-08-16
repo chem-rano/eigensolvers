@@ -7,6 +7,7 @@ from util_funcs import print_a_range, quad_func, eigenvalueResidual
 from util_funcs import lowdinOrtho
 from numpyVector import NumpyVector
 import time
+from magic import ipsh
 
 def _getStatus(status,guess,radius,maxit,nc,eConv):
     
@@ -27,22 +28,30 @@ def _getStatus(status,guess,radius,maxit,nc,eConv):
     
     return statusUp
 
-def basisTransformation(bases,coeffs):
+def basisTransformation(bases,coeffs,rangeIdx=None,selective=False):
     ''' Basis transformation with eigenvectors 
     and feast bases
 
     In: bases -> List of bases for combination
         coeffs -> coefficients used for the combination
+        rangeIdx -> selective elements of coeffs
+        selective -> if to use rangeIdx
 
     Out: combBases -> combination results'''
 
     typeClass = bases[0].__class__
     ndim = coeffs.shape
     combBases = []
-    if len(ndim) == 1:
-        combBases.append(typeClass.linearCombination(bases,coeffs))
+    
+    if not selective:
+        if len(ndim) == 1:
+            combBases.append(typeClass.linearCombination(bases,coeffs))
+        else:
+            for j in range(ndim[1]):
+                combBases.append(typeClass.linearCombination(bases,coeffs[:,j]))
+    
     else:
-        for j in range(ndim[1]):
+        for j in rangeIdx:
             combBases.append(typeClass.linearCombination(bases,coeffs[:,j]))
     return combBases
 
@@ -144,7 +153,7 @@ def feastDiagonalization(A,Y,nc,quad,rmin,rmax,eConv,maxit,status=None):
         for k in range(nc):
             status["innerIter"] = k
             status["cumIter"] += 1
-            print("iteration",it,"quadratue",k)
+            #print("iteration",it,"quadratue",k)
             
             theta = -(pi*0.5)*(gk[k]-1)
             z = ((rmin+rmax)*0.5)+ (r*np.exp(1.0j*theta))
@@ -158,13 +167,14 @@ def feastDiagonalization(A,Y,nc,quad,rmin,rmax,eConv,maxit,status=None):
         # eigh in Lowdin orthogonal basis
         uS, idx = transformationMatrix(Q)
         ev, uv = diagonalizeHamiltonian(A,Q,uS)[1:3]
-        print("iteration",it,"eigenvalues",ev)
+        ev, rangeIdx = print_a_range(ev,rmin,rmax)
         
         uSH = uS@uv
-        Y = basisTransformation(Q,uSH)
+        Y = basisTransformation(Q,uSH,rangeIdx,selective=True)
 
         if it != 0: 
             res = eigenvalueResidual(ev,ref_ev[idx])
+            print("iteration",it,"residual",res)
             if res < eConv:
                 break
        
@@ -192,7 +202,7 @@ if __name__ == "__main__":
     quad  = "legendre" # Choice of quadrature points # available options, legendre, Hermite (, trapezoidal !)
     m0    = 6         # subspace dimension
     eps   = 1e-6      # residual convergence tolerance
-    maxit = 20         # maximum FEAST iterations
+    maxit = 4         # maximum FEAST iterations
     options = {"linearSolver":"gcrotmk","linearIter":1000,"linear_tol":1e-02}
     optionsDict = {"linearSystemArgs":options}
     
@@ -206,7 +216,7 @@ if __name__ == "__main__":
     for i in range(m0):
         Y.append(NumpyVector(Y1[:,i], optionsDict))
 
-    contour_ev = print_a_range(ev, ev_min, ev_max)
-    print("actual",contour_ev)
+    contour_ev = print_a_range(ev, ev_min, ev_max)[0]
+    print("--- actual eigenvalues",contour_ev,"---\n")
     efeast,ufeast =  feastDiagonalization(linOp,Y,nc,quad,ev_min,ev_max,eps,maxit)
-    print("feast",efeast)
+    print("\n---feast eigenvalues",efeast,"---")

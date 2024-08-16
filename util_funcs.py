@@ -114,11 +114,13 @@ def print_a_range(in_arr, arr_min, arr_max):
     Prints elements of an array(in_arr) from the selected interval rr_min and arr_max
     '''
     out_arr = []
+    rangeIdx = []
     n = len(in_arr)
     for i in range(n):
         if in_arr[i] >= arr_min and in_arr[i] <= arr_max:
             out_arr.append(in_arr[i])
-    return out_arr
+            rangeIdx.append(i)
+    return np.array(out_arr), rangeIdx
 # -----------------------------------------------------
 def find_nearest(array, value):
     array = np.asarray(array)
@@ -224,6 +226,7 @@ def eigenvalueResidual(ev,prev_ev):
         prev_tot += prev_ev[i]
     res = diff/prev_tot
     return res
+
 # -----------------------------------------------------
 def calculateTarget(eigenvalues, indx, tol=1e-14):
     ''' Calculates target for the given 
