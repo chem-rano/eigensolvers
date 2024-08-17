@@ -94,10 +94,23 @@ if EPS is not None:
 else:
     bondDimensionAdaptions = None
 noises = [1e-6] * 4 + [1e-7] * 4 + [1e-8] * 6
+m0 = 5
 
+davidsonOptions = [IterativeDiagonalizationOptions(tol=1e-7, maxIter=500,maxSpaceFac=200)] * 8
+davidsonOptions.append(IterativeDiagonalizationOptions(tol=1e-8, maxIter=500,maxSpaceFac=200))
+tnsList, energies = eigenStateComputations(tns, Hop,
+                                     nStates=m0,
+                                     nSweep=999,
+                                     projectionShift=util.unit2au(9999,"cm-1"),
+                                     iterativeDiagonalizationOptions=davidsonOptions,
+                                     bondDimensionAdaptions= bondDimensionAdaptions,
+                                     noises = noises,
+                                     allowRestart=True,
+                                     convTol=convTol)
+##tns = TTNSVector(tnsList[0],options)
 # ---------- USER INPUT -----------------------
-rmin = 721
-rmax = 723
+rmin = 722
+rmax = 724
 maxit = 5 
 nc = 10
 eps = 1e-6 
@@ -128,16 +141,18 @@ status = {"eShift":zpve, "convertUnit":"cm-1"}
 
 fileHeader("out",options,rmin,nc, maxit,eps,MAX_D)
 fileHeader("plot",options,rmin,nc,maxit,eps,MAX_D,printInfo=False)
-m0 = 10
+
+#m0 = 10 
 Y = []
-np.random.seed(10)
 for i in range(m0):
-    Y.append(TTNSVector(tns,options))
+    #tns.setRandom(dtype=complex)
+    #Y.append(TTNSVector(tns,options))
+    Y.append(TTNSVector(tnsList[i],options))
 
 ev, tnsList = feastDiagonalization(Hop,Y,nc,quad,rmin,rmax,eps,maxit)
 target = (rmin+rmax)*0.5
-print("Eigenvalues",ev)
-writeFile(status,"out","results",ev,target)
+print("Eigenvalues",util.au2unit(ev,"cm-1")-zpve)
+#writeFile(status,"out","results",ev,target)
 fileFooter("out")
 fileFooter("plot",printInfo=False)
 # -----------------   EOF  -----------------------
