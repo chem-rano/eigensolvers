@@ -105,13 +105,12 @@ tnsList, energies = eigenStateComputations(tns, Hop,
                                      iterativeDiagonalizationOptions=davidsonOptions,
                                      bondDimensionAdaptions= bondDimensionAdaptions,
                                      noises = noises,
-                                     allowRestart=True,
+                                     allowRestart=False,
                                      convTol=convTol)
-##tns = TTNSVector(tnsList[0],options)
 # ---------- USER INPUT -----------------------
 rmin = 722
 rmax = 724
-maxit = 5 
+maxit = 3 
 nc = 10
 eps = 1e-6 
 quad = "legendre"
@@ -120,29 +119,17 @@ rmin += 9837.4069
 rmax += 9837.4069
 rmin = util.unit2au(rmin,"cm-1")
 rmax = util.unit2au(rmax,"cm-1")
-nsweepOrtho = 800
-orthoTol = 1e-08
-optShift = 0.0
 
-siteLinearTol = 1e-3
-globalLinearTol = 1e-2
-nsweepLinear = 1000
-
-fittingTol = 1e-9
-nsweepFitting = 1000
 # ---------- USER INPUT -----------------------
 
-optsCheck = IterativeLinearSystemOptions(solver="gcrotmk",tol=siteLinearTol,maxIter=500) 
-optionsOrtho = {"nSweep":nsweepOrtho, "convTol":orthoTol, "optShift":optShift, "bondDimensionAdaptions":bondDimensionAdaptions}
-optionsLinear = {"nSweep":nsweepLinear, "iterativeLinearSystemOptions":optsCheck,"convTol":globalLinearTol,"bondDimensionAdaptions":bondDimensionAdaptions}
-optionsFitting = {"nSweep":nsweepFitting, "convTol":fittingTol,"bondDimensionAdaptions":bondDimensionAdaptions}
-options = {"orthogonalizationArgs":optionsOrtho, "linearSystemArgs":optionsLinear, "stateFittingArgs":optionsFitting}
+optionsLinear = {"nSweep":1000, "iterativeLinearSystemOptions":IterativeLinearSystemOptions(solver="gcrotmk",tol=1e-3,maxIter=1000),"convTol":1e-2,"bondDimensionAdaptions":bondDimensionAdaptions}
+optionsFitting = {"nSweep":1000, "convTol":1e-9,"bondDimensionAdaptions":bondDimensionAdaptions}
+options = {"linearSystemArgs":optionsLinear, "stateFittingArgs":optionsFitting}
 status = {"eShift":zpve, "convertUnit":"cm-1"}
 
 fileHeader("out",options,rmin,nc, maxit,eps,MAX_D)
 fileHeader("plot",options,rmin,nc,maxit,eps,MAX_D,printInfo=False)
 
-#m0 = 10 
 Y = []
 for i in range(m0):
     #tns.setRandom(dtype=complex)
@@ -152,7 +139,6 @@ for i in range(m0):
 ev, tnsList = feastDiagonalization(Hop,Y,nc,quad,rmin,rmax,eps,maxit)
 target = (rmin+rmax)*0.5
 print("Eigenvalues",util.au2unit(ev,"cm-1")-zpve)
-#writeFile(status,"out","results",ev,target)
 fileFooter("out")
 fileFooter("plot",printInfo=False)
 # -----------------   EOF  -----------------------
