@@ -22,7 +22,7 @@ from ttns2.diagonalization import IterativeLinearSystemOptions
 
 timeStarting = time.time()
 #######################################################
-MAX_D = 10 
+MAX_D = 3 
 # if EPS < 0: EPS = None
 # 5e-9 ok
 EPS = 5e-9
@@ -145,7 +145,7 @@ fileHeader("plot",options,target,L,maxit,eConv,zpve,MAX_D,printInfo=False)
 tns = TTNSVector(tns,options)
 sigma = util.unit2au((target+zpve),unit="cm-1")
 eConvAU = util.unit2au(eConv,unit="cm-1")
-ev, tnsList = inexactDiagonalization(Hop,tns,sigma,L,maxit,eConvAU,status)[0:2]
+ev, tnsList = inexactDiagonalization(Hop,tns,sigma,L,maxit,eConvAU,pick=None,status=status)[0:2]
 writeFile(status,"out","results",ev,target)
 fileFooter("out")
 fileFooter("plot",printInfo=False)

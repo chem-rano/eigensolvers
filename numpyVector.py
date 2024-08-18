@@ -137,7 +137,8 @@ class NumpyVector(AbstractVector):
         return x
         
     def solve(H, b, sigma = None, x0=None):
-        ''' Linear equation ((H-sigma*I)x0 =b ) solver'''
+        ''' Linear equation ((sigma-H)x0 =b ) solver'''
+        #NOTE: opposit to ttnsVector; add other cases for both code
             
         n = H.shape[0]
         dtype = np.result_type(sigma, H.dtype, b.dtype)

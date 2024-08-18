@@ -43,7 +43,7 @@ sigma = target
 
 if status["writeOut"]:fileHeader("out",options,target,L, maxit,eConv,printInfo=False)
 if status["writePlot"]:fileHeader("plot",options,target,L,maxit,eConv,printInfo=False)
-lf,xf,status = inexactDiagonalization(A,Y0,sigma,L,maxit,eConv,status)
+lf,xf,status = inexactDiagonalization(A,Y0,sigma,L,maxit,eConv,pick=None,status=status)
 del status["actualEvalues"]
 print(status)
 

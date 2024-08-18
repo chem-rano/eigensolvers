@@ -142,6 +142,7 @@ class TTNSVector(AbstractVector):
     def solve(H, b:TTNSVector, sigma:Number,
               x0: Optional[TTNSVector]=None,
               opType = "her") -> TTNSVector:
+        ''' solves (H-sigma)x0 =b '''
         if x0 is None:
             # TODO think about best options.
             #   D=1 TTNS?

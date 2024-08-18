@@ -67,7 +67,8 @@ class Test_feast_ttns(unittest.TestCase):
                                      iterativeDiagonalizationOptions=davidsonOptions,
                                      bondDimensionAdaptions= bondDimensionAdaptions,
                                      noises = noises,
-                                     allowRestart=True,
+                                     allowRestart=False,
+                                     saveDir=None,
                                      convTol=convTol)
 
         self.rmin = energies[3]*1.001
@@ -198,8 +199,11 @@ class Test_feast_ttns(unittest.TestCase):
 
             ovlp = exactVector.vdot(feastVector)
             np.testing.assert_allclose(abs(ovlp), 1, rtol=1e-4, err_msg = f"{ovlp=} but it should be +-1")
-            #feastVector = feastVector * ovlp
-            #np.testing.assert_allclose(exactVector,feastVector,rtol=1e-3,atol=1e-3)
+            
+            feastVector = feastVector * ovlp
+            exactVector = np.ravel(exactVector.ttns.fullTensor(canonicalOrder=True)[0])
+            feastVector = np.ravel(feastVector.ttns.fullTensor(canonicalOrder=True)[0])
+            np.testing.assert_allclose(exactVector,feastVector,rtol=1e-3,atol=1e-3)
 
 if __name__ == "__main__":
     unittest.main()

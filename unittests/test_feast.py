@@ -49,7 +49,6 @@ class Test_feast(unittest.TestCase):
         self.evEigh = evEigh
         self.uvEigh = uvEigh
 
-        
     def test_Hmat(self):
         ''' Bypassing linear combination works for Hamitonian matrix formation'''
         uvfeast = feastDiagonalization(self.mat,self.guess,self.nc,self.quad,self.rmin,self.rmax,
@@ -139,8 +138,8 @@ class Test_feast(unittest.TestCase):
     def test_eigenvector(self):
         ''' Checks if the calculated eigenvalue is accurate to fourth decimal place'''
        
-        evfeast, uvfeast = feastDiagonalization(self.mat,self.guess,self.nc,self.quad,self.rmin,self.rmax,
-                self.eConv,self.maxit)
+        evfeast, uvfeast = feastDiagonalization(self.mat,self.guess,10,self.quad,self.rmin,self.rmax,
+                1e-12,20)
         
         contour_evs = print_a_range(self.evEigh, self.rmin, self.rmax)[0]
         for i in range(len(contour_evs)):
@@ -151,8 +150,8 @@ class Test_feast(unittest.TestCase):
 
             ovlp = np.vdot(exactVector,feastVector)
             np.testing.assert_allclose(abs(ovlp), 1, rtol=1e-4, err_msg = f"{ovlp=} but it should be +-1")
-            #feastVector = feastVector * ovlp
-            #np.testing.assert_allclose(exactVector,feastVector,rtol=1e-3,atol=1e-3)
+            feastVector = feastVector * ovlp
+            np.testing.assert_allclose(exactVector,feastVector,rtol=1e-3,atol=1e-3)
 
 
 if __name__ == '__main__':

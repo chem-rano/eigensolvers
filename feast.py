@@ -61,14 +61,14 @@ def calculateQuadrature(gfVector,angle,radius,weight):
     typeClass = gfVector.__class__
     flag = gfVector.hasExactAddition
     if flag:
-        #Qadd = (-0.5*weight)*typeClass.real(radius*np.exp(1j*angle)*gfVector)
-        Qadd = (0.5*weight)*typeClass.real(radius*np.exp(1j*angle)*gfVector) # solved A-z instead z-A
+        Qadd = (-0.5*weight)*typeClass.real(radius*np.exp(1j*angle)*gfVector)
     else:
         part1 = gfVector 
         part2 = typeClass.conjugate(gfVector)
         c1 = np.exp(1j*angle)
         c2 = np.exp(-1j*angle)
-        mult = -0.25*weight*radius
+        #mult = -0.25*weight*radius
+        mult = 0.25*weight*radius  # H-sigma instead (sigma-H)
         Qadd = typeClass.linearCombination([part1,part2],[c1,c2])*mult
 
     return Qadd

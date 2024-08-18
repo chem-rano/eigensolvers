@@ -111,7 +111,7 @@ def transformationMatrix(Ylist,S,status):
     if status["writeOut"]:
         writeFile("out",status,"iteration")
         writeFile("out",status,"overlap",S)
-    linIndep, uS = lowdinOrtho(S)
+    linIndep, uS = lowdinOrtho(S)[0:2]
     status["lindep"] = not linIndep
     return status, uS, S
     
@@ -317,7 +317,8 @@ def inexactDiagonalization(H,v0,sigma,L,maxit,eConv,pick=None,status=None):
             continueIteration = analyzeStatus(status)
             if status['lindep'] and i == 1: # Corner case for 1st iteration
                 print("Restarting calculation: Got linearly dependent basis!")
-                Ylist = Ylist[:-1] # Excluding the last vector added to the Ylist
+                #Ylist = Ylist[:-1] # Excluding the last vector added to the Ylist
+                #TODO not only truncation of Ylist; uSH is enlarged too
                 break
             
             if not continueIteration:
