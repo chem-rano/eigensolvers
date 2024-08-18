@@ -187,7 +187,11 @@ def basisTransformation(bases,coeffs):
     ndim = coeffs.shape
     combBases = []
     if len(ndim)==1:
-        combBases.append(typeClass.linearCombination(bases,coeffs))
+        if len(coeffs) == 1 and coeffs[0] == 1.0:
+            # leaving fraction multiplication to linear combination
+            combBases = bases
+        else:
+            combBases.append(typeClass.linearCombination(bases,coeffs))
     else:
         for j in range(ndim[1]):
             combBases.append(typeClass.linearCombination(bases,coeffs[:,j]))
@@ -224,7 +228,7 @@ def terminateRestart(energy,status,num=3):
     decision = False
     prevEnergy = status["ref"][0]
 
-    if status["lindep"]:    
+    if status["lindep"]:
         if _convergence(energy,prevEnergy) < max(1e-9,status["eConv"]):
             status["futileRestart"] += 1
     
@@ -303,10 +307,16 @@ def inexactDiagonalization(H,v0,sigma,L,maxit,eConv,pick=None,status=None):
             
             Ylist = generateSubspace(H,Ylist,sigma,eConv)
             status, uS, S = transformationMatrix(Ylist,S,status)
-            if status['lindep'] and i != 1: # Corner case for 1st iteration
+            if status['lindep']:
                 print("Restarting calculation: Got linearly dependent basis!")
-                Ylist = Ylist[:-1] # Excluding the last vector added to the Ylist
+                Ylist = Ylist[:-1] # Excluding the last vector
+                if i == 1:# Corner case for 1st iteration
+                    assert len(Ylist) == 1
+                    uSH = np.ones(1)  # single item in Ylist
+                    continueIteration = False # No need for further iteration
+                    if it == 0: ev = typeClass.matrixRepresentation(Ylist)
                 break
+           
             ev, uv, qtAq = diagonalizeHamiltonian(H,Ylist,uS,qtAq,status)[1:4]
             uSH = uS@uv
             idx = pick(uSH,Ylist,ev)
@@ -315,11 +325,6 @@ def inexactDiagonalization(H,v0,sigma,L,maxit,eConv,pick=None,status=None):
             uSH = uSH[:,idx]
             status = checkConvergence(ev,status)
             continueIteration = analyzeStatus(status)
-            if status['lindep'] and i == 1: # Corner case for 1st iteration
-                print("Restarting calculation: Got linearly dependent basis!")
-                #Ylist = Ylist[:-1] # Excluding the last vector added to the Ylist
-                #TODO not only truncation of Ylist; uSH is enlarged too
-                break
             
             if not continueIteration:
                 break

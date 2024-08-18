@@ -11,12 +11,12 @@ class Test_lanczos(unittest.TestCase):
         # This is a specific case where linearly dependent vectors
         # generation happens
         n = 1200
-        ev = np.linspace(1,500,n)
+        ev = np.linspace(1,400,n)
         np.random.seed(10)
         Q = la.qr(np.random.rand(n,n))[0]
         A = Q.T @ np.diag(ev) @ Q
 
-        options = {"linearSolver":"gcrotmk","linearIter":5000,"linear_tol":5e-1}
+        options = {"linearSolver":"gcrotmk","linearIter":500,"linear_tol":1e-1}
         optionDict = {"linearSystemArgs":options}
         self.printChoices = {"writeOut": False,"writePlot": False}
         Y0 = NumpyVector(np.random.random((n)),optionDict)
