@@ -4,7 +4,6 @@ from scipy import linalg as la
 from abstractVector import AbstractVector
 from scipy.sparse.linalg import LinearOperator
 import warnings
-from magic import ipsh
 
 ####################################################################
 # Creates a numpyVector class, which has defined elementary operations

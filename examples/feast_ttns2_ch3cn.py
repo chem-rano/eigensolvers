@@ -23,11 +23,9 @@ from ttns2.diagonalization import IterativeLinearSystemOptions
 timeStarting = time.time()
 #######################################################
 MAX_D = 10 
-# if EPS < 0: EPS = None
 # 5e-9 ok
 EPS = 5e-9
 convTol = 1e-5
-N_STATES = 8
 #######################################################
 _print = getVerbosePrinter(True)
 _print("# EPS=",EPS)
@@ -94,12 +92,12 @@ if EPS is not None:
 else:
     bondDimensionAdaptions = None
 noises = [1e-6] * 4 + [1e-7] * 4 + [1e-8] * 6
-m0 = 5
+N_SUBSPACE = 5
 
 davidsonOptions = [IterativeDiagonalizationOptions(tol=1e-7, maxIter=500,maxSpaceFac=200)] * 8
 davidsonOptions.append(IterativeDiagonalizationOptions(tol=1e-8, maxIter=500,maxSpaceFac=200))
 tnsList, energies = eigenStateComputations(tns, Hop,
-                                     nStates=m0,
+                                     nStates=N_SUBSPACE,
                                      nSweep=999,
                                      projectionShift=util.unit2au(9999,"cm-1"),
                                      iterativeDiagonalizationOptions=davidsonOptions,
@@ -108,17 +106,13 @@ tnsList, energies = eigenStateComputations(tns, Hop,
                                      allowRestart=False,
                                      convTol=convTol)
 # ---------- USER INPUT -----------------------
-rmin = 722
-rmax = 724
-maxit = 3 
+Emin = 722  # Lower limit of excitation energy for target interval
+Emax = 724   # Upper limit of excitation energy for target interval
+maxit = 3
 nc = 10
 eps = 1e-6 
 quad = "legendre"
 zpve = 9837.4069
-rmin += 9837.4069
-rmax += 9837.4069
-rmin = util.unit2au(rmin,"cm-1")
-rmax = util.unit2au(rmax,"cm-1")
 
 # ---------- USER INPUT -----------------------
 
@@ -127,17 +121,18 @@ optionsFitting = {"nSweep":1000, "convTol":1e-9,"bondDimensionAdaptions":bondDim
 options = {"linearSystemArgs":optionsLinear, "stateFittingArgs":optionsFitting}
 status = {"eShift":zpve, "convertUnit":"cm-1"}
 
-fileHeader("out",options,rmin,nc, maxit,eps,MAX_D)
-fileHeader("plot",options,rmin,nc,maxit,eps,MAX_D,printInfo=False)
+fileHeader("out",options,Emin,nc, maxit,eps,MAX_D)
+fileHeader("plot",options,Emin,nc,maxit,eps,MAX_D,printInfo=False)
 
+ev_min = util.unit2au((Emin+zpve),"cm-1")  # lower limit of eigenvalue in a.u.
+ev_max = util.unit2au((Emax+zpve),"cm-1")  # upper limit of eigenvalue in a.u.
 Y = []
-for i in range(m0):
+for i in range(N_SUBSPACE):
     #tns.setRandom(dtype=complex)
     #Y.append(TTNSVector(tns,options))
     Y.append(TTNSVector(tnsList[i],options))
 
-ev, tnsList = feastDiagonalization(Hop,Y,nc,quad,rmin,rmax,eps,maxit)
-target = (rmin+rmax)*0.5
+ev, tnsList = feastDiagonalization(Hop,Y,nc,quad,ev_min,ev_max,eps,maxit)
 print("Eigenvalues",util.au2unit(ev,"cm-1")-zpve)
 fileFooter("out")
 fileFooter("plot",printInfo=False)

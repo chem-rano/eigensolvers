@@ -164,7 +164,7 @@ class Test_feast_ttns(unittest.TestCase):
         self.assertIsInstance(uvfeast[0], TTNSVector)
 
     def test_eigenvalue(self):
-        ''' Checks if the calculated eigenvalue is accurate to seventh decimal place'''
+        ''' Checks accuracy of the calculated eigenvalues'''
         evfeast = feastDiagonalization(self.mat,self.guess,self.nc,self.quad,self.rmin,self.rmax,
                 self.eConv,self.maxit)[0]
 
@@ -184,7 +184,7 @@ class Test_feast_ttns(unittest.TestCase):
                 self.assertTrue((abs(target_value-closest_value)<= 1e-4),'Not accurate up to 4-nd decimal place')
     
     def test_eigenvector(self):
-        ''' Checks if the calculated eigenvalue is accurate to fourth decimal place'''
+        ''' Checks accuracy of the calculated eigenvectors'''
 
         evfeast, uvfeast = feastDiagonalization(self.mat,self.guess,self.nc,self.quad,self.rmin,self.rmax,
                 self.eConv,self.maxit)

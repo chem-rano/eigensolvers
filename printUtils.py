@@ -30,7 +30,6 @@ def fileHeader(fstring,options,sigma,L,maxit,eConv,
     sweepAlgo = False
     if len(options) >= 2:
         sweepAlgo = True
-        #optionsOrtho = options["orthogonalizationArgs"]
         optionsFitting = options["stateFittingArgs"]
     
     if "iterativeLinearSystemOptions" in optionsLinear:
