@@ -138,6 +138,7 @@ def feastDiagonalization(A,Y,nc,quad,rmin,rmax,eConv,maxit,status=None):
 
     typeClass = Y[0].__class__
     m0 = len(Y)
+    assert rmax > rmin
     r = (rmax-rmin)*0.5
     
     # initialize Q
