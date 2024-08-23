@@ -156,7 +156,7 @@ def feastDiagonalization(A,Y,nc,quad,rmin,rmax,eConv,maxit,status=None):
             print("iteration",it,"quadrature",k)
             
             theta = -(pi*0.5)*(gk[k]-1)
-            z = ((rmin+rmax)*0.5)+ (r*np.exp(1.0j*theta))
+            z = (rmin+rmax) * 0.5+ r * np.exp(1.0j * theta)
             
             for im0 in range(m0):
                 b = Y[im0]
