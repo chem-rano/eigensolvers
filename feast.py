@@ -59,8 +59,7 @@ def calculateQuadrature(gfVector,angle,radius,weight):
     ''' Calculates k-th quadrature for real and complex classes'''
 
     typeClass = gfVector.__class__
-    flag = gfVector.hasExactAddition
-    if flag:
+    if gfVector.hasExactAddition:
         Qadd = (-0.5*weight)*typeClass.real(radius*np.exp(1j*angle)*gfVector)
     else:
         part1 = gfVector 
