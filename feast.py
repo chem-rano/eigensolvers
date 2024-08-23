@@ -108,7 +108,7 @@ def diagonalizeHamiltonian(Hop,vectors,X):
     Out: Hmat -> Matrix represenation
                  (mainly for unit tests)
          ev -> eigenvalues
-         uv -> eigenvectors'''
+         uv -> eigenvectors in the basis defined through `X`'''
 
     typeClass = vectors[0].__class__
     qtAq = typeClass.matrixRepresentation(Hop,vectors)   
