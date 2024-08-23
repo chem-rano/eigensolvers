@@ -170,7 +170,7 @@ def feastDiagonalization(A,Y,nc,quad,rmin,rmax,eConv,maxit,status=None):
         ev, rangeIdx = print_a_range(ev,rmin,rmax)
         
         uSH = uS@uv
-        Y = basisTransformation(Q,uSH,rangeIdx,selective=True)
+        Y = basisTransformation(Q,uSH[:,rangeIdx])
 
         if it != 0: 
             res = eigenvalueResidual(ev,ref_ev[idx])
