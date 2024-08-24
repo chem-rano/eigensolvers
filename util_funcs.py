@@ -109,9 +109,11 @@ def getRes(lest,x,resvecs,eps):
 
 
 # -----------------------------------------------------
-def print_a_range(in_arr, arr_min, arr_max):
+def get_a_range(in_arr, arr_min, arr_max):
     '''
-    Prints elements of an array(in_arr) from the selected interval rr_min and arr_max
+    Returns elements of an array(in_arr) from the selected interval arr_min and arr_max
+    out_arr: array with element within specified range
+    rangeIdx: Indices of the elements in the original array
     '''
     out_arr = []
     rangeIdx = []
@@ -205,6 +207,8 @@ def lowdinOrtho(oMat, tol= LINDEP_DEFAULT_VALUE):
     """ Extracts out linearly independent vectors from the overlap matrix `oMat` and 
     returns orthogonalized vectors (vector*S-1/2).
     :returns info (is all linear independent: True or not), vectors
+    idx : (Boolean array) indices of the returned vectors
+          True if the element is linealy independent
     """
     evq, uvq = la.eigh(oMat)
     idx = evq > tol

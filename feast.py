@@ -3,7 +3,7 @@ import scipy as sp
 from scipy.sparse.linalg import LinearOperator
 from scipy import special
 from scipy import linalg as la
-from util_funcs import print_a_range, quad_func, eigenvalueResidual
+from util_funcs import get_a_range, quad_func, eigenvalueResidual
 from util_funcs import lowdinOrtho
 from numpyVector import NumpyVector
 import time
@@ -28,7 +28,7 @@ def _getStatus(status,guess,radius,maxit,nc,eConv):
     
     return statusUp
 
-def basisTransformation(bases,coeffs,rangeIdx=None,selective=False):
+def basisTransformation(bases,coeffs):
     ''' Basis transformation with eigenvectors 
     and feast bases
 
@@ -43,46 +43,74 @@ def basisTransformation(bases,coeffs,rangeIdx=None,selective=False):
     ndim = coeffs.shape
     combBases = []
     
-    if not selective:
-        if len(ndim) == 1:
-            combBases.append(typeClass.linearCombination(bases,coeffs))
-        else:
-            for j in range(ndim[1]):
-                combBases.append(typeClass.linearCombination(bases,coeffs[:,j]))
-    
+    if len(ndim) == 1:
+        combBases.append(typeClass.linearCombination(bases,coeffs))
     else:
-        for j in rangeIdx:
+        for j in range(ndim[1]):
             combBases.append(typeClass.linearCombination(bases,coeffs[:,j]))
+    
     return combBases
 
-def calculateQuadrature(gfVector,angle,radius,weight):
-    ''' Calculates k-th quadrature for real and complex classes'''
+def calculateQuadrature(Amat,guess_b,z,radius,angle,weight):
+    ''' Calculates k-th quadrature Qquad_k
+    
+    For Hermitian matrix:
+    Qquad_k=-0.25*w_k*r{exp(i*angle_k)G(z)Y+exp(-i*theta)G\dagger(z)Y}
+    
+    For real symm matrix:
+    Qquad_k=-0.50*w_k*Real{r*exp(i*angle_k)G(z)Y}
+    
+    G(z)Y == Qe => From liner solver: (z*I-A)Qe = Y
+    For numpyVector => (z-A) is solved; prefactor = +1
+    For ttnsVector => (A-z) is solved; prefactor = -1
+    
+    In: Amat => Matrix A for the problem Ax = ex
+                Either as ndarray, linear operator or SOP
+        guess_b => Guess for b for solving Qe as in linear system Ax = b
+        z => k-th coutour point 
+        radius => radius of the contour
+        angle => k-th countor angle
+        weight => k-th quadrature distribution weight
+    
+    Out: Qquad_k => k-th quadrature vector
+    '''
 
-    typeClass = gfVector.__class__
-    if gfVector.hasExactAddition:
-        Qadd = (-0.5*weight)*typeClass.real(radius*np.exp(1j*angle)*gfVector)
+    b = guess_b # copying of guess to unalter guess
+    typeClass = b.__class__
+    Qe = typeClass.solve(Amat,b,z)  # complex128
+    if b.hasExactAddition:
+        prefactor = +1
+        mult = prefactor*(-0.5*weight)
+        Qquad_k = mult*typeClass.real(radius*np.exp(1j*angle)*Qe)
     else:
-        part1 = gfVector 
-        part2 = typeClass.conjugate(gfVector)
-        c1 = np.exp(1j*angle)
-        c2 = np.exp(-1j*angle)
-        #mult = -0.25*weight*radius
-        mult = 0.25*weight*radius  # H-sigma instead (sigma-H)
-        Qadd = typeClass.linearCombination([part1,part2],[c1,c2])*mult
+        prefactor = -1  
+        mult = prefactor*(-0.25*weight*radius)
+        part1 = Qe
+        part2 = typeClass.conjugate(Qe)
+        c1 = np.exp(1j*angle)*mult
+        c2 = np.exp(-1j*angle)*mult
+        Qquad_k = typeClass.linearCombination([part1,part2],[c1,c2])
 
-    return Qadd
+    return Qquad_k
 
-def updateQ(Q,im0,Qadd,k):
-    ''' Adds k-th quadrature solution to the existing Q'''
+def updateQ(Q,im0,Qquad_k,k):
+    ''' Adds k-th quadrature solution to the existing Q
+    In: Q => Q vectors
+        im0 => im0-th vector to be updated
+        Qquad_k => k-th quadrature for the im0-th 
+                vector to be updated
+        k => quadrature point
 
-    typeClass = Qadd.__class__
+    Out: Q => updated Q vectors'''
+
+    typeClass = Qquad_k.__class__
     if k == 0:
-        Q[im0] = Qadd
+        Q[im0] = Qquad_k
     else:
-        Q[im0] = typeClass.linearCombination([Q[im0],Qadd],[1.0,1.0])
+        Q[im0] = typeClass.linearCombination([Q[im0],Qquad_k],[1.0,1.0])
     return Q
        
-def transformationMatrix(vectors):
+def transformationMatrix(vectors,lindep=1e-14):
     ''' Calculates transformation matrix from 
     overlap matrix in Q basis
     In: vectors (list of basis)
@@ -92,7 +120,7 @@ def transformationMatrix(vectors):
     
     typeClass = vectors[0].__class__
     S = typeClass.overlapMatrix(vectors)
-    uS, idx = lowdinOrtho(S)[1:3]
+    uS, idx = lowdinOrtho(S,lindep)[1:3]
     return uS, idx
 
 def diagonalizeHamiltonian(Hop,vectors,X):
@@ -103,6 +131,7 @@ def diagonalizeHamiltonian(Hop,vectors,X):
     In: Hop -> Operator (either as matrix or linearOperator)
         vectors -> list of basis
         X -> transformation matrix
+             (transforms vectors to an orthogonal basis)
 
     Out: Hmat -> Matrix represenation
                  (mainly for unit tests)
@@ -140,8 +169,6 @@ def feastDiagonalization(A,Y,nc,quad,rmin,rmax,eConv,maxit,status=None):
     assert rmax > rmin
     r = (rmax-rmin)*0.5
     
-    # initialize Q
-    Q = [np.nan for it in range(m0)]
 
     # numerical quadrature points.
     gk,wk = quad_func(nc,quad)
@@ -150,6 +177,8 @@ def feastDiagonalization(A,Y,nc,quad,rmin,rmax,eConv,maxit,status=None):
     
     for it in range(maxit):
         status["outerIter"] = it
+        # initialize Q
+        Q = [np.nan for it in range(m0)]
         for k in range(nc):
             status["innerIter"] = k
             status["cumIter"] += 1
@@ -159,15 +188,13 @@ def feastDiagonalization(A,Y,nc,quad,rmin,rmax,eConv,maxit,status=None):
             z = (rmin+rmax) * 0.5+ r * np.exp(1.0j * theta)
             
             for im0 in range(m0):
-                b = Y[im0]
-                Qsolved = typeClass.solve(A,b,z)  # alright: complex128
-                Qe = calculateQuadrature(Qsolved,theta,r,wk[k]) # alright: float64
-                Q = updateQ(Q,im0,Qe,k)
+                Qquad_k = calculateQuadrature(A,Y[im0],z,r,theta,wk[k]) # float64
+                Q = updateQ(Q,im0,Qquad_k,k)
         
         # eigh in Lowdin orthogonal basis
         uS, idx = transformationMatrix(Q)
         ev, uv = diagonalizeHamiltonian(A,Q,uS)[1:3]
-        ev, rangeIdx = print_a_range(ev,rmin,rmax)
+        ev, rangeIdx = get_a_range(ev,rmin,rmax)
         
         uSH = uS@uv
         Y = basisTransformation(Q,uSH[:,rangeIdx])
@@ -178,7 +205,7 @@ def feastDiagonalization(A,Y,nc,quad,rmin,rmax,eConv,maxit,status=None):
             if res < eConv:
                 break
        
-        m0 = len(Y);Q = Q[0:m0]
+        m0 = len(Y);del Q
         ref_ev = ev
 
     return ev,Y
@@ -216,7 +243,7 @@ if __name__ == "__main__":
     for i in range(m0):
         Y.append(NumpyVector(Y1[:,i], optionsDict))
 
-    contour_ev = print_a_range(ev, ev_min, ev_max)[0]
+    contour_ev = get_a_range(ev, ev_min, ev_max)[0]
     print("--- actual eigenvalues",contour_ev,"---\n")
     efeast,ufeast =  feastDiagonalization(linOp,Y,nc,quad,ev_min,ev_max,eps,maxit)
     print("\n---feast eigenvalues",efeast,"---")
