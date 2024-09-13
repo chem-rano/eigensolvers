@@ -1,17 +1,13 @@
 import unittest
-import sys
-from feast  import *
-from magic import ipsh
 import numpy as np
-from scipy import linalg as la
-from numpyVector import NumpyVector
-from util_funcs import find_nearest
-import time
-from util_funcs import get_a_range
 import math
-from feast import *
+from magic import ipsh
+from numpyVector import NumpyVector
+from util_funcs import quad_func
+from feast  import calculateQuadrature, updateQ
 
-# This tests our FEAST code with outputs of FEAST Fortran code (by Eric Polizzi)
+# This tests our FEAST code (partial comparison) 
+# with outputs of FEAST Fortran code (by Eric Polizzi)
 
 filename = "data_fortranCode.out"
 
@@ -43,6 +39,7 @@ class Test_feast_fortran(unittest.TestCase):
         
         options = {"linearSolver":"pardiso"}
         optionsDict = {"linearSystemArgs":options}
+        self.status = {"writeOut": False,"writePlot": False}
         
         Y1 = read_fortranData()[1]
         Y = []
@@ -56,13 +53,15 @@ class Test_feast_fortran(unittest.TestCase):
         self.evEigh = evEigh
         self.uvEigh = uvEigh
     
-    def test_legendre_pointts(self):
+    def test_legendre_points(self):
+        ''' Checks distribution points with the help of manual order '''
         fgk,fwk = read_fortranData()[2:4]
         gk,wk = quad_func(self.nc,self.quad)
         np.testing.assert_allclose(fgk,gk[self.order],rtol=1e-5,atol=0)
         np.testing.assert_allclose(fwk,wk[self.order],rtol=1e-5,atol=0)
 
     def test_theta(self):
+        ''' Checks angle for quadrature, theta '''
         ftheta= read_fortranData()[4]
         gk = quad_func(self.nc,self.quad)[0]
         pi = np.pi
@@ -72,6 +71,7 @@ class Test_feast_fortran(unittest.TestCase):
         np.testing.assert_allclose(ftheta,theta[self.order],rtol=1e-5,atol=0)
    
     def test_zne(self):
+        ''' Checks quadrature points, zne '''
         fzne= read_fortranData()[5]
         efactor = 0.3
         r = abs(self.rmax-self.rmin)*0.5
@@ -84,6 +84,7 @@ class Test_feast_fortran(unittest.TestCase):
         np.testing.assert_allclose(fzne,zne[self.order],rtol=1e-5,atol=0)
 
     def test_Qe(self):
+        ''' Checks linear solutions, Qe '''
         typeClass = self.guess[0].__class__
         efactor = 0.3
         r = abs(self.rmax-self.rmin)*0.5
@@ -104,6 +105,7 @@ class Test_feast_fortran(unittest.TestCase):
             np.testing.assert_allclose(Qe,fQe,rtol=1e-5,atol=0)
 
     def test_Q(self):
+        ''' Checks integrated solutions, Q '''
         typeClass = self.guess[0].__class__
         efactor = 0.3
         r = abs(self.rmax-self.rmin)*0.5
@@ -122,14 +124,23 @@ class Test_feast_fortran(unittest.TestCase):
             fQ = read_fortranData(k)[7]
             zne[k] = ((self.rmin+self.rmax)*0.5)+ r*math.cos(theta[k])+r*efactor*1.0j*math.sin(theta[k])
             for im0 in range(len(self.guess)):
-                Qe = typeClass.solve(self.mat,self.guess[im0],zne[k])
-                mult = -2.00*wk[k]*0.25*r*(efactor*math.cos(theta[k])+math.sin(theta[k])*1.00j)
-                Qquad_k = typeClass.real(mult*Qe)
-                #Qquad_k = calculateQuadrature(self.mat,self.guess[im0],zne[k],r,theta[k],wk[k])
+                Qquad_k = calculateQuadrature(self.mat,self.guess[im0],zne[k],r,theta[k],wk[k])
                 Q = updateQ(Q,im0,Qquad_k,k)
             for im0 in range(len(self.guess)):
                 np.testing.assert_allclose(Q[im0].array,fQ[im0],rtol=1e-5,atol=0)
+    
+    def xtest_Q_solution(self):
+        ''' Checks eigenvectors from first iteration
+        obseravation: Q is tested to be equal, but not eigenvectors'''
+        typeClass = self.guess[0].__class__
+        Q = read_fortranData(self.nc-1)[7]
+        Y = []
+        for i in range(len(self.guess)):
+            Y.append(NumpyVector(Q[i], self.guess[0].optionsDict))
 
+        Hmat = typeClass.matrixRepresentation(self.mat,Y)
+        ev, uv = sp.linalg.eigh(Hmat)
+        
 if __name__ == '__main__':
     unittest.main()
 
