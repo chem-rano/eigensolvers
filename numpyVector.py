@@ -4,6 +4,10 @@ from scipy import linalg as la
 from abstractVector import AbstractVector
 from scipy.sparse.linalg import LinearOperator
 import warnings
+from scipy.sparse.linalg import spsolve
+import math
+from scipy.sparse import csc_matrix
+
 
 ####################################################################
 # Creates a numpyVector class, which has defined elementary operations
@@ -151,8 +155,13 @@ class NumpyVector(AbstractVector):
             wk,conv = scipy.sparse.linalg.gcrotmk(linOp,b.array,x0, tol=tol,atol=atol,maxiter=maxiter)
         elif options["linearSolver"] == "minres":
             wk,conv = scipy.sparse.linalg.minres(linOp,b.array,x0, tol=tol,maxiter=maxiter)
+        elif options["linearSolver"] == "pardiso": # only for comparing with fortran
+            A1 = csc_matrix(sigma*np.eye(n)-H)
+            b1 = csc_matrix(np.reshape(b.array,(n,1)))
+            wk = spsolve(A1,b1)
+            conv = 0 # converges, it is exact
         else:
-            raise Exception("Got linear solver other than gcrotmk and minres!")
+            raise Exception("Got linear solver other than gcrotmk, minres and pardiso!")
 
         if conv != 0:
             warnings.simplefilter('error', UserWarning)
