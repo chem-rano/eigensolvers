@@ -96,7 +96,7 @@ class Test_stateFollowing(unittest.TestCase):
         options = {"orthogonalizationArgs":optionsOrtho, "linearSystemArgs":optionsLinear, "stateFittingArgs":optionsFitting}
 
         status = {"eShift":0, "convertUnit":"au",
-                "writeOut": True,"writePlot": True}
+                "writeOut": False,"writePlot": False}
         ovlpRef = TTNSVector(tnsList[idx+1],options)
         self.energyRef = energies[idx+1]
         self.pick = get_pick_function_maxOvlp(ovlpRef)

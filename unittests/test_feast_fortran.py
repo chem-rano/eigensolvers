@@ -39,7 +39,7 @@ class Test_feast_fortran(unittest.TestCase):
         
         options = {"linearSolver":"pardiso"}
         optionsDict = {"linearSystemArgs":options}
-        self.status = {"writeOut": False,"writePlot": False}
+        self.status = {"writeOut":False,"writePlot":False,"efactor":0.3}
         
         Y1 = read_fortranData()[1]
         Y = []
@@ -73,7 +73,7 @@ class Test_feast_fortran(unittest.TestCase):
     def test_zne(self):
         ''' Checks quadrature points, zne '''
         fzne= read_fortranData()[5]
-        efactor = 0.3
+        efactor = self.status["efactor"]
         r = abs(self.rmax-self.rmin)*0.5
         gk = quad_func(self.nc,self.quad)[0]
         pi = np.pi
@@ -86,7 +86,7 @@ class Test_feast_fortran(unittest.TestCase):
     def test_Qe(self):
         ''' Checks linear solutions, Qe '''
         typeClass = self.guess[0].__class__
-        efactor = 0.3
+        efactor = self.status["efactor"]
         r = abs(self.rmax-self.rmin)*0.5
         gk,wk = quad_func(self.nc,self.quad)
         pi = np.pi
@@ -107,7 +107,7 @@ class Test_feast_fortran(unittest.TestCase):
     def test_Q(self):
         ''' Checks integrated solutions, Q '''
         typeClass = self.guess[0].__class__
-        efactor = 0.3
+        efactor = self.status["efactor"]
         r = abs(self.rmax-self.rmin)*0.5
         gk,wk = quad_func(self.nc,self.quad)
         pi = np.pi
@@ -124,7 +124,7 @@ class Test_feast_fortran(unittest.TestCase):
             fQ = read_fortranData(k)[7]
             zne[k] = ((self.rmin+self.rmax)*0.5)+ r*math.cos(theta[k])+r*efactor*1.0j*math.sin(theta[k])
             for im0 in range(len(self.guess)):
-                Qquad_k = calculateQuadrature(self.mat,self.guess[im0],zne[k],r,theta[k],wk[k])
+                Qquad_k = calculateQuadrature(self.mat,self.guess[im0],zne[k],r,theta[k],wk[k],self.status)
                 Q = updateQ(Q,im0,Qquad_k,k)
             for im0 in range(len(self.guess)):
                 np.testing.assert_allclose(Q[im0].array,fQ[im0],rtol=1e-5,atol=0)

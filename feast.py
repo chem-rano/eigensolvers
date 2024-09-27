@@ -7,15 +7,36 @@ from util_funcs import get_a_range, quad_func, eigenvalueResidual
 from util_funcs import lowdinOrtho
 from numpyVector import NumpyVector
 import time
+import math
 from magic import ipsh
 
-def _getStatus(status,guess,radius,maxit,nc,eConv):
+def _getStatus(status,guess,radius,maxit,nquad,eConv):
+    ''' Dictionary for storing paramters, stage of the computation
+    and status.
+    guess: Guess vector to access exact addition property
+    radius: Coutour radius for eigenvalue target rmin to rmax, (rmax-rmin)/2
+    maxit: Maximum FEAST iterations
+    nquad: Number of quadrature points
+    eConv: Eigenvalue convergence
+    
+    Additional
+    efactor: ellipse factor for countour (circle when efactor=1)
+    flagAddition: Boolean, True if linear combination is accurate 
+    isConverged: Status of eigenvalue residual convergence
+    startTime: Starting time 
+    runTime: run time in seconds
+    writeOut: Instruction to write output file
+    writePlot:Instruction to write plot data file
+    eShift: shift for eigenvalue conversion (e.g, zpve)
+    convertUnit: converting unit of eigenvalue, H elements
+    '''
     
     statusUp = {"radius":radius,"maxit":maxit,
-            "nquad":nc,"eConv":eConv,
+            "nquad":nquad,"eConv":eConv,
+            "efactor":1.0,
             "flagAddition":guess[0].hasExactAddition,
             "outerIter":0, "innerIter":0,"cumIter":0,
-            "isConverged":False,"lindep":False,
+            "isConverged":False,
             "startTime":time.time(), "runTime":0.0,
             "writeOut":True,"writePlot":True,"eShift":0.0,"convertUnit":"au"}
     
@@ -51,7 +72,7 @@ def basisTransformation(bases,coeffs):
     
     return combBases
 
-def calculateQuadrature(Amat,guess_b,z,radius,angle,weight):
+def calculateQuadrature(Amat,guess_b,z,radius,angle,weight,status):
     ''' Calculates k-th quadrature Qquad_k
     
     For Hermitian matrix:
@@ -73,22 +94,27 @@ def calculateQuadrature(Amat,guess_b,z,radius,angle,weight):
         weight => k-th quadrature distribution weight
     
     Out: Qquad_k => k-th quadrature vector
+    N.T.: for hasExactAddition: exp(i*theta) is expanded as 
+    efactor*cos(theta)+isin(theta)
+    This efactor is implemented in Polizzi's code.
     '''
 
     b = guess_b # copying of guess to unalter guess
     typeClass = b.__class__
-    Qe = typeClass.solve(Amat,b,z)  # complex128
+    efactor = status["efactor"] 
+    
     if b.hasExactAddition:
         prefactor = +1
-        mult = prefactor*(-0.5*weight)
-        Qquad_k = mult*typeClass.real(radius*np.exp(1j*angle)*Qe)
+        Qe = typeClass.solve(Amat,b,z)  # complex128
+        mult = prefactor*(-0.50*weight*radius)*(efactor*math.cos(angle)+math.sin(angle)*1.00j)
+        Qquad_k = typeClass.real(mult*Qe)
     else:
         prefactor = -1  
         mult = prefactor*(-0.25*weight*radius)
-        part1 = Qe
-        part2 = typeClass.conjugate(Qe)
-        c1 = np.exp(1j*angle)*mult
-        c2 = np.exp(-1j*angle)*mult
+        part1 = typeClass.solve(Amat,b,z,opType="gen")
+        part2 = typeClass.solve(Amat,b,z.conj(),opType="gen") #NOTE:assuming Amat is hermitian
+        c1 = mult*np.exp(1j*angle)
+        c2 = mult*np.exp(-1j*angle)
         Qquad_k = typeClass.linearCombination([part1,part2],[c1,c2])
 
     return Qquad_k
@@ -173,7 +199,8 @@ def feastDiagonalization(A,Y,nc,quad,rmin,rmax,eConv,maxit,status=None):
     # numerical quadrature points.
     gk,wk = quad_func(nc,quad)
     pi = np.pi
-    status = _getStatus(status,Y,r,nc,maxit,eConv) # will be used as lanczos 
+    status = _getStatus(status,Y,r,maxit,nc,eConv) # will be used as lanczos 
+    efactor = status["efactor"]
     
     for it in range(maxit):
         status["outerIter"] = it
@@ -185,22 +212,21 @@ def feastDiagonalization(A,Y,nc,quad,rmin,rmax,eConv,maxit,status=None):
             print("iteration",it,"quadrature",k)
             
             theta = -(pi*0.5)*(gk[k]-1)
-            z = (rmin+rmax) * 0.5+ r * np.exp(1.0j * theta)
+            z = (rmin+rmax) * 0.5 + r*math.cos(theta)+r*efactor*1.0j*math.sin(theta)
             
             for im0 in range(m0):
-                Qquad_k = calculateQuadrature(A,Y[im0],z,r,theta,wk[k]) # float64
+                Qquad_k = calculateQuadrature(A,Y[im0],z,r,theta,wk[k],status) # float64
                 Q = updateQ(Q,im0,Qquad_k,k)
         
         # eigh in Lowdin orthogonal basis
         uS, idx = transformationMatrix(Q)
         ev, uv = diagonalizeHamiltonian(A,Q,uS)[1:3]
-        ev, rangeIdx = get_a_range(ev,rmin,rmax)
         
         uSH = uS@uv
-        Y = basisTransformation(Q,uSH[:,rangeIdx])
-
+        Y = basisTransformation(Q,uSH)
+        
         if it != 0: 
-            res = eigenvalueResidual(ev,ref_ev[idx])
+            res = eigenvalueResidual(ev,ref_ev[idx],rmin,rmax)
             print("iteration",it,"residual",res)
             if res < eConv:
                 break

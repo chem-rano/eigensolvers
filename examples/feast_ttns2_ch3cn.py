@@ -5,8 +5,6 @@ import basis
 import copy
 import sys
 import time
-from mpiWrapper import MPI
-#MPI.activateMPI()
 import operatornD
 from ttns2.driver import eigenStateComputations
 from ttns2.diagonalization import IterativeDiagonalizationOptions
@@ -20,7 +18,6 @@ from printUtils import *
 from ttns2.diagonalization import IterativeLinearSystemOptions
 
 
-timeStarting = time.time()
 #######################################################
 MAX_D = 10 
 # 5e-9 ok
@@ -116,7 +113,7 @@ zpve = 9837.4069
 
 # ---------- USER INPUT -----------------------
 
-optionsLinear = {"nSweep":1000, "iterativeLinearSystemOptions":IterativeLinearSystemOptions(solver="gcrotmk",tol=1e-3,maxIter=1000),"convTol":1e-2,"bondDimensionAdaptions":bondDimensionAdaptions}
+optionsLinear = {"nSweep":1000, "iterativeLinearSystemOptions":IterativeLinearSystemOptions(solver="gcrotmk",tol=1e-3,maxIter=1000),"convTol":1e-3,"bondDimensionAdaptions":bondDimensionAdaptions}
 optionsFitting = {"nSweep":1000, "convTol":1e-9,"bondDimensionAdaptions":bondDimensionAdaptions}
 options = {"linearSystemArgs":optionsLinear, "stateFittingArgs":optionsFitting}
 status = {"eShift":zpve, "convertUnit":"cm-1"}
@@ -128,8 +125,6 @@ ev_min = util.unit2au((Emin+zpve),"cm-1")  # lower limit of eigenvalue in a.u.
 ev_max = util.unit2au((Emax+zpve),"cm-1")  # upper limit of eigenvalue in a.u.
 Y = []
 for i in range(N_SUBSPACE):
-    #tns.setRandom(dtype=complex)
-    #Y.append(TTNSVector(tns,options))
     Y.append(TTNSVector(tnsList[i],options))
 
 ev, tnsList = feastDiagonalization(Hop,Y,nc,quad,ev_min,ev_max,eps,maxit)

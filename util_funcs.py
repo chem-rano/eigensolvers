@@ -219,12 +219,27 @@ def lowdinOrtho(oMat, tol= LINDEP_DEFAULT_VALUE):
     uvqTraf = uvq * evq**(-0.5)
     return info, uvqTraf, idx
 
-def eigenvalueResidual(ev,prev_ev):
+def eigenvalueResidual(ev,prev_ev,emin,emax,insideTarget=True):
+    '''
+    Eigenvalue residual calculation
+    Res = [sum abs(E(i-1)-E(i))]/[sum E(i-1)]
+    for eigenvalues of i and i-1 th iterations
 
-    m0 = len(ev)
+    Eigenvalues within the range (emin-emax) 
+    are only considered
+
+    N.T. Currently only used for FEAST
+    '''
+
     diff = 0.0
     prev_tot = 0.0
-
+    
+    if insideTarget:
+        prev_ev,idx = get_a_range(prev_ev,emin,emax)
+        ev = ev[idx]
+        assert len(prev_ev) == len(ev),"Eigenvalues are not equal in number"
+    
+    m0 = len(ev)
     for i in range(m0):
         diff += abs(prev_ev[i]-ev[i])
         prev_tot += prev_ev[i]
