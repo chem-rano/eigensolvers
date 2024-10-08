@@ -165,7 +165,7 @@ class Test_lanczos(unittest.TestCase):
         self.assertIsInstance(uvLanczos[0], TTNSVector)
 
     def test_eigenvalue(self):
-        ''' Checks if the calculated eigenvalue is accurate up to 10*eConv'''
+        ''' Checks if relative accuracies of calculated eigenvalues lower or equal to 1e-5'''
         
         places = [4,8,12,16]
         for p in places:
@@ -176,11 +176,12 @@ class Test_lanczos(unittest.TestCase):
         
             target_value = find_nearest(evLanczos,sigma)[1]
             closest_value = find_nearest(self.evEigh,sigma)[1]
-            self.assertTrue((abs(target_value-closest_value)<= 10*self.eConv),'Not accurate up to 10*eConv')
+            relError = abs(target_value-closest_value)/abs(closest_value)
+            self.assertTrue((relError <= 1e-5),'Relative accuarcy w.r.t. exact levels higher than 1e-5')
     
     def test_eigenvector(self):
         ''' Checks if the calculated eigenvector is accurate up to 1e-4
-        Provided above test ensures eigenvalues are accurate up to 10*eConv'''
+        Provided above test ensures relative accuracies of eigenvalues <= 1e-5'''
 
         places = [4,8,12,16]
         for p in places:

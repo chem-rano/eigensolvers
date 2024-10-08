@@ -3,7 +3,7 @@ import scipy as sp
 from scipy.sparse.linalg import LinearOperator
 from scipy import special
 from scipy import linalg as la
-from util_funcs import get_a_range, quad_func, eigenvalueResidual
+from util_funcs import select_within_range, quad_func, eigenvalueResidual
 from util_funcs import lowdinOrtho
 from numpyVector import NumpyVector
 import time
@@ -226,7 +226,7 @@ def feastDiagonalization(A,Y,nc,quad,rmin,rmax,eConv,maxit,status=None):
         Y = basisTransformation(Q,uSH)
         
         if it != 0: 
-            res = eigenvalueResidual(ev,ref_ev[idx],rmin,rmax)
+            res = abs(eigenvalueResidual(ev,ref_ev[idx],rmin,rmax))
             print("iteration",it,"residual",res)
             if res < eConv:
                 break
@@ -269,7 +269,7 @@ if __name__ == "__main__":
     for i in range(m0):
         Y.append(NumpyVector(Y1[:,i], optionsDict))
 
-    contour_ev = get_a_range(ev, ev_min, ev_max)[0]
+    contour_ev = select_within_range(ev, ev_min, ev_max)[0]
     print("--- actual eigenvalues",contour_ev,"---\n")
     efeast,ufeast =  feastDiagonalization(linOp,Y,nc,quad,ev_min,ev_max,eps,maxit)
     print("\n---feast eigenvalues",efeast,"---")

@@ -7,7 +7,7 @@ from scipy import linalg as la
 from numpyVector import NumpyVector
 from util_funcs import find_nearest
 import time
-from util_funcs import get_a_range
+from util_funcs import select_within_range
 
 class Test_feast(unittest.TestCase):
 
@@ -121,15 +121,15 @@ class Test_feast(unittest.TestCase):
                 self.eConv,self.maxit)[0]
         
         with self.subTest("All contour eigenvalues"):
-            contour_ev = get_a_range(self.evEigh, self.rmin, self.rmax)[0]
+            contour_ev = select_within_range(self.evEigh, self.rmin, self.rmax)[0]
             ncontour_ev = len(contour_ev)
             nfeast_ev = len(evfeast)
             # Think in case of orthogonal basis
             self.assertTrue((ncontour_ev <= nfeast_ev),'All eigenvalues within contour must be calculated')
 
         with self.subTest("eigenvalue accuracy"):
-            contour_evs = get_a_range(self.evEigh, self.rmin, self.rmax)[0]
-            feast_evs = get_a_range(evfeast, self.rmin, self.rmax)[0]
+            contour_evs = select_within_range(self.evEigh, self.rmin, self.rmax)[0]
+            feast_evs = select_within_range(evfeast, self.rmin, self.rmax)[0]
             for i in range(len(contour_evs)):
                 target_value = contour_evs[i]
                 closest_value = find_nearest(feast_evs,target_value)[1]
@@ -141,7 +141,7 @@ class Test_feast(unittest.TestCase):
         evfeast, uvfeast = feastDiagonalization(self.mat,self.guess,10,self.quad,self.rmin,self.rmax,
                 1e-12,20)
         
-        contour_evs = get_a_range(self.evEigh, self.rmin, self.rmax)[0]
+        contour_evs = select_within_range(self.evEigh, self.rmin, self.rmax)[0]
         for i in range(len(contour_evs)):
             idxE = find_nearest(self.evEigh,contour_evs[i])[0]
             idxT = find_nearest(evfeast,contour_evs[i])[0]

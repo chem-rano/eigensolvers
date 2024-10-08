@@ -9,10 +9,10 @@ import warnings
 import copy
 from ttns2.state import TTNS
 from ttns2.renormalization import AbstractRenormalization, SumOfOperators
-from ttns2.sweepAlgorithms import (LinearSystem, Orthogonalization, 
-                                StateFitting)
+from ttns2.sweepAlgorithms import LinearSystem, StateFitting
 from ttns2.driver import bracket, getRenormalizedOp
 from ttns2.driver import overlapMatrix as _overlapMatrix
+from ttns2.driver import overlapMatrix as orthogonalizeAgainstSet
 
 class TTNSVector(AbstractVector):
     def __init__(self, ttns: TTNS, options:Dict[str, Dict]):
@@ -129,7 +129,9 @@ class TTNSVector(AbstractVector):
     @staticmethod
     def orthogonalize_against_set(x:TTNSVector, vectors:List[TTNSVector],
                                   lindep = LINDEP_DEFAULT_VALUE) -> TTNSVector|None:
-        solver = Orthogonalization(vectors, x, **x.options["orthogonalizationArgs"])
+        listVectors = [vector.ttns for vector in vectors]
+        solver = orthogonalizeAgainstSet(listVectors, x.ttns, **x.options["orthogonalizationArgs"])
+        
         converged, optVal = solver.run()
         if not converged:
             warnings.warn("orthogonalize_against_set: TTNS sweeps not converged!")

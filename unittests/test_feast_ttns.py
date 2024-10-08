@@ -18,7 +18,8 @@ from ttns2.contraction import TruncationFixed
 import util
 from util_funcs import find_nearest
 from magic import ipsh
-from util_funcs import get_a_range
+from util_funcs import select_within_range
+from ttns2.driver import orthogonalize 
 
 
 class Test_feast_ttns(unittest.TestCase):
@@ -51,7 +52,6 @@ class Test_feast_ttns(unittest.TestCase):
         tns = getMPS(basisDict, 3)
         np.random.seed(13)
         tns.setRandom(dtype=complex)
-        #tns.toPdf()
 
 
         davidsonOptions = [IterativeDiagonalizationOptions(tol=1e-7, maxIter=500,maxSpaceFac=200)] * 8
@@ -67,143 +67,133 @@ class Test_feast_ttns(unittest.TestCase):
                                      iterativeDiagonalizationOptions=davidsonOptions,
                                      bondDimensionAdaptions= bondDimensionAdaptions,
                                      noises = noises,
-                                     allowRestart=False,
+                                     allowRestart=False,   
                                      saveDir=None,
                                      convTol=convTol)
 
         self.rmin = energies[3]*1.001
         self.rmax = energies[5]*1.001
-        self.maxit = 5
-        self.nc = 8
-        self.eConv = 1e-6 
+        self.maxit = 15
+        self.nc = 6  
+        self.eConv = 1e-6
         self.quad = "legendre"
 
 
         adaptionsLinear =  [TruncationEps(EPS, maxD=5, offset=1, truncateViaDiscardedSum=False)] 
-        adaptionsFitting = [TruncationEps(EPS, maxD=5, offset=1, truncateViaDiscardedSum=False)]
-        optsCheck = IterativeLinearSystemOptions(solver="gcrotmk",tol=1e-3,maxIter=70000) 
-        optionsLinear = {"nSweep":1000, "iterativeLinearSystemOptions":optsCheck,"convTol":1e-2, "verbose": False, "bondDimensionAdaptions": adaptionsLinear}
-        optionsFitting = {"nSweep":1000, "convTol":1e-9,"bondDimensionAdaptions":adaptionsFitting, "noises":[1e-6]*4}
+        adaptionsFitting = [TruncationEps(EPS, maxD=9, offset=1, truncateViaDiscardedSum=False)]
+        optsCheck = IterativeLinearSystemOptions(solver="gcrotmk",tol=1e-4,maxIter=70000) 
+        optionsLinear = {"nSweep":1000, "iterativeLinearSystemOptions":optsCheck,"convTol":1e-4, "verbose": False, "bondDimensionAdaptions": adaptionsLinear}
+        optionsFitting = {"nSweep":1000, "convTol":1e-9,"bondDimensionAdaptions":adaptionsFitting, "verbose": False}
         options = {"linearSystemArgs":optionsLinear, "stateFittingArgs":optionsFitting}
 
         self.evEigh = energies
         self.uvEigh = tnsList
         self.mat = Hop
         
-        m0 = N_STATES 
+        m0 = 4 
+        # Random orthogonal tress
+        setTrees = []
+        for i in range(m0):
+            tns = getMPS(basisDict, 3)
+            np.random.seed(20+i);tns.setRandom(dtype=complex)
+            setTrees.append(tns)
+        setTrees= orthogonalize(setTrees)
+        
+        # Make a TTNSVector list from above orthogonal trees
         guess = []
         for i in range(m0):
-            guess.append(TTNSVector(tnsList[i],options))
+            guess.append(TTNSVector(setTrees[i],options))
         self.guess = guess
 
-
-    def test_Hmat(self):
-        ''' Bypassing linear combination works for Hamitonian matrix formation'''
-        uvfeast = feastDiagonalization(self.mat,self.guess,self.nc,self.quad,self.rmin,self.rmax,
-                self.eConv,self.maxit)[1]
-        typeClass = uvfeast[0].__class__
-        S = typeClass.overlapMatrix(uvfeast[:-1])
-        qtAq = typeClass.matrixRepresentation(self.mat,uvfeast[:-1])
-        uS = transformationMatrix(uvfeast)[0]
-        typeClass = uvfeast[0].__class__
-        Hmat1 = diagonalizeHamiltonian(self.mat,uvfeast,uS)[0]
-        qtAq = typeClass.matrixRepresentation(self.mat,uvfeast)
-        Hmat2 = uS.T.conj()@qtAq@uS
-        np.testing.assert_allclose(Hmat1,Hmat2,rtol=1e-5,atol=0)
     
-    def test_backTransform(self):
-        ''' Checks linear combination'''
-        uvfeast = feastDiagonalization(self.mat,self.guess,self.nc,self.quad,self.rmin,self.rmax,
-                self.eConv,self.maxit)[1]
-        typeClass = uvfeast[0].__class__
-        S = typeClass.overlapMatrix(uvfeast[:-1])
-        assert len(uvfeast) > 1
-        qtAq = typeClass.matrixRepresentation(self.mat,uvfeast[:-1])
-        uS = transformationMatrix(uvfeast)[0]
-        uv = diagonalizeHamiltonian(self.mat,uvfeast,uS)[2]
-        uSH = uS@uv
-        bases = basisTransformation(uvfeast,uSH)
-        for m in range(len(uvfeast)):
-            ovlp = bases[m].vdot(uvfeast[m],True)
-            np.testing.assert_allclose(abs(ovlp), 1, rtol=1e-5, err_msg
-                    = f"{ovlp=} but it should be +-1")
-            feastTree = np.ravel(uvfeast[m].ttns.fullTensor(canonicalOrder=True)[0])
-            toCompare = np.ravel(bases[m].ttns.fullTensor(canonicalOrder=True)[0])
-            np.testing.assert_allclose(feastTree,ovlp*toCompare,atol=1e-5)
-    
-    def test_orthogonalization(self):
-        ''' Returned basis in old form is orthogonal'''
-        uvfeast = feastDiagonalization(self.mat,self.guess,self.nc,self.quad,self.rmin,self.rmax,
-                self.eConv,self.maxit)[1]
-        typeClass = uvfeast[0].__class__
-        S = typeClass.overlapMatrix(uvfeast)
-        np.testing.assert_allclose(S,np.eye(S.shape[0]),atol=1e-5)
-
-
-    def test_transformationMatrix(self):
-        ''' XH@S@X = 1'''
-        uvfeast = feastDiagonalization(self.mat,self.guess,self.nc,self.quad,self.rmin,self.rmax,
-                self.eConv,self.maxit)[1]
-        typeClass = uvfeast[0].__class__
-        S = typeClass.overlapMatrix(uvfeast)
-        assert len(uvfeast) > 1
-        S1 = typeClass.overlapMatrix(uvfeast[:-1])
-        qtAq = typeClass.matrixRepresentation(self.mat,uvfeast[:-1])
-        uS = transformationMatrix(uvfeast)[0]
-        uv = diagonalizeHamiltonian(self.mat,uvfeast,uS)[2]
-        uSH = uS@uv
-        mat = uSH.T.conj()@S@uSH
-        np.testing.assert_allclose(mat,np.eye(mat.shape[0]),atol=1e-5)
-
-    def test_returnType(self):
-        ''' Checks if the returned eigenvalue and eigenvectors are of correct type'''
+    def test_feast(self):
         evfeast, uvfeast = feastDiagonalization(self.mat,self.guess,self.nc,self.quad,self.rmin,self.rmax,
                 self.eConv,self.maxit)
-        self.assertIsInstance(evfeast, np.ndarray)
-        self.assertIsInstance(uvfeast, list)
-        self.assertIsInstance(uvfeast[0], TTNSVector)
+        typeClass = uvfeast[0].__class__
+        
+        with self.subTest("Hmat"):
+            ''' Bypassing linear combination works for Hamitonian matrix formation'''
+            uS = transformationMatrix(uvfeast)[0]
+            Hmat1 = diagonalizeHamiltonian(self.mat,uvfeast,uS)[0]
+            qtAq = typeClass.matrixRepresentation(self.mat,uvfeast)
+            Hmat2 = uS.T.conj()@qtAq@uS
+            np.testing.assert_allclose(Hmat1,Hmat2,rtol=1e-5,atol=0)
+        
+        with self.subTest("backTransform"):
+            ''' Checks linear combination'''
+            S = typeClass.overlapMatrix(uvfeast[:-1])
+            assert len(uvfeast) > 1
+            qtAq = typeClass.matrixRepresentation(self.mat,uvfeast[:-1])
+            uS = transformationMatrix(uvfeast)[0]
+            uv = diagonalizeHamiltonian(self.mat,uvfeast,uS)[2]
+            uSH = uS@uv
+            bases = basisTransformation(uvfeast,uSH)
+            for m in range(len(uvfeast)):
+                ovlp = bases[m].vdot(uvfeast[m],True)
+                np.testing.assert_allclose(abs(ovlp), 1, rtol=1e-5, err_msg
+                    = f"{ovlp=} but it should be +-1")
+                feastTree = np.ravel(uvfeast[m].ttns.fullTensor(canonicalOrder=True)[0])
+                toCompare = np.ravel(bases[m].ttns.fullTensor(canonicalOrder=True)[0])
+                np.testing.assert_allclose(feastTree,ovlp*toCompare,atol=1e-5)
+    
+        with self.subTest("orthogonalization"):
+            ''' Returned basis in old form is orthogonal'''
+            S = typeClass.overlapMatrix(uvfeast)
+            np.testing.assert_allclose(S,np.eye(S.shape[0]),atol=1e-5)
 
-    def test_eigenvalue(self):
-        ''' Checks accuracy of the calculated eigenvalues'''
-        evfeast = feastDiagonalization(self.mat,self.guess,self.nc,self.quad,self.rmin,self.rmax,
-                self.eConv,self.maxit)[0]
 
-        with self.subTest("All contour eigenvalues"):
-            contour_ev = get_a_range(self.evEigh, self.rmin, self.rmax)[0]
-            ncontour_ev = len(contour_ev)
+        with self.subTest("transformationMatrix"):
+            ''' XH@S@X = 1'''
+            S = typeClass.overlapMatrix(uvfeast)
+            assert len(uvfeast) > 1
+            S1 = typeClass.overlapMatrix(uvfeast[:-1])
+            qtAq = typeClass.matrixRepresentation(self.mat,uvfeast[:-1])
+            uS = transformationMatrix(uvfeast)[0]
+            uv = diagonalizeHamiltonian(self.mat,uvfeast,uS)[2]
+            uSH = uS@uv
+            mat = uSH.T.conj()@S@uSH
+            np.testing.assert_allclose(mat,np.eye(mat.shape[0]),atol=1e-5)
+
+        with self.subTest("returnType"):
+            ''' Checks if the returned eigenvalue and eigenvectors are of correct type'''
+            self.assertIsInstance(evfeast, np.ndarray)
+            self.assertIsInstance(uvfeast, list)
+            self.assertIsInstance(uvfeast[0], TTNSVector)
+
+        with self.subTest("eigenvalue"):
+            ''' Checks accuracy of the calculated eigenvalues'''
+
+            #All contour eigenvalues
+            contour_evs = select_within_range(self.evEigh, self.rmin, self.rmax)[0]
+            ncontour_evs = len(contour_evs)
             nfeast_ev = len(evfeast)
-            # Think in case of orthogonal basis
-            self.assertTrue((ncontour_ev <= nfeast_ev),'All eigenvalues within contour must be calculated')
+            self.assertTrue((ncontour_evs <= nfeast_ev),'All eigenvalues within contour must be calculated')
 
-        with self.subTest("eigenvalue accuracy"):
-            contour_evs = get_a_range(self.evEigh, self.rmin, self.rmax)[0]
-            feast_evs = get_a_range(evfeast, self.rmin, self.rmax)[0]
+            #eigenvalue accuracy:
+            feast_evs = select_within_range(evfeast, self.rmin, self.rmax)[0]
             for i in range(len(contour_evs)):
                 target_value = contour_evs[i]
                 closest_value = find_nearest(feast_evs,target_value)[1]
                 self.assertTrue((abs(target_value-closest_value)<= 1e-4),'Not accurate up to 4-nd decimal place')
     
-    def test_eigenvector(self):
-        ''' Checks accuracy of the calculated eigenvectors'''
+        with self.subTest("eigenvector"):
+            ''' Checks accuracy of the calculated eigenvectors'''
 
-        evfeast, uvfeast = feastDiagonalization(self.mat,self.guess,self.nc,self.quad,self.rmin,self.rmax,
-                self.eConv,self.maxit)
+            contour_evs = select_within_range(self.evEigh, self.rmin, self.rmax)[0]
+            for i in range(len(contour_evs)):
+                idxE = find_nearest(self.evEigh,contour_evs[i])[0]
+                idxT = find_nearest(evfeast,contour_evs[i])[0]
+                options = uvfeast[0].options
+                exactVector = TTNSVector(self.uvEigh[idxE],options)
+                feastVector = uvfeast[idxT]
 
-        contour_evs = get_a_range(self.evEigh, self.rmin, self.rmax)[0]
-        for i in range(len(contour_evs)):
-            idxE = find_nearest(self.evEigh,contour_evs[i])[0]
-            idxT = find_nearest(evfeast,contour_evs[i])[0]
-            options = uvfeast[0].options
-            exactVector = TTNSVector(self.uvEigh[idxE],options)
-            feastVector = uvfeast[idxT]
-
-            ovlp = exactVector.vdot(feastVector)
-            np.testing.assert_allclose(abs(ovlp), 1, rtol=1e-4, err_msg = f"{ovlp=} but it should be +-1")
+                ovlp = exactVector.vdot(feastVector)
+                np.testing.assert_allclose(abs(ovlp), 1, rtol=1e-4, err_msg = f"{ovlp=} but it should be +-1")
             
-            feastVector = feastVector * ovlp
-            exactVector = np.ravel(exactVector.ttns.fullTensor(canonicalOrder=True)[0])
-            feastVector = np.ravel(feastVector.ttns.fullTensor(canonicalOrder=True)[0])
-            np.testing.assert_allclose(exactVector,feastVector,rtol=1e-3,atol=1e-3)
+                feastVector = feastVector * ovlp.conj()
+                exactVector = np.ravel(exactVector.ttns.fullTensor(canonicalOrder=True)[0])
+                feastVector = np.ravel(feastVector.ttns.fullTensor(canonicalOrder=True)[0])
+                np.testing.assert_allclose(exactVector,feastVector,rtol=1e-3,atol=1e-3)
 
 if __name__ == "__main__":
     unittest.main()

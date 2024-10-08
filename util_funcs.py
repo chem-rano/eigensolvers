@@ -109,7 +109,7 @@ def getRes(lest,x,resvecs,eps):
 
 
 # -----------------------------------------------------
-def get_a_range(in_arr, arr_min, arr_max):
+def select_within_range(in_arr, arr_min, arr_max):
     '''
     Returns elements of an array(in_arr) from the selected interval arr_min and arr_max
     out_arr: array with element within specified range
@@ -235,7 +235,7 @@ def eigenvalueResidual(ev,prev_ev,emin,emax,insideTarget=True):
     prev_tot = 0.0
     
     if insideTarget:
-        prev_ev,idx = get_a_range(prev_ev,emin,emax)
+        prev_ev,idx = select_within_range(prev_ev,emin,emax)
         ev = ev[idx]
         assert len(prev_ev) == len(ev),"Eigenvalues are not equal in number"
     
