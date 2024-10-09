@@ -156,7 +156,7 @@ def diagonalizeHamiltonian(Hop,vectors,X):
 
     In: Hop -> Operator (either as matrix or linearOperator)
         vectors -> list of basis
-        X -> transformation matrix
+        X -> matrix to transform into an orthogonal basis
              (transforms vectors to an orthogonal basis)
 
     Out: Hmat -> Matrix represenation
