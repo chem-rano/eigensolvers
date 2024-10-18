@@ -9,6 +9,7 @@ from numpyVector import NumpyVector
 from util_funcs import headerBot
 from util_funcs import get_pick_function_close_to_sigma
 from util_funcs import get_pick_function_maxOvlp
+import copy
 
 # -----------------------------------------------------
 # Order of inputs
@@ -57,11 +58,14 @@ def _getStatus(status,vector,sigma,maxit,maxKrylov,eConv):
     
     statusUp = {"sigma":sigma,"eConv":eConv,"maxit":maxit,
             "maxKrylov":maxKrylov,"ref":[np.inf],
+            "checkFit":1e-5,
             "flagAddition":vector.hasExactAddition,
             "outerIter":0, "innerIter":0,"cumIter":0,
             "isConverged":False,"lindep":False,
             "futileRestart":0,
             "startTime":time.time(), "runTime":0.0,
+            "Krylov_maxD":[],"fitted_maxD":None,
+            "phase":1,
             "writeOut":True,"writePlot":True,"eShift":0.0,"convertUnit":"au"}
     
     if status is not None:
@@ -87,21 +91,31 @@ def generateSubspace(Hop,Ylist,sigma,eConv):
     typeClass = Ylist[0].__class__
     Ysolved = typeClass.solve(Hop,Ylist[-1],sigma)
     if typeClass.norm(Ysolved) > 0.001*eConv:
-        Ylist.append(typeClass.normalize(Ysolved))
-    else:
-        Ylist.append(Ysolved)
-        print("Alert: Not normalizing add basis; norm <=0.001*eConv")
-    return Ylist
+        Ysolved = typeClass.normalize(Ysolved)
+    return Ysolved
 
-def transformationMatrix(Ylist,S,status):
-    ''' Calculates transformation matrix from 
+def compressTTNS(vector):
+    ''' Compresses bond dimension of the vector 
+    Currently, from fitting bond dimension to 
+    linear solver max bond dimension'''
+
+    typeClass = vector.__class__
+    options = copy.deepcopy(vector.options)
+    fitModified = vector.options["linearSystemArgs"]["bondDimensionAdaptions"] # Manual
+    vector.options["stateFittingArgs"]["bondDimensionAdaptions"] = fitModified
+    vector = typeClass.linearCombination([vector],[1.0])
+    return typeClass(vector.ttns,options)
+
+
+
+def calculateMatrix(Ylist,S,status):
+    ''' Calculates  
     overlap matrix in Ylist basis
     In: Ylist (list of basis)
         lindep (default value is 1e-14, lowdinOrtho())
         S: previous overlap matrix (for extension purpose)
     
     Out: status (dict: updated lindep)
-         uS: transformation matrix
          S: exatended overlap matrix
     Additional: prints overlap matrix in detailed 
     output file ("iterations.out", default)'''
@@ -111,18 +125,16 @@ def transformationMatrix(Ylist,S,status):
     if status["writeOut"]:
         writeFile("out",status,"iteration")
         writeFile("out",status,"overlap",S)
-    linIndep, uS = lowdinOrtho(S)
-    status["lindep"] = not linIndep
-    return status, uS, S
+        writeFile("out",status,"maxD")
+    return status, S
     
-def diagonalizeHamiltonian(Hop,bases,X,qtAq,status):
+def diagonalizeHamiltonian(Hop,bases,qtAq,S,status):
     ''' Calculates matrix representation of Hop,
     forms truncated matrix (Hmat)
     and finally solves eigenvalue problem for Hmat
 
     In: Hop -> Operator (either as matrix or linearOperator)
         bases -> list of basis
-        X -> transformation matrix
         qtAq -> previous matrix representation 
                 (for extension purpose)
 
@@ -136,8 +148,8 @@ def diagonalizeHamiltonian(Hop,bases,X,qtAq,status):
 
     typeClass = bases[0].__class__
     qtAq = typeClass.extendMatrixRepresentation(Hop,bases,qtAq)   
-    Hmat = X.T.conj()@qtAq@X
-    ev, uv = sp.linalg.eigh(Hmat)
+    Hmat = qtAq
+    ev, uv = sp.linalg.eigh(Hmat,S)
     if status["writeOut"]:
         writeFile("out",status,"hamiltonian",Hmat)
         writeFile("out",status,"eigenvalues",ev)
@@ -193,11 +205,11 @@ def basisTransformation(bases,coeffs):
             combBases.append(typeClass.linearCombination(bases,coeffs[:,j]))
     return combBases
 
-def properFitting(evNew, evSum, status):
+def properFitting(evNew, ev, status):
     ''' Checks the eigenvalue after fitting
     (at the end of Lanczos iteration)
     In : evNew -> energy after fitting sum of states
-         evSum -> energy of sum of states
+         ev -> energy of state before fitting
          status -> Param dictionary
     
     Out: properFit -> (bool: True for accurate linear combination)
@@ -207,9 +219,13 @@ def properFitting(evNew, evSum, status):
     if status["flagAddition"]:
         properFit = True
     else:
-        if _convergence(evNew,evSum) > status["eConv"]:
+        E1 = util.au2unit(evNew,"cm-1")-status["eShift"]
+        E2 = util.au2unit(ev,"cm-1")-status["eShift"]
+        if _convergence(evNew,ev) > max(status["eConv"],status["checkFit"]):
+           econvprint = max(status["eConv"],status["checkFit"])
+           print("_convergence(evNew,evSum)",_convergence(evNew,ev),"Conv for fit",econvprint)
            properFit = False
-           print(f"Alert: Linearcombination inaccurate: Energy of sum of states: {evNew}. Energy of fitted state: {evSum}")
+           print(f"Linearcombination inaccurate: After fit: {E1}. Before fit: {E2}")
     return properFit
 
 def terminateRestart(energy,status,num=3):
@@ -296,28 +312,29 @@ def inexactDiagonalization(H,v0,sigma,L,maxit,eConv,pick=None,status=None):
     assert callable(pick)
   
     for it in range(maxit):
-        status["outerIter"] = it
+        status["outerIter"] += 1
+        status["Krylov_maxD"] = [Ylist[0].ttns.maxD()]
+        status["fitted_maxD"] = None
         for i in range(1,L): # starts with 1 because Y0 is used as first basis vector
             status["innerIter"] = i
             status["cumIter"] += 1
             
-            Ylist = generateSubspace(H,Ylist,sigma,eConv)
-            status, uS, S = transformationMatrix(Ylist,S,status)
-            if status['lindep'] and i != 1: # Corner case for 1st iteration
-                print("Restarting calculation: Got linearly dependent basis!")
-                Ylist = Ylist[:-1] # Excluding the last vector added to the Ylist
-                break
-            ev, uv, qtAq = diagonalizeHamiltonian(H,Ylist,uS,qtAq,status)[1:4]
-            uSH = uS@uv
-            idx = pick(uSH,Ylist,ev)
-            assert len(idx) == len(ev), f"{len(ev)=} {len(idx)=}"
-            ev = ev[idx]
-            uSH = uSH[:,idx]
-            status = checkConvergence(ev,status)
-            continueIteration = analyzeStatus(status)
-            if status['lindep'] and i == 1: # Corner case for 1st iteration
-                print("Restarting calculation: Got linearly dependent basis!")
-                Ylist = Ylist[:-1] # Excluding the last vector added to the Ylist
+            Ysolved = generateSubspace(H,Ylist,sigma,eConv)
+            item = typeClass.orthogonalize_against_set(Ysolved,Ylist)
+            if item is not None:
+                Ylist.append(compressTTNS(item))
+                status["Krylov_maxD"].append(Ylist[-1].ttns.maxD())
+                status, S = calculateMatrix(Ylist,S,status)
+                ev, uv, qtAq = diagonalizeHamiltonian(H,Ylist,qtAq,S,status)[1:4]
+                uSH = uv
+                idx = pick(uSH,Ylist,ev)
+                assert len(idx) == len(ev), f"{len(ev)=} {len(idx)=}"
+                ev = ev[idx]
+                uv = uv[:,idx]
+                status = checkConvergence(ev,status)
+                continueIteration = analyzeStatus(status)
+            else:
+                warnings.warn("Linear dependency problem, abort current Lanczos iteration and restart.")
                 break
             
             if not continueIteration:
@@ -325,6 +342,8 @@ def inexactDiagonalization(H,v0,sigma,L,maxit,eConv,pick=None,status=None):
         
         if not continueIteration:
             Ylist = basisTransformation(Ylist,uSH)
+            status["fitted_maxD"] = [item.ttns.maxD() for item in Ylist]
+            if status["writeOut"]:writeFile("out",status,"fitD")
             break
         else:
             y = basisTransformation(Ylist,uSH[:,0])
@@ -333,8 +352,10 @@ def inexactDiagonalization(H,v0,sigma,L,maxit,eConv,pick=None,status=None):
             qtAq=typeClass.matrixRepresentation(H,YlistNew)
             evNew = qtAq[0,0]
             if not properFitting(evNew,ev[0],status):break
-            if terminateRestart(evNew,status):break
+            #if terminateRestart(evNew,status):break
             Ylist = YlistNew # when Lanczos iteration continues
+            status["fitted_maxD"] = [item.ttns.maxD() for item in Ylist]
+            if status["writeOut"]:writeFile("out",status,"fitD")
 
     return ev,Ylist,status
 # -----------------------------------------------------

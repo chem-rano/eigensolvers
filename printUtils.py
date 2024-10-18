@@ -19,7 +19,7 @@ def convert(arr,eShift=0.0,unit='au'):
 # -----------------------------------------------------
 
 def fileHeader(fstring,options,sigma,L,maxit,eConv,
-        zpve=0.0,D=None,guess="Random",printInfo=True):
+        zpve=0.0,D=None,guess="Random",printInfo=True,timeStamp=True,phase=1,noises=None):
     """ Prints header with all input informations 
     printInfo prints this header to the screen, recorded in sweepOutputs"""
     
@@ -46,10 +46,23 @@ def fileHeader(fstring,options,sigma,L,maxit,eConv,
     if fstring == "plot":    # for data extractor code
         line = "startingPoint"
         file.write(line+"\n")
+    
+    if timeStamp:
+        dateTime = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+        dt_string = "\t\t"+dateTime+"\t\t\n"
+        line = "*"*70 + "\n\t\tStarting computation\t\t\n"+dt_string+"*"*70+"\n"
+        file.write(line+"\n")
+        if printInfo:
+            print(line)
+    else:
+        line = "\n"+"-"*70 +"\n"
+        file.write(line+"\n")
+        if printInfo:
+            print(line)
 
-    dateTime = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
-    dt_string = "\t\t"+dateTime+"\t\t\n"
-    line = "*"*70 + "\n\t\tStarting computation\t\t\n"+dt_string+"*"*70+"\n"
+    
+    line = "*"*70 + "\n\t\tPhase" + str(phase)+"\t\t\n"+"*"*70+"\n"
+    #line = "{:6} {:>10}".format("Phase",phase) 
     file.write(line+"\n")
     if printInfo:
         print(line)
@@ -79,6 +92,7 @@ def fileHeader(fstring,options,sigma,L,maxit,eConv,
         file.write(line+"\n")
         if printInfo:
             print(line)
+    
     if sweepAlgo: 
         fittingTol = optionsFitting["convTol"]
         nsweepFitting = optionsFitting["nSweep"]
@@ -113,10 +127,20 @@ def fileHeader(fstring,options,sigma,L,maxit,eConv,
     if printInfo:
         print(line)
 
-    line = "{:6} {:>10} :: {:20}".format("Guess",guess,"Guess vector\n\n")
+    if "noises" in options:
+        line = "{:6} {:>10} :: {:20}".format("Noises",noises,"Linear sweep noises")
+    else:
+        line = "{:6} {:>10} :: {:20}".format("Noises","None","Linear sweep noises")
+
     file.write(line+"\n")
     if printInfo:
         print(line)
+
+    if phase == 1:
+        line = "{:6} {:>10} :: {:20}".format("Guess",guess,"Guess vector\n\n")
+        file.write(line+"\n")
+        if printInfo:
+            print(line)
     
     #line = "{:16}  :: {:20}".format("Statefollowing",status["Statefollowing"]\n\n")
     #file.write(line+"\n")
@@ -124,7 +148,8 @@ def fileHeader(fstring,options,sigma,L,maxit,eConv,
     #    print(line)
     
     if fstring == "plot":
-        line = "it\ti\tnCum\ttarget\tReference\t\tev_nearest\t\tabs_ev"
+        #line = "it\ti\tnCum\ttarget\tReference\t\tev_nearest\t\tabs_ev"
+        line = "it\ti\tnCum\ttarget\tPhase\tMaxD\t\tev_nearest\t\tabs_ev"
         line += "\t\trel_ev\t\ttime (seconds)\n"
         file.write(line)
     
@@ -191,16 +216,40 @@ def _outputFile(status,args):
         file.write("\n")
         
     elif args[0] == "iteration":
+        line = "\n\n"
+        line += "."*20
+        line += "\tInfo per iteration\t"
+        line += "."*20+"\n"
+        line += "Lanczos iteration: "+str(status["outerIter"])
+        line += "\tKrylov iteration: "+str(status["innerIter"])
+        line += "\tCumulative Krylov iteration: "+str(status["cumIter"])+"\n"
+        print(line)
+        file.write(line)
+        #file.write("\n")
+        #file.write("\n")
+        #file.write("."*20)
+        #file.write("\tInfo per iteration\t")
+        #file.write("."*20)
+        #file.write("\n")
+        #file.write("Lanczos iteration: "+str(status["outerIter"]))
+        #file.write("\tKrylov iteration: "+str(status["innerIter"]))
+        #file.write("\tCumulative Krylov iteration: "+str(status["cumIter"]))
+        #file.write("\n")
+    elif args[0] == "maxD":
+        file.write("\n")
+        file.write("Maximum bond dimension of Krylov space: ")
+        maxDs = status["Krylov_maxD"]
+        file.write(f"{maxDs}")
         file.write("\n")
         file.write("\n")
-        file.write("."*20)
-        file.write("\tInfo per iteration\t")
-        file.write("."*20)
+    elif args[0] == "fitD":
         file.write("\n")
-        file.write("Lanczos iteration: "+str(status["outerIter"]))
-        file.write("\tKrylov iteration: "+str(status["innerIter"]))
-        file.write("\tCumulative Krylov iteration: "+str(status["cumIter"]))
+        file.write("Maximum bond dimension of fitted tree: ")
+        maxDs = status["fitted_maxD"]
+        file.write(f"{maxDs}")
         file.write("\n")
+        file.write("\n")
+
     file.close()
 
 
@@ -211,14 +260,18 @@ def _plotFile(status,args):
     it = status["outerIter"]
     i = status["innerIter"]
     nCum = status["cumIter"]
-    target = status.get("target",status["sigma"])
+    #target = status.get("target",status["sigma"])
+    target = util.au2unit(status["sigma"],status["convertUnit"])
+    target -= status["eShift"]
     runTime = status["runTime"]
     evalue = util.au2unit(args[0],status["convertUnit"])
     ref = util.au2unit(args[1],status["convertUnit"])
     abs_diff = np.abs(evalue - ref)
     rel_ev = abs_diff/np.abs(evalue)
     exEnergy = evalue - status["eShift"]
-    file.write(f'{it}\t{i}\t{nCum}\t{target}\t')
+    phase = status["phase"]
+    maxD = status["Krylov_maxD"]
+    file.write(f'{it}\t{i}\t{nCum}\t{target}\t{phase}\t{maxD[-1]}\t')
     if "actualEvalues" in status.keys():
         ev = status["actualEvalues"]
         reference = find_nearest(ev,target)[1]
