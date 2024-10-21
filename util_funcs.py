@@ -235,9 +235,14 @@ def eigenvalueResidual(ev,prev_ev,emin,emax,insideTarget=True):
     prev_tot = 0.0
     
     if insideTarget:
-        prev_ev,idx = select_within_range(prev_ev,emin,emax)
-        ev = ev[idx]
-        assert len(prev_ev) == len(ev),"Eigenvalues are not equal in number"
+        idx = select_within_range(prev_ev,emin,emax)[1]
+        if len(idx) >= 1:
+            prev_ev = prev_ev[idx]
+            ev = ev[idx]
+            assert len(prev_ev) == len(ev),"Eigenvalues are not equal in number"
+        else:
+            prev_ev = prev_ev
+            ev = ev
     
     m0 = len(ev)
     for i in range(m0):

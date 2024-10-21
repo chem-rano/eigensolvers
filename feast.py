@@ -64,6 +64,7 @@ def basisTransformation(bases,coeffs):
     ndim = coeffs.shape
     combBases = []
     
+    print("Fit: basisTransformation")
     if len(ndim) == 1:
         combBases.append(typeClass.linearCombination(bases,coeffs))
     else:
@@ -111,10 +112,11 @@ def calculateQuadrature(Amat,guess_b,z,radius,angle,weight,status):
     else:
         prefactor = -1  
         mult = prefactor*(-0.25*weight*radius)
-        part1 = typeClass.solve(Amat,b,z,opType="gen")
-        part2 = typeClass.solve(Amat,b,z.conj(),opType="gen") #NOTE:assuming Amat is hermitian
+        part1 = typeClass.solve(Amat,b,z,opType="sym")
+        part2 = typeClass.solve(Amat,b,z.conj(),opType="sym") #NOTE:assuming Amat is hermitian
         c1 = mult*np.exp(1j*angle)
         c2 = mult*np.exp(-1j*angle)
+        print("Fit: calculateQuadrature")
         Qquad_k = typeClass.linearCombination([part1,part2],[c1,c2])
 
     return Qquad_k
@@ -133,6 +135,7 @@ def updateQ(Q,im0,Qquad_k,k):
     if k == 0:
         Q[im0] = Qquad_k
     else:
+        print("Fit: Update quadrature")
         Q[im0] = typeClass.linearCombination([Q[im0],Qquad_k],[1.0,1.0])
     return Q
        
@@ -149,7 +152,7 @@ def transformationMatrix(vectors,lindep=1e-14):
     uS, idx = lowdinOrtho(S,lindep)[1:3]
     return uS, idx
 
-def diagonalizeHamiltonian(Hop,vectors,X):
+def diagonalizeHamiltonian(Hop,vectors,X,S):
     ''' Calculates matrix representation of Hop,
     forms truncated matrix (Hmat)
     and finally solves eigenvalue problem for Hmat
@@ -167,7 +170,7 @@ def diagonalizeHamiltonian(Hop,vectors,X):
     typeClass = vectors[0].__class__
     qtAq = typeClass.matrixRepresentation(Hop,vectors)   
     Hmat = X.T.conj()@qtAq@X
-    ev, uv = sp.linalg.eigh(Hmat)
+    ev, uv = sp.linalg.eigh(Hmat,S)
     return Hmat,ev,uv
 
 # ***************************************************
@@ -220,7 +223,7 @@ def feastDiagonalization(A,Y,nc,quad,rmin,rmax,eConv,maxit,status=None):
         
         # eigh in Lowdin orthogonal basis
         uS, idx = transformationMatrix(Q)
-        ev, uv = diagonalizeHamiltonian(A,Q,uS)[1:3]
+        ev, uv = diagonalizeHamiltonian(A,Q,uS,S)[1:3]
         
         uSH = uS@uv
         Y = basisTransformation(Q,uSH)

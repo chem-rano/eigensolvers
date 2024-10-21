@@ -16,10 +16,11 @@ from ttnsVector import TTNSVector
 from util_funcs import find_nearest
 from printUtils import *
 from ttns2.diagonalization import IterativeLinearSystemOptions
+from ttns2.driver import orthogonalize 
 
 
 #######################################################
-MAX_D = 10 
+MAX_D = 3
 # 5e-9 ok
 EPS = 5e-9
 convTol = 1e-5
@@ -79,17 +80,18 @@ _print("# Hop contracted nSum",Hop.nSum)
 Hop.obtainMultiplyOp(bases)
 basisDict = {l:b for l,b in zip(Hop.DoFlabel, bases)}
 tns = parseTree(treeString, basisDict, returnType="TTNS")
-np.random.seed(898989)
-tns.setRandom(dtype=complex)
-tns.toPdf()
-tns.label = "CH3CN using CSC PES"
+#np.random.seed(898989)
+#tns.setRandom(dtype=complex)
+#tns.toPdf()
+#tns.label = "CH3CN using CSC PES"
 
 if EPS is not None:
     bondDimensionAdaptions = [TruncationEps(EPS, maxD=MAX_D, offset=2, truncateViaDiscardedSum=False)]
 else:
     bondDimensionAdaptions = None
+'''    
 noises = [1e-6] * 4 + [1e-7] * 4 + [1e-8] * 6
-N_SUBSPACE = 5
+N_SUBSPACE = 3
 
 davidsonOptions = [IterativeDiagonalizationOptions(tol=1e-7, maxIter=500,maxSpaceFac=200)] * 8
 davidsonOptions.append(IterativeDiagonalizationOptions(tol=1e-8, maxIter=500,maxSpaceFac=200))
@@ -102,32 +104,48 @@ tnsList, energies = eigenStateComputations(tns, Hop,
                                      noises = noises,
                                      allowRestart=False,
                                      convTol=convTol)
+'''
 # ---------- USER INPUT -----------------------
-Emin = 722  # Lower limit of excitation energy for target interval
-Emax = 724   # Upper limit of excitation energy for target interval
-maxit = 3
-nc = 10
+Emin = 720  # Lower limit of excitation energy for target interval
+Emax = 730   # Upper limit of excitation energy for target interval
+maxit = 100 
+nc = 6
 eps = 1e-6 
 quad = "legendre"
 zpve = 9837.4069
 
 # ---------- USER INPUT -----------------------
 
+bondAdaptFitting = [TruncationEps(EPS, maxD=10, offset=2, truncateViaDiscardedSum=False)]
 optionsLinear = {"nSweep":1000, "iterativeLinearSystemOptions":IterativeLinearSystemOptions(solver="gcrotmk",tol=1e-3,maxIter=1000),"convTol":1e-3,"bondDimensionAdaptions":bondDimensionAdaptions}
-optionsFitting = {"nSweep":1000, "convTol":1e-9,"bondDimensionAdaptions":bondDimensionAdaptions}
+optionsFitting = {"nSweep":1000, "convTol":1e-9,"bondDimensionAdaptions":bondAdaptFitting}
 options = {"linearSystemArgs":optionsLinear, "stateFittingArgs":optionsFitting}
 status = {"eShift":zpve, "convertUnit":"cm-1"}
+
+m0 = 4 
+# Random orthogonal tress
+setTrees = []
+for i in range(m0):
+    tns = parseTree(treeString, basisDict, returnType="TTNS")
+    np.random.seed(20+i);tns.setRandom(dtype=complex)
+    setTrees.append(tns)
+setTrees= orthogonalize(setTrees)
+        
+# Make a TTNSVector list from above orthogonal trees
+guess = []
+for i in range(m0):
+    guess.append(TTNSVector(setTrees[i],options))
 
 fileHeader("out",options,Emin,nc, maxit,eps,MAX_D)
 fileHeader("plot",options,Emin,nc,maxit,eps,MAX_D,printInfo=False)
 
 ev_min = util.unit2au((Emin+zpve),"cm-1")  # lower limit of eigenvalue in a.u.
 ev_max = util.unit2au((Emax+zpve),"cm-1")  # upper limit of eigenvalue in a.u.
-Y = []
-for i in range(N_SUBSPACE):
-    Y.append(TTNSVector(tnsList[i],options))
+#Y = []
+#for i in range(N_SUBSPACE):
+#    Y.append(TTNSVector(tnsList[i],options))
 
-ev, tnsList = feastDiagonalization(Hop,Y,nc,quad,ev_min,ev_max,eps,maxit)
+ev, tnsList = feastDiagonalization(Hop,guess,nc,quad,ev_min,ev_max,eps,maxit)
 print("Eigenvalues",util.au2unit(ev,"cm-1")-zpve)
 fileFooter("out")
 fileFooter("plot",printInfo=False)
