@@ -139,13 +139,16 @@ class NumpyVector(AbstractVector):
             x = None
         return x
         
-    def solve(H, b, sigma = None, x0=None):
-        ''' Linear equation ((sigma-H)x0 =b ) solver'''
-        #NOTE: opposit to ttnsVector; add other cases for both code
+    def solve(H, b, sigma = None, x0=None, reverseGF=False):
+        ''' reverseGF:False -> Linear equation (sigma-H)x0 =b solver
+            reverseGF:True ->  Linear equation (H-sigma)x0 =b  solver '''
             
         n = H.shape[0]
         dtype = np.result_type(sigma, H.dtype, b.dtype)
-        linOp = LinearOperator((n,n),matvec = lambda x, sigma=sigma, H=H:(sigma*x-H@x),dtype=dtype)
+        if not reverseGF:
+            linOp = LinearOperator((n,n),matvec = lambda x, sigma=sigma, H=H:(sigma*x-H@x),dtype=dtype)
+        elif reverseGF:
+            linOp = LinearOperator((n,n),matvec = lambda x, sigma=sigma, H=H:(H@x-sigma*x),dtype=dtype)
         
         options = b.optionsDict["linearSystemArgs"]
         tol = options["linear_tol"]

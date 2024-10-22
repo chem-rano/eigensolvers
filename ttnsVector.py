@@ -143,8 +143,14 @@ class TTNSVector(AbstractVector):
     @staticmethod
     def solve(H, b:TTNSVector, sigma:Number,
               x0: Optional[TTNSVector]=None,
-              opType = "her") -> TTNSVector:
-        ''' solves (H-sigma)x0 =b '''
+              opType = "her",reverseGF=False) -> TTNSVector:
+        ''' Green's function : (sigma-H)^-1 
+            See- J.Chem.Phys.,Vol.112,No.20,22May2000
+                 PHYSICAL REVIEW B 79,115112,2009
+            
+            reverseGF=False => solves (sigma-H)x0 =b 
+            reverseGf=True  => solves (H-sigma)x0 =b'''
+
         if x0 is None:
             # TODO think about best options.
             #   D=1 TTNS?
@@ -152,8 +158,11 @@ class TTNSVector(AbstractVector):
             # the sign does not matter
             x0 = b.copy()
         op = getRenormalizedOp(x0.ttns, H, x0.ttns)
+
+        coeffs=[-1.0,1.0] if not reverseGF else [1.0,-1.0]
+
         if abs(sigma) > 1e-16:
-            LHS = SumOfOperators([op, getRenormalizedOp(x0.ttns, -sigma, x0.ttns)])
+            LHS = SumOfOperators([op, getRenormalizedOp(x0.ttns, sigma, x0.ttns)],coeffs=coeffs)
         else:
             LHS = op
         assert "lhsOpType" not in x0.options["linearSystemArgs"] # or just delete it in a copy of the dict

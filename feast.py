@@ -83,8 +83,6 @@ def calculateQuadrature(Amat,guess_b,z,radius,angle,weight,status):
     Qquad_k=-0.50*w_k*Real{r*exp(i*angle_k)G(z)Y}
     
     G(z)Y == Qe => From liner solver: (z*I-A)Qe = Y
-    For numpyVector => (z-A) is solved; prefactor = +1
-    For ttnsVector => (A-z) is solved; prefactor = -1
     
     In: Amat => Matrix A for the problem Ax = ex
                 Either as ndarray, linear operator or SOP
@@ -105,13 +103,11 @@ def calculateQuadrature(Amat,guess_b,z,radius,angle,weight,status):
     efactor = status["efactor"] 
     
     if b.hasExactAddition:
-        prefactor = +1
         Qe = typeClass.solve(Amat,b,z)  # complex128
-        mult = prefactor*(-0.50*weight*radius)*(efactor*math.cos(angle)+math.sin(angle)*1.00j)
+        mult = -0.50*weight*radius*(efactor*math.cos(angle)+math.sin(angle)*1.00j)
         Qquad_k = typeClass.real(mult*Qe)
     else:
-        prefactor = -1  
-        mult = prefactor*(-0.25*weight*radius)
+        mult = -0.25*weight*radius
         part1 = typeClass.solve(Amat,b,z,opType="sym")
         part2 = typeClass.solve(Amat,b,z.conj(),opType="sym") #NOTE:assuming Amat is hermitian
         c1 = mult*np.exp(1j*angle)
