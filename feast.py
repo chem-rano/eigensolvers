@@ -10,35 +10,22 @@ import time
 import math
 from magic import ipsh
 
-def _getStatus(status,guess,radius,maxit,nquad,eConv):
-    ''' Dictionary for storing paramters, stage of the computation
-    and status.
-    guess: Guess vector to access exact addition property
-    radius: Coutour radius for eigenvalue target rmin to rmax, (rmax-rmin)/2
-    maxit: Maximum FEAST iterations
-    nquad: Number of quadrature points
-    eConv: Eigenvalue convergence
+def _getStatus(status,guess):
+    ''' Dictionary for storing info of stage of the computation
+    In: guess: Guess vector to access exact addition property
     
-    Additional
-    efactor: ellipse factor for countour (circle when efactor=1)
     flagAddition: Boolean, True if linear combination is accurate 
     isConverged: Status of eigenvalue residual convergence
     startTime: Starting time 
     runTime: run time in seconds
-    writeOut: Instruction to write output file
-    writePlot:Instruction to write plot data file
-    eShift: shift for eigenvalue conversion (e.g, zpve)
-    convertUnit: converting unit of eigenvalue, H elements
+
+    Out: StatusUp: Initiated and updated dictionary
     '''
     
-    statusUp = {"radius":radius,"maxit":maxit,
-            "nquad":nquad,"eConv":eConv,
-            "efactor":1.0,
-            "flagAddition":guess[0].hasExactAddition,
+    statusUp ={"flagAddition":guess[0].hasExactAddition,
             "outerIter":0, "innerIter":0,"cumIter":0,
             "isConverged":False,
-            "startTime":time.time(), "runTime":0.0,
-            "writeOut":True,"writePlot":True,"eShift":0.0,"convertUnit":"au"}
+            "startTime":time.time(), "runTime":0.0}
     
     if status is not None:
         givenkeys = status.keys()
@@ -73,7 +60,7 @@ def basisTransformation(bases,coeffs):
     
     return combBases
 
-def calculateQuadrature(Amat,guess_b,z,radius,angle,weight,status):
+def calculateQuadrature(Amat,guess_b,z,radius,angle,weight,efactor):
     ''' Calculates k-th quadrature Qquad_k
     
     For Hermitian matrix:
@@ -91,27 +78,32 @@ def calculateQuadrature(Amat,guess_b,z,radius,angle,weight,status):
         radius => radius of the contour
         angle => k-th countor angle
         weight => k-th quadrature distribution weight
+        efactor => contour shape factor (see below)
     
     Out: Qquad_k => k-th quadrature vector
-    N.T.: for hasExactAddition: exp(i*theta) is expanded as 
-    efactor*cos(theta)+isin(theta)
+    N.T.: exp(+/-i*theta) is expanded as 
+    efactor*cos(theta)+/-isin(theta)
+    This is to change countour shape
+    e.g., efactor = 1.0, circular contour
+          efactor = 0.3, ellipse contour
+    
     This efactor is implemented in Polizzi's code.
+    It is necessary for testing fortran data.
     '''
 
     b = guess_b # copying of guess to unalter guess
     typeClass = b.__class__
-    efactor = status["efactor"] 
     
     if b.hasExactAddition:
         Qe = typeClass.solve(Amat,b,z)  # complex128
-        mult = -0.50*weight*radius*(efactor*math.cos(angle)+math.sin(angle)*1.00j)
+        mult = -0.50*weight*radius*(efactor*math.cos(angle)+math.sin(angle)*1j)
         Qquad_k = typeClass.real(mult*Qe)
     else:
         mult = -0.25*weight*radius
         part1 = typeClass.solve(Amat,b,z,opType="sym")
         part2 = typeClass.solve(Amat,b,z.conj(),opType="sym") #NOTE:assuming Amat is hermitian
-        c1 = mult*np.exp(1j*angle)
-        c2 = mult*np.exp(-1j*angle)
+        c1 = mult*(efactor*math.cos(angle)+math.sin(angle)*1j)
+        c2 = mult*(efactor*math.cos(angle)-math.sin(angle)*1j)
         print("Fit: calculateQuadrature")
         Qquad_k = typeClass.linearCombination([part1,part2],[c1,c2])
 
@@ -148,7 +140,7 @@ def transformationMatrix(vectors,lindep=1e-14):
     uS, idx = lowdinOrtho(S,lindep)[1:3]
     return uS, idx
 
-def diagonalizeHamiltonian(Hop,vectors,X,S):
+def diagonalizeHamiltonian(Hop,vectors,X):
     ''' Calculates matrix representation of Hop,
     forms truncated matrix (Hmat)
     and finally solves eigenvalue problem for Hmat
@@ -166,24 +158,30 @@ def diagonalizeHamiltonian(Hop,vectors,X,S):
     typeClass = vectors[0].__class__
     qtAq = typeClass.matrixRepresentation(Hop,vectors)   
     Hmat = X.T.conj()@qtAq@X
-    ev, uv = sp.linalg.eigh(Hmat,S)
+    ev, uv = sp.linalg.eigh(Hmat)
     return Hmat,ev,uv
 
 # ***************************************************
 # Part 1: main FEAST function for contour integral
 # ------------------------------
-def feastDiagonalization(A,Y,nc,quad,rmin,rmax,eConv,maxit,status=None):
+def feastDiagonalization(A,Y,nc,quad,rmin,rmax,eConv,maxit,efactor=1.0,
+        writeOut=True,eShift=0.0,convertUnit="au",status=None):
     """ FEAST diagonalization of A 
 
-        In A     ::  matrix or linearoperator or SOP operator 
-        In Y     ::  Initial guess of m0 vectors (m0 is called as subspace dimension)
-        In nc    ::  number of quadrature points
-        In quad  ::  quadrature points distribution
-                     Avaiable options - "legendre", "hermite", "trapezoidal"
-        In rmin  ::  eigenvalue lower limit
-        In rmax  ::  eigenvalue upper limit
-        In eConv ::  eigenvalue residual convergence tolerance
-        In maxit ::  maximum feast iterations
+        In A       ::  matrix or linearoperator or SOP operator 
+        In Y       ::  Initial guess of m0 vectors (m0 is called as 
+                       subspace dimension)
+        In nc      ::  number of quadrature points
+        In quad    ::  quadrature points distribution
+                       Avaiable options - "legendre", "hermite", "trapezoidal"
+        In rmin    ::  eigenvalue lower limit
+        In rmax    ::  eigenvalue upper limit
+        In eConv   ::  eigenvalue residual convergence tolerance
+        In maxit   ::  maximum feast iterations
+        In efactor ::  Countor shape factor
+        In writeOut :: Instruction to writing output files 
+        In eShift   :: shift value for eigenvalues, Hmat elements
+        In convertUnit :: convert unit for eigenvalues, Hmat elements
 
         Out ev   ::  feast eigenvalues
         Out Y    ::  feast eigenvectors
@@ -198,8 +196,7 @@ def feastDiagonalization(A,Y,nc,quad,rmin,rmax,eConv,maxit,status=None):
     # numerical quadrature points.
     gk,wk = quad_func(nc,quad)
     pi = np.pi
-    status = _getStatus(status,Y,r,maxit,nc,eConv) # will be used as lanczos 
-    efactor = status["efactor"]
+    status = _getStatus(status,Y)
     
     for it in range(maxit):
         status["outerIter"] = it
@@ -214,12 +211,12 @@ def feastDiagonalization(A,Y,nc,quad,rmin,rmax,eConv,maxit,status=None):
             z = (rmin+rmax) * 0.5 + r*math.cos(theta)+r*efactor*1.0j*math.sin(theta)
             
             for im0 in range(m0):
-                Qquad_k = calculateQuadrature(A,Y[im0],z,r,theta,wk[k],status) # float64
+                Qquad_k = calculateQuadrature(A,Y[im0],z,r,theta,wk[k],efactor)
                 Q = updateQ(Q,im0,Qquad_k,k)
         
         # eigh in Lowdin orthogonal basis
         uS, idx = transformationMatrix(Q)
-        ev, uv = diagonalizeHamiltonian(A,Q,uS,S)[1:3]
+        ev, uv = diagonalizeHamiltonian(A,Q,uS)[1:3]
         
         uSH = uS@uv
         Y = basisTransformation(Q,uSH)

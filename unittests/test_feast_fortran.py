@@ -35,11 +35,11 @@ class Test_feast_fortran(unittest.TestCase):
         m0 = 3                 # subspace dimension
         self.eConv = 1e-12      # residual convergence tolerance
         self.maxit = 10        # maximum FEAST iterations
+        self.efactor = 0.3
         self.order = [4,3,5,2,6,1,7,0]
         
         options = {"linearSolver":"pardiso"}
         optionsDict = {"linearSystemArgs":options}
-        self.status = {"writeOut":False,"writePlot":False,"efactor":0.3}
         
         Y1 = read_fortranData()[1]
         Y = []
@@ -73,20 +73,18 @@ class Test_feast_fortran(unittest.TestCase):
     def test_zne(self):
         ''' Checks quadrature points, zne '''
         fzne= read_fortranData()[5]
-        efactor = self.status["efactor"]
         r = abs(self.rmax-self.rmin)*0.5
         gk = quad_func(self.nc,self.quad)[0]
         pi = np.pi
         zne = np.empty((self.nc),dtype=complex)
         for k in range(self.nc):
             theta = -(pi*0.5)*(gk[k]-1)
-            zne[k] = ((self.rmin+self.rmax)*0.5)+ r*math.cos(theta)+r*efactor*1.0j*math.sin(theta)
+            zne[k] = ((self.rmin+self.rmax)*0.5)+ r*math.cos(theta)+r*self.efactor*1.0j*math.sin(theta)
         np.testing.assert_allclose(fzne,zne[self.order],rtol=1e-5,atol=0)
 
     def test_Qe(self):
         ''' Checks linear solutions, Qe '''
         typeClass = self.guess[0].__class__
-        efactor = self.status["efactor"]
         r = abs(self.rmax-self.rmin)*0.5
         gk,wk = quad_func(self.nc,self.quad)
         pi = np.pi
@@ -95,7 +93,7 @@ class Test_feast_fortran(unittest.TestCase):
         Qe = np.empty((n,m),dtype=complex)
         for k in range(self.nc):
             theta = -(pi*0.5)*(gk[k]-1)
-            zne[k] = ((self.rmin+self.rmax)*0.5)+ r*math.cos(theta)+r*efactor*1.0j*math.sin(theta)
+            zne[k] = ((self.rmin+self.rmax)*0.5)+ r*math.cos(theta)+r*self.efactor*1.0j*math.sin(theta)
         
         zne = zne[self.order]    
         for k in range(self.nc):
@@ -107,7 +105,6 @@ class Test_feast_fortran(unittest.TestCase):
     def test_Q(self):
         ''' Checks integrated solutions, Q '''
         typeClass = self.guess[0].__class__
-        efactor = self.status["efactor"]
         r = abs(self.rmax-self.rmin)*0.5
         gk,wk = quad_func(self.nc,self.quad)
         pi = np.pi
@@ -122,24 +119,13 @@ class Test_feast_fortran(unittest.TestCase):
         wk = wk[self.order]
         for k in range(self.nc):
             fQ = read_fortranData(k)[7]
-            zne[k] = ((self.rmin+self.rmax)*0.5)+ r*math.cos(theta[k])+r*efactor*1.0j*math.sin(theta[k])
+            zne[k] = ((self.rmin+self.rmax)*0.5)+ r*math.cos(theta[k])+r*self.efactor*1.0j*math.sin(theta[k])
             for im0 in range(len(self.guess)):
-                Qquad_k = calculateQuadrature(self.mat,self.guess[im0],zne[k],r,theta[k],wk[k],self.status)
+                Qquad_k = calculateQuadrature(self.mat,self.guess[im0],zne[k],r,theta[k],wk[k],self.efactor)
                 Q = updateQ(Q,im0,Qquad_k,k)
             for im0 in range(len(self.guess)):
                 np.testing.assert_allclose(Q[im0].array,fQ[im0],rtol=1e-5,atol=0)
     
-    def xtest_Q_solution(self):
-        ''' Checks eigenvectors from first iteration
-        obseravation: Q is tested to be equal, but not eigenvectors'''
-        typeClass = self.guess[0].__class__
-        Q = read_fortranData(self.nc-1)[7]
-        Y = []
-        for i in range(len(self.guess)):
-            Y.append(NumpyVector(Q[i], self.guess[0].optionsDict))
-
-        Hmat = typeClass.matrixRepresentation(self.mat,Y)
-        ev, uv = sp.linalg.eigh(Hmat)
         
 if __name__ == '__main__':
     unittest.main()

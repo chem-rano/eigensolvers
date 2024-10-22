@@ -138,8 +138,8 @@ class Test_feast(unittest.TestCase):
     def test_eigenvector(self):
         ''' Checks if the calculated eigenvalue is accurate to fourth decimal place'''
        
-        evfeast, uvfeast = feastDiagonalization(self.mat,self.guess,10,self.quad,self.rmin,self.rmax,
-                1e-12,20)
+        evfeast, uvfeast = feastDiagonalization(self.mat,self.guess,self.nc,self.quad,self.rmin,self.rmax,
+                1e-12,30)
         
         contour_evs = select_within_range(self.evEigh, self.rmin, self.rmax)[0]
         for i in range(len(contour_evs)):
