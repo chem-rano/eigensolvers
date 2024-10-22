@@ -48,28 +48,21 @@ DVRopts = [
     basis.Hermite.getOptions(N=N, HOx0=0, HOw=1, HOm=1),
 ]
 treeString = """
-0> 3 3 3
-    1> 3 3
-        2> [x1]
-        2> 3 3
-            3> [x5]
-            3> [x6]
-    1> 3 3
-        2> 3 3
-            3> [x7]
-            3> [x8]
-        2> 3 3
-            3> [x9]
-            3> [x10]
-    1> 3 3
-        2> 3 3 
-            3> [x3]
-            3> 3 3
-               4> [x2]
-               4> [x4]
-        2> 3 3 
-            3> [x11] 
-            3> [x12]
+     0> 3 3 3
+         1> 3 3
+             2> [x1]
+             2> [x5 x6]
+         1> 3 3
+             2> [x7 x8]
+             2> [x9 x10]
+         1> 3 3
+             2> 3 3
+                 3> [x3]
+                 3> 3 3
+                    4> [x2]
+                    4> [x4]
+             2> 3
+                3> [x11 x12]
     """
 bases = [basis.basisFactory(o) for o in DVRopts]
 nBas = [b.N for b in bases]
