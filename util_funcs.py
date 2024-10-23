@@ -205,19 +205,19 @@ def headerBot(method,yesBot=False):
 # -----------------------------------------------------
 def lowdinOrtho(oMat, tol= LINDEP_DEFAULT_VALUE):
     """ Extracts out linearly independent vectors from the overlap matrix `oMat` and 
-    returns orthogonalized vectors (vector*S-1/2).
-    :returns info (is all linear independent: True or not), vectors
     idx : (Boolean array) indices of the returned vectors
           True if the element is linealy independent
+    :returns info (is all linear independent: True or not), vectors
+    returns orthogonalized vectors (vector*S-1/2).
     """
     evq, uvq = la.eigh(oMat)
     idx = evq > tol
     evq = evq[idx]
     uvq = uvq[:,idx]
-    
+   
     info = all(idx)
     uvqTraf = uvq * evq**(-0.5)
-    return info, uvqTraf, idx
+    return idx, info, uvqTraf
 
 def eigenvalueResidual(ev,prev_ev,emin,emax,insideTarget=True):
     '''

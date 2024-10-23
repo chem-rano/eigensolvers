@@ -101,7 +101,7 @@ def transformationMatrix(Ylist,S,printObj,status):
     typeClass = Ylist[0].__class__
     S = typeClass.extendOverlapMatrix(Ylist,S)
         
-    linIndep, uS = lowdinOrtho(S)[0:2]
+    linIndep, uS = lowdinOrtho(S)[1:3]
     status["lindep"] = not linIndep
     printObj.writeFile("iteration",status)
     printObj.writeFile("overlap",S)
