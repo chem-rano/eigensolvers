@@ -9,6 +9,7 @@ from numpyVector import NumpyVector
 import time
 import math
 from magic import ipsh
+from printUtils import feastPrintUtils
 
 def _getStatus(status,guess):
     ''' Dictionary for storing info of stage of the computation
@@ -16,6 +17,7 @@ def _getStatus(status,guess):
     
     flagAddition: Boolean, True if linear combination is accurate 
     isConverged: Status of eigenvalue residual convergence
+    phase: Stage of phase calculations
     startTime: Starting time 
     runTime: run time in seconds
 
@@ -23,8 +25,9 @@ def _getStatus(status,guess):
     '''
     
     statusUp ={"flagAddition":guess[0].hasExactAddition,
-            "outerIter":0, "innerIter":0,"cumIter":0,
+            "outerIter":0, "quadrature":0,
             "isConverged":False,
+            "phase":1,
             "startTime":time.time(), "runTime":0.0}
     
     if status is not None:
@@ -127,7 +130,7 @@ def updateQ(Q,im0,Qquad_k,k):
         Q[im0] = typeClass.linearCombination([Q[im0],Qquad_k],[1.0,1.0])
     return Q
        
-def transformationMatrix(vectors,lindep=1e-14):
+def transformationMatrix(vectors,printObj,lindep=1e-14):
     ''' Calculates transformation matrix from 
     overlap matrix in Q basis
     In: vectors (list of basis)
@@ -137,10 +140,11 @@ def transformationMatrix(vectors,lindep=1e-14):
     
     typeClass = vectors[0].__class__
     S = typeClass.overlapMatrix(vectors)
-    uS, idx = lowdinOrtho(S,lindep)[1:3]
+    printObj.writeFile("overlap",S)
+    idx, _, uS = lowdinOrtho(S,lindep)
     return uS, idx
 
-def diagonalizeHamiltonian(Hop,vectors,X):
+def diagonalizeHamiltonian(Hop,vectors,X,printObj):
     ''' Calculates matrix representation of Hop,
     forms truncated matrix (Hmat)
     and finally solves eigenvalue problem for Hmat
@@ -159,6 +163,10 @@ def diagonalizeHamiltonian(Hop,vectors,X):
     qtAq = typeClass.matrixRepresentation(Hop,vectors)   
     Hmat = X.T.conj()@qtAq@X
     ev, uv = sp.linalg.eigh(Hmat)
+        
+    printObj.writeFile("hamiltonian",Hmat)
+    printObj.writeFile("eigenvalues",ev)
+
     return Hmat,ev,uv
 
 # ***************************************************
@@ -196,16 +204,19 @@ def feastDiagonalization(A,Y,nc,quad,rmin,rmax,eConv,maxit,efactor=1.0,
     # numerical quadrature points.
     gk,wk = quad_func(nc,quad)
     pi = np.pi
+    
     status = _getStatus(status,Y)
+    printObj = feastPrintUtils(Y[0],nc,quad,rmin,rmax,eConv,maxit,writeOut,eShift,
+            convertUnit,status)
+    printObj.fileHeader()
     
     for it in range(maxit):
         status["outerIter"] = it
         # initialize Q
         Q = [np.nan for it in range(m0)]
         for k in range(nc):
-            status["innerIter"] = k
-            status["cumIter"] += 1
-            print("iteration",it,"quadrature",k)
+            status["quadrature"] = k
+            printObj.writeFile("iteration",status)
             
             theta = -(pi*0.5)*(gk[k]-1)
             z = (rmin+rmax) * 0.5 + r*math.cos(theta)+r*efactor*1.0j*math.sin(theta)
@@ -215,20 +226,25 @@ def feastDiagonalization(A,Y,nc,quad,rmin,rmax,eConv,maxit,efactor=1.0,
                 Q = updateQ(Q,im0,Qquad_k,k)
         
         # eigh in Lowdin orthogonal basis
-        uS, idx = transformationMatrix(Q)
-        ev, uv = diagonalizeHamiltonian(A,Q,uS)[1:3]
+        uS, idx = transformationMatrix(Q,printObj)
+        ev, uv = diagonalizeHamiltonian(A,Q,uS,printObj)[1:3]
         
         uSH = uS@uv
         Y = basisTransformation(Q,uSH)
         
         if it != 0: 
             res = abs(eigenvalueResidual(ev,ref_ev[idx],rmin,rmax))
-            print("iteration",it,"residual",res)
+            status["runTime"] = time.time() - status["startTime"]
+            printObj.writeFile("summary",ev,res,status)
+            
             if res < eConv:
                 break
        
         m0 = len(Y);del Q
         ref_ev = ev
+
+    printObj.writeFile("results",ev)
+    printObj.fileFooter()
 
     return ev,Y
 
