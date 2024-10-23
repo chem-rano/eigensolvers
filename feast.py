@@ -212,11 +212,11 @@ def feastDiagonalization(A,Y,nc,quad,rmin,rmax,eConv,maxit,efactor=1.0,
     
     for it in range(maxit):
         status["outerIter"] = it
+        printObj.writeFile("iteration",status)
         # initialize Q
         Q = [np.nan for it in range(m0)]
         for k in range(nc):
             status["quadrature"] = k
-            printObj.writeFile("iteration",status)
             
             theta = -(pi*0.5)*(gk[k]-1)
             z = (rmin+rmax) * 0.5 + r*math.cos(theta)+r*efactor*1.0j*math.sin(theta)
@@ -269,7 +269,7 @@ if __name__ == "__main__":
     eps   = 1e-6      # residual convergence tolerance
     maxit = 4         # maximum FEAST iterations
     options = {"linearSolver":"gcrotmk","linearIter":1000,"linear_tol":1e-02}
-    optionsDict = {"linearSystemArgs":options}
+    options = {"linearSystemArgs":options}
     
     Y0    = np.random.random((n,m0)) # eigenvector initial guess
     for i in range(m0):
@@ -279,7 +279,7 @@ if __name__ == "__main__":
 
     Y = []
     for i in range(m0):
-        Y.append(NumpyVector(Y1[:,i], optionsDict))
+        Y.append(NumpyVector(Y1[:,i], options))
 
     contour_ev = select_within_range(ev, ev_min, ev_max)[0]
     print("--- actual eigenvalues",contour_ev,"---\n")

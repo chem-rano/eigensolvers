@@ -26,14 +26,14 @@ class NumpyVector(AbstractVector):
         self.array = array
         self.size = array.size
         self.shape = array.shape
-        self.optionsDict = dict()
+        self.options = dict()
          
         opt = options.get("linearSystemArgs",dict())
         opt["linearSolver"] = opt.get("linearSolver", "minres")
         opt["linearIter"] = opt.get("linearIter", 1000)
         opt["linear_tol"] = opt.get("linear_tol", 1e-4)
         opt["linear_atol"] = opt.get("linear_atol", 1e-4)
-        self.optionsDict["linearSystemArgs"] = opt
+        self.options["linearSystemArgs"] = opt
     
     @property
     def hasExactAddition(self):
@@ -50,13 +50,13 @@ class NumpyVector(AbstractVector):
         return self.array.dtype
         
     def __mul__(self,other):
-        return NumpyVector(self.array*other,self.optionsDict)
+        return NumpyVector(self.array*other,self.options)
     
     def __rmul__(self,other):
-        return NumpyVector(self.array*other,self.optionsDict)
+        return NumpyVector(self.array*other,self.options)
 
     def __truediv__(self,other):
-        return NumpyVector(self.array/other,self.optionsDict)
+        return NumpyVector(self.array/other,self.options)
     
     def __imul__(self, other):
         raise NotImplementedError
@@ -70,16 +70,16 @@ class NumpyVector(AbstractVector):
     
     def normalize(self):
         out = self.array/la.norm(self.array)
-        return NumpyVector(out, self.optionsDict)
+        return NumpyVector(out, self.options)
 
     def norm(self) -> float:
         return la.norm(self.array)
 
     def real(self):
-        return NumpyVector(np.real(self.array),self.optionsDict)
+        return NumpyVector(np.real(self.array),self.options)
 
     def conjugate(self):
-        return NumpyVector(self.array.conj(),self.optionsDict)
+        return NumpyVector(self.array.conj(),self.options)
 
     def vdot(self,other,conjugate:bool=True):
         if conjugate:
@@ -88,11 +88,11 @@ class NumpyVector(AbstractVector):
             return np.dot(self.array.ravel(),other.array.ravel())
     
     def copy(self):
-        return NumpyVector(self.array.copy(), self.optionsDict)
+        return NumpyVector(self.array.copy(), self.options)
 
     def applyOp(self,other):
         ''' Apply rmatmul as other@self.array '''
-        return NumpyVector(other@self.array,self.optionsDict)
+        return NumpyVector(other@self.array,self.options)
     
 
     def linearCombination(vectors,coeffs):
@@ -109,7 +109,7 @@ class NumpyVector(AbstractVector):
         combArray = np.zeros(len(vectors[0]),dtype=dtype)
         for n in range(len(vectors)):
             combArray += coeffs[n]*vectors[n].array
-        return NumpyVector(combArray,vectors[0].optionsDict)
+        return NumpyVector(combArray,vectors[0].options)
 
     
 
@@ -150,7 +150,7 @@ class NumpyVector(AbstractVector):
         elif reverseGF:
             linOp = LinearOperator((n,n),matvec = lambda x, sigma=sigma, H=H:(H@x-sigma*x),dtype=dtype)
         
-        options = b.optionsDict["linearSystemArgs"]
+        options = b.options["linearSystemArgs"]
         tol = options["linear_tol"]
         atol = options["linear_atol"]
         maxiter = options["linearIter"]
@@ -169,7 +169,7 @@ class NumpyVector(AbstractVector):
         if conv != 0:
             warnings.simplefilter('error', UserWarning)
             warnings.warn("Warning:: Iterative solver is not converged ")
-        return NumpyVector(wk,b.optionsDict)
+        return NumpyVector(wk,b.options)
 
     def matrixRepresentation(operator,vectors):
         ''' Calculates and returns matrix in the "vectors" space '''

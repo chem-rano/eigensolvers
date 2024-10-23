@@ -86,11 +86,11 @@ class lanczosPrintUtils:
             linearTol = optLinear["linear_tol"]
             nsweepLinear = optLinear["linearIter"]
 
-            lines += formatStyle.format("lsweep",nsweepLinear,"Number of \
-                    sweeps: Linear solver")
-            lines += formatStyle.format("solver",solver,"Linear solver")
-            lines += formatStyle.format("ltol",linearTol,"Tolerance: \
-                    Linear solver")
+            lines += formatStyle.format("lsweep",nsweepLinear,\
+                    "Number of sweeps: Linear solver")+"\n"
+            lines += formatStyle.format("solver",solver,"Linear solver")+"\n"
+            lines += formatStyle.format("ltol",linearTol,\
+                    "Tolerance: Linear solver")+"\n"
     # ..........................  sweep infos ttnsVector......................
         elif self.typeClass is TTNSVector:
             solver = optLinear["iterativeLinearSystemOptions"].solver
@@ -330,11 +330,11 @@ class feastPrintUtils:
             linearTol = optLinear["linear_tol"]
             nsweepLinear = optLinear["linearIter"]
 
-            lines += formatStyle.format("lsweep",nsweepLinear,"Number of \
-                    sweeps: Linear solver")
-            lines += formatStyle.format("solver",solver,"Linear solver")
-            lines += formatStyle.format("ltol",linearTol,"Tolerance: \
-                    Linear solver")
+            lines += formatStyle.format("lsweep",nsweepLinear,\
+                    "Number of sweeps: Linear solver")+"\n"
+            lines += formatStyle.format("solver",solver,"Linear solver")+"\n"
+            lines += formatStyle.format("ltol",linearTol,\
+                    "Tolerance: Linear solver")+"\n"
     # ..........................  sweep infos ttnsVector......................
         elif self.typeClass is TTNSVector:
             solver = optLinear["iterativeLinearSystemOptions"].solver
@@ -377,8 +377,8 @@ class feastPrintUtils:
             print(lines)
 
         # ..........................  data description in plot file ..........
-        lines = "it\ti\tnCum\ttarget\tReference\t\tev_nearest\t\tabs_ev"
-        lines += "\t\trel_ev\t\ttime (seconds)\n"
+        lines = "it\tquad\t\teigenvalues\t\t"
+        lines += "res\t\ttime (seconds)\n"
         if self.writeOut:sumfile.write(lines)
     
         if self.writeOut:
@@ -440,8 +440,7 @@ class feastPrintUtils:
     # ...................... ITERATION INFOs ..............................
         elif self.writeOut and label == "iteration":
             line = "\n\n"+"."*20+"\tInfo per iteration\t"+"."*20+"\n"
-            line += "FEAST iteration: "+str(args[0]["outerIter"])
-            line += "\tquadrature: "+str(args[0]["quadrature"])+"\n"
+            line += "FEAST iteration: "+str(args[0]["outerIter"])+"\n"
             outfile.write(line)
             print(line) # for sweepOutput
 
