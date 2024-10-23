@@ -182,7 +182,6 @@ def basisTransformation(bases,coeffs):
     combBases = []
     if len(ndim)==1:
         if len(coeffs) == 1 and coeffs[0] == 1.0:
-            # leaving fraction multiplication to linear combination
             combBases = bases
         else:
             combBases.append(typeClass.linearCombination(bases,coeffs))
@@ -319,7 +318,7 @@ def inexactDiagonalization(H,v0,sigma,L,maxit,eConv,checkFit=1e-7,
                     assert len(Ylist) == 1
                     uSH = np.ones(1)  # single item in Ylist
                     continueIteration = False # No need for further iteration
-                    if it == 0: ev = typeClass.matrixRepresentation(Ylist)
+                    if it == 0: ev = typeClass.matrixRepresentation(H,Ylist)[0,0]
                 break
            
             ev, uv, qtAq = diagonalizeHamiltonian(H,Ylist,uS,qtAq,printObj,status)[1:4]
