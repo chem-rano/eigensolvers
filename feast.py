@@ -230,7 +230,7 @@ def feastDiagonalization(A,Y,nc,quad,rmin,rmax,eConv,maxit,efactor=1.0,
                 Q = updateQ(Q,im0,Qquad_k,k)
         
         # eigh in Lowdin orthogonal basis
-        uS, idx = transformationMatrix(Q,printObj)
+        uS, idx = transformationMatrix(Q,printObj=printObj)
         ev, uv = diagonalizeHamiltonian(A,Q,uS,printObj)[1:3]
         
         uSH = uS@uv

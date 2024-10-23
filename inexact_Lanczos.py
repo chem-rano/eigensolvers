@@ -339,7 +339,7 @@ def inexactDiagonalization(H,v0,sigma,L,maxit,eConv,checkFit=1e-7,
             assert len(idx) == len(ev), f"{len(ev)=} {len(idx)=}"
             ev = ev[idx]
             uSH = uSH[:,idx]
-            status = checkConvergence(ev,eConv,printObj,status)
+            status = checkConvergence(ev,eConv,status,printObj)
             continueIteration = analyzeStatus(status,maxit,L)
             
             if not continueIteration:
