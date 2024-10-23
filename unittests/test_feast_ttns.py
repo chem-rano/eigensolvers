@@ -77,6 +77,7 @@ class Test_feast_ttns(unittest.TestCase):
         self.nc = 6  
         self.eConv = 1e-6
         self.quad = "legendre"
+        self.writeOut = False
 
 
         adaptionsLinear =  [TruncationEps(EPS, maxD=5, offset=1, truncateViaDiscardedSum=False)] 
@@ -108,7 +109,7 @@ class Test_feast_ttns(unittest.TestCase):
     
     def test_feast(self):
         evfeast, uvfeast = feastDiagonalization(self.mat,self.guess,self.nc,self.quad,self.rmin,self.rmax,
-                self.eConv,self.maxit)
+                self.eConv,self.maxit,writeOut=self.writeOut)
         typeClass = uvfeast[0].__class__
         
         with self.subTest("Hmat"):

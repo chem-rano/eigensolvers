@@ -200,6 +200,7 @@ class lanczosPrintUtils:
             line += "\tKrylov iteration: "+str(args[0]["innerIter"])
             line += "\tCumulative Krylov iteration: "+str(args[0]["cumIter"])+"\n"
             outfile.write(line)
+            print(line) # for sweepOutput
 
     # ...................... MAXIMUM BOND DIMENSION ......................
         elif self.writeOut and label == "KSmaxD":
@@ -439,60 +440,24 @@ class feastPrintUtils:
     # ...................... ITERATION INFOs ..............................
         elif self.writeOut and label == "iteration":
             line = "\n\n"+"."*20+"\tInfo per iteration\t"+"."*20+"\n"
-            line += "Lanczos iteration: "+str(args[0]["outerIter"])
-            line += "\tKrylov iteration: "+str(args[0]["innerIter"])
-            line += "\tCumulative Krylov iteration: "+str(args[0]["cumIter"])+"\n"
+            line += "FEAST iteration: "+str(args[0]["outerIter"])
+            line += "\tquadrature: "+str(args[0]["quadrature"])+"\n"
             outfile.write(line)
-
-    # ...................... MAXIMUM BOND DIMENSION ......................
-        elif self.writeOut and label == "KSmaxD":
-            line = "Maximum bond dimensions of Krylov vectors"
-            KSmaxD = args[0]["KSmaxD"]
-            line += f"{KSmaxD}"+"\n\n"
-            outfile.write(line)
-
-        elif self.writeOut and label == "fitmaxD":
-            line = "Maximum bond dimensions of fitted vectors"
-            fitmaxD = args[0]["fitmaxD"]
-            line += f"{fitmaxD}"+"\n\n"
-            outfile.write(line)
-
-    # ........................FINAL RESULTS ..............................
-        elif self.writeOut and label == "results":
-            # same as 'eigenvalues', with ev_nearest and final message
-            lines = "\n\n" +"-"*20+"\tFINAL RESULTS\t"+"-"*20+"\n"
-            energies = convert(args[0],self.eShift,self.convertUnit)
-            lines += "All subspace eigenvalues:\n"
-            lines += f"{energies}"+"\n"
-            target = convert(self.sigma,self.eShift,self.convertUnit)
-            ev_nearest = find_nearest(energies,target)[1]
-            lines += f"Target, Lanczos (nearest) {target}, {ev_nearest}\n"
-            outfile.write(lines)
+            print(line) # for sweepOutput
 
     # ....................... SUMMARY FILE ..............................
         elif self.writeOut and label == "summary":
-            status = args[1]
+            status = args[2]
             it = status["outerIter"]
-            i = status["innerIter"]
-            nCum = status["cumIter"]
+            quad = status["quadrature"]
             runTime = status["runTime"]
 
-            target = convert(self.sigma,self.eShift,self.convertUnit)
             evalue = convert(args[0],unit=self.convertUnit)
             excitation = convert(evalue,eShift=self.eShift)
 
-            ref = util.au2unit(status["ref"][-1],self.convertUnit)
-            abs_diff = np.abs(evalue - ref)
-            rel_ev = abs_diff/np.abs(evalue)
-
-            sumfile.write(f'{it}\t{i}\t{nCum}\t{target}\t')
-            
-            # a file of containing references
-            if self.fileRef is not None:
-                ev = np.loadtxt(self.fileRef)
-                reference = find_nearest(ev,target)[1]
-                sumfile.write(f'{reference}\t')
-            sumfile.write(f'{excitation}\t{abs_diff}\t{rel_ev}\t')
+            res = args[1]
+            sumfile.write(f'{it}\t{quad}\t')
+            sumfile.write(f'{excitation}\t{res}\t')
             sumfile.write(f'{runTime}\n')
 
         if self.writeOut:
