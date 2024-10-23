@@ -109,7 +109,7 @@ class Test_feast(unittest.TestCase):
     def test_returnType(self):
         ''' Checks if the returned eigenvalue and eigenvectors are of correct type'''
         evfeast, uvfeast = feastDiagonalization(self.mat,self.guess,self.nc,self.quad,self.rmin,self.rmax,
-                self.eConv,self.maxit)
+                self.eConv,self.maxit)[0:2]
         self.assertIsInstance(evfeast, np.ndarray)
         self.assertIsInstance(uvfeast, list)
         self.assertIsInstance(uvfeast[0], NumpyVector)
@@ -139,7 +139,7 @@ class Test_feast(unittest.TestCase):
         ''' Checks if the calculated eigenvalue is accurate to fourth decimal place'''
        
         evfeast, uvfeast = feastDiagonalization(self.mat,self.guess,self.nc,self.quad,self.rmin,self.rmax,
-                1e-12,30)
+                1e-12,30)[0:2]
         
         contour_evs = select_within_range(self.evEigh, self.rmin, self.rmax)[0]
         for i in range(len(contour_evs)):

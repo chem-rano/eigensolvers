@@ -13,20 +13,13 @@ from util_funcs import get_pick_function_maxOvlp
 import copy
 
 # -----------------------------------------------------
-# Order of inputs
-# working function -> operator, vectors, matrix,
-# system inputs, status (in last) unless for keyword (optional)
-# arguments 
-# writeFile -> plotfile, status, args
-
-# -----------------------------------------------------
 # Dividing in to functions for better readability 
 # and convenient testing
 def _getStatus(status,guessVector):
     """ 
     Initialize and update status dictionary
     
-    In: status -> param dictionary
+    In: status -> status input dictionary
         guessVector -> guess vector
     Out: statusUp  -> initialized and updated
 
@@ -92,12 +85,13 @@ def transformationMatrix(Ylist,S,status,printObj=None):
     In: Ylist (list of basis)
         lindep (default value is 1e-14, lowdinOrtho())
         S: previous overlap matrix (for extension purpose)
-    
+        printObj (opional): print object 
+
     Out: status (dict: updated lindep)
          uS: transformation matrix
          S: exatended overlap matrix
     Additional: prints overlap matrix in detailed 
-    output file ("iterations.out", default)'''
+    output file ("iterations_lanczos.out", default)'''
     
     typeClass = Ylist[0].__class__
     S = typeClass.extendOverlapMatrix(Ylist,S)
@@ -111,7 +105,7 @@ def transformationMatrix(Ylist,S,status,printObj=None):
 
     return status, uS, S
     
-def diagonalizeHamiltonian(Hop,bases,X,qtAq,status,printObj=None):
+def diagonalizeHamiltonian(Hop,bases,X,qtAq,printObj=None):
     ''' Calculates matrix representation of Hop,
     forms truncated matrix (Hmat)
     and finally solves eigenvalue problem for Hmat
@@ -121,14 +115,17 @@ def diagonalizeHamiltonian(Hop,bases,X,qtAq,status,printObj=None):
         X -> transformation matrix
         qtAq -> previous matrix representation 
                 (for extension purpose)
+        printObj (opional): print object 
 
     Out: Hmat -> Matrix represenation
                  (mainly for unit tests)
          ev -> eigenvalues
          uv -> eigenvectors
+        qtAq -> present matrix representation 
+                (for extension purpose)
     Additional: prints matrix representation, 
                 eigenvalues in detailed 
-    output file ("iterations.out", default)'''
+    output file ("iterations_lanczos.out", default)'''
 
     typeClass = bases[0].__class__
     qtAq = typeClass.extendMatrixRepresentation(Hop,bases,qtAq)   
@@ -151,11 +148,12 @@ def _convergence(value,ref):
     return check_ev
 
 
-def checkConvergence(ev,eConv,printObj,status):
+def checkConvergence(ev,eConv,status,printObj=None):
     ''' Checks eigenvalue convergence
     
     In: ev -> eigenvalues, sorted based on `pick`
         status -> params dictionary
+        printObj (opional): print object 
     
     Out: status (dict: updated isConverged, ref)
          '''
@@ -166,7 +164,7 @@ def checkConvergence(ev,eConv,printObj,status):
         isConverged = True
     status["isConverged"] = isConverged
     status["runTime"] = time.time() - status["startTime"]
-    printObj.writeFile("summary",ev_nearest,status)
+    if printObj is not None:printObj.writeFile("summary",ev_nearest,status)
     status["ref"].append(ev_nearest)
     if len(status["ref"]) > 2:status["ref"].pop(0)
     return status
@@ -198,6 +196,7 @@ def properFitting(evNew, ev,checkFit, status):
     (at the end of Lanczos iteration)
     In : evNew -> energy after fitting sum of states
          ev -> energy of state before fitting
+         checkFit -> checking tolerance of fitted vectors eigenvalues
          status -> Param dictionary
     
     Out: properFit -> (bool: True for accurate linear combination)
@@ -217,6 +216,7 @@ def terminateRestart(energy,eConv,status,num=3):
     counted as an ineffective restart 
 
     In: energy -> Energy after fitting
+        eConv -> eigenvalue convergence
         status -> param dictionary
         num (optional) -> Number of futile restarts
                           Default is 3"""
@@ -281,6 +281,15 @@ def inexactDiagonalization(H,v0,sigma,L,maxit,eConv,checkFit=1e-7,
              L => Krylov space dimension
              maxit => Maximum Lanczos iterations
              eConv => relative eigenvalue convergence tolerance
+             checkFit (optional) => checking tolerance of fitted vectors 
+             eigenvalues
+             writeOut (optional) => writing file instruction
+             default : write both iteration_lanczos.out & summary_lanczos.out
+             fileRef (optional) => file containg references (e.g. DMRG energies)
+                                   used for summary data file
+             eShift
+             eShift (optional) => shift value for eigenvalues, Hmat elements
+             convertUnit (optional) => convert unit for eigenvalues, Hmat elements
              pick (optional) => pick function for eigenstate 
                             Default is get_pick_function_close_to_sigma
              status (optional) => Additional information dictionary
@@ -324,7 +333,7 @@ def inexactDiagonalization(H,v0,sigma,L,maxit,eConv,checkFit=1e-7,
                     if it == 0: ev = typeClass.matrixRepresentation(H,Ylist)[0,0]
                 break
            
-            ev, uv, qtAq = diagonalizeHamiltonian(H,Ylist,uS,qtAq,status,printObj)[1:4]
+            ev, uv, qtAq = diagonalizeHamiltonian(H,Ylist,uS,qtAq,printObj)[1:4]
             uSH = uS@uv
             idx = pick(uSH,Ylist,ev)
             assert len(idx) == len(ev), f"{len(ev)=} {len(idx)=}"

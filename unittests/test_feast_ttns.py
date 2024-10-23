@@ -109,7 +109,7 @@ class Test_feast_ttns(unittest.TestCase):
     
     def test_feast(self):
         evfeast, uvfeast = feastDiagonalization(self.mat,self.guess,self.nc,self.quad,self.rmin,self.rmax,
-                self.eConv,self.maxit,writeOut=self.writeOut)
+                self.eConv,self.maxit,writeOut=self.writeOut)[0:2]
         typeClass = uvfeast[0].__class__
         
         with self.subTest("Hmat"):

@@ -101,7 +101,7 @@ class Test_lanczos(unittest.TestCase):
         qtAq = typeClass.matrixRepresentation(self.mat,uvLanczos[:-1])
         uS = transformationMatrix(uvLanczos,S,status)[1]
         typeClass = uvLanczos[0].__class__
-        Hmat1 = diagonalizeHamiltonian(self.mat,uvLanczos,uS,qtAq,status)[0]  
+        Hmat1 = diagonalizeHamiltonian(self.mat,uvLanczos,uS,qtAq)[0]  
         qtAq = typeClass.matrixRepresentation(self.mat,uvLanczos)
         Hmat2 = uS.T.conj()@qtAq@uS
         np.testing.assert_allclose(Hmat1,Hmat2,rtol=1e-5,atol=0)
@@ -130,7 +130,7 @@ class Test_lanczos(unittest.TestCase):
         S1 = typeClass.overlapMatrix(uvLanczos[:-1])
         qtAq = typeClass.matrixRepresentation(self.mat,uvLanczos[:-1])
         uS = transformationMatrix(uvLanczos,S1,status)[1]
-        uv = diagonalizeHamiltonian(self.mat,uvLanczos,uS,qtAq,status)[2] 
+        uv = diagonalizeHamiltonian(self.mat,uvLanczos,uS,qtAq)[2] 
         uSH = uS@uv
         mat = uSH.T.conj()@S@uSH
         np.testing.assert_allclose(mat,np.eye(mat.shape[0]),atol=1e-5) 

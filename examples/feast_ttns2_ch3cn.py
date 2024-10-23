@@ -118,6 +118,6 @@ ev_min = util.unit2au((Emin+zpve),"cm-1")  # lower limit of eigenvalue in a.u.
 ev_max = util.unit2au((Emax+zpve),"cm-1")  # upper limit of eigenvalue in a.u.
 
 ev, tnsList = feastDiagonalization(Hop,guess,nc,quad,ev_min,ev_max,eps,maxit,
-        eShift=zpve,convertUnit="cm-1")
+        eShift=zpve,convertUnit="cm-1")[0:2]
 print("Eigenvalues",util.au2unit(ev,"cm-1")-zpve)
 # -----------------   EOF  -----------------------

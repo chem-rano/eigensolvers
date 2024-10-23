@@ -45,8 +45,6 @@ def basisTransformation(bases,coeffs):
 
     In: bases -> List of bases for combination
         coeffs -> coefficients used for the combination
-        rangeIdx -> selective elements of coeffs
-        selective -> if to use rangeIdx
 
     Out: combBases -> combination results'''
 
@@ -130,13 +128,16 @@ def updateQ(Q,im0,Qquad_k,k):
         Q[im0] = typeClass.linearCombination([Q[im0],Qquad_k],[1.0,1.0])
     return Q
        
-def transformationMatrix(vectors,printObj=None,lindep=1e-14):
+def transformationMatrix(vectors,lindep=1e-14,printObj=None):
     ''' Calculates transformation matrix from 
     overlap matrix in Q basis
     In: vectors (list of basis)
         lindep (default value is 1e-14, lowdinOrtho())
+        printObj (opional): print object 
     
-    Out: uS: transformation matrix'''
+    Out: uS: transformation matrix
+    idx : (Boolean array) indices of the returned vectors
+          True if the element is linealy independent'''
     
     typeClass = vectors[0].__class__
     S = typeClass.overlapMatrix(vectors)
@@ -153,6 +154,7 @@ def diagonalizeHamiltonian(Hop,vectors,X,printObj=None):
         vectors -> list of basis
         X -> matrix to transform into an orthogonal basis
              (transforms vectors to an orthogonal basis)
+        printObj (opional): print object 
 
     Out: Hmat -> Matrix represenation
                  (mainly for unit tests)
@@ -187,13 +189,14 @@ def feastDiagonalization(A,Y,nc,quad,rmin,rmax,eConv,maxit,efactor=1.0,
         In rmax    ::  eigenvalue upper limit
         In eConv   ::  eigenvalue residual convergence tolerance
         In maxit   ::  maximum feast iterations
-        In efactor ::  Countor shape factor
-        In writeOut :: Instruction to writing output files 
-        In eShift   :: shift value for eigenvalues, Hmat elements
-        In convertUnit :: convert unit for eigenvalues, Hmat elements
+        In efactor (optional) ::  Countor shape factor
+        In writeOut (optional):: Instruction to writing output files 
+        In eShift (optional)   :: shift value for eigenvalues, Hmat elements
+        In convertUnit (optional):: convert unit for eigenvalues, Hmat elements
 
         Out ev   ::  feast eigenvalues
         Out Y    ::  feast eigenvectors
+        Out status :: convergence information
     """
 
     typeClass = Y[0].__class__
@@ -247,7 +250,7 @@ def feastDiagonalization(A,Y,nc,quad,rmin,rmax,eConv,maxit,efactor=1.0,
     printObj.writeFile("results",ev)
     printObj.fileFooter()
 
-    return ev,Y
+    return ev,Y,status
 
 
 if __name__ == "__main__":
@@ -284,5 +287,5 @@ if __name__ == "__main__":
 
     contour_ev = select_within_range(ev, ev_min, ev_max)[0]
     print("--- actual eigenvalues",contour_ev,"---\n")
-    efeast,ufeast =  feastDiagonalization(linOp,Y,nc,quad,ev_min,ev_max,eps,maxit)
+    efeast,ufeast =  feastDiagonalization(linOp,Y,nc,quad,ev_min,ev_max,eps,maxit)[0:2]
     print("\n---feast eigenvalues",efeast,"---")
