@@ -83,8 +83,8 @@ class Test_feast_ttns(unittest.TestCase):
         adaptionsLinear =  [TruncationEps(EPS, maxD=5, offset=1, truncateViaDiscardedSum=False)] 
         adaptionsFitting = [TruncationEps(EPS, maxD=9, offset=1, truncateViaDiscardedSum=False)]
         optsCheck = IterativeLinearSystemOptions(solver="gcrotmk",tol=1e-4,maxIter=70000) 
-        optionsLinear = {"nSweep":1000, "iterativeLinearSystemOptions":optsCheck,"convTol":1e-4, "verbose": False, "bondDimensionAdaptions": adaptionsLinear}
-        optionsFitting = {"nSweep":1000, "convTol":1e-9,"bondDimensionAdaptions":adaptionsFitting, "verbose": False}
+        optionsLinear = {"nSweep":1000, "iterativeLinearSystemOptions":optsCheck,"convTol":1e-4, "verbose": True, "bondDimensionAdaptions": adaptionsLinear}
+        optionsFitting = {"nSweep":1000, "convTol":1e-9,"bondDimensionAdaptions":adaptionsFitting, "verbose": True}
         options = {"linearSystemArgs":optionsLinear, "stateFittingArgs":optionsFitting}
 
         self.evEigh = energies

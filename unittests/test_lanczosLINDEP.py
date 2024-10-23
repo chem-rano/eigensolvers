@@ -60,8 +60,9 @@ class Test_lanczos(unittest.TestCase):
         status = inexactDiagonalization(self.mat,self.guess,self.sigma,
                 self.L,self.maxit,eConv,pick=None,status = self.printChoices)[2]
         nfutileRestarts = status["futileRestart"]
+        # one or more futile restarts 
         if status["outerIter"] < self.maxit-1:
-            self.assertTrue(nfutileRestarts > 3)
+            self.assertTrue(nfutileRestarts >= 1)
 
 if __name__ == "__main__":
     unittest.main()

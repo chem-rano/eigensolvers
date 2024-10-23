@@ -103,8 +103,8 @@ def calculateQuadrature(Amat,guess_b,z,radius,angle,weight,efactor):
         Qquad_k = typeClass.real(mult*Qe)
     else:
         mult = -0.25*weight*radius
-        part1 = typeClass.solve(Amat,b,z,opType="sym")
-        part2 = typeClass.solve(Amat,b,z.conj(),opType="sym") #NOTE:assuming Amat is hermitian
+        part1 = typeClass.solve(Amat,b,z,opType="gen")
+        part2 = typeClass.solve(Amat,b,z.conj(),opType="gen") #NOTE:assuming Amat is hermitian
         c1 = mult*(efactor*math.cos(angle)+math.sin(angle)*1j)
         c2 = mult*(efactor*math.cos(angle)-math.sin(angle)*1j)
         print("Fit: calculateQuadrature")
