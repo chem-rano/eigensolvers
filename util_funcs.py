@@ -153,13 +153,22 @@ def print_krylov(in_arr, E, L):
     out_arr = in_arr[lower_idx:upper_idx]
     return out_arr
 # -----------------------------------------------------
-def quad_func(nc,quad):
+def quad_func(nc,quad,positiveHalf=True):
+    ''' positiveHalf: True => returns only
+    points on the positive half circle'''
+
     if quad == "legendre":
         gk,wk = special.roots_legendre(nc)
     elif quad == "hermite":
         gk,wk = special.roots_hermite(nc)
     elif quad == "trapezoidal":
         gk,wk = trapezoidal(nc)
+
+    if positiveHalf:
+        idx = gk > 0.0
+        gk = gk[idx]
+        wk = wk[idx]
+
     return gk,wk
 
 # -----------------------------------------------------

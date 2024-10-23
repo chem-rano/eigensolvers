@@ -219,7 +219,7 @@ def feastDiagonalization(A,Y,nc,quad,rmin,rmax,eConv,maxit,efactor=1.0,
         printObj.writeFile("iteration",status)
         # initialize Q
         Q = [np.nan for it in range(m0)]
-        for k in range(nc):
+        for k in range(int(nc*0.5)):
             status["quadrature"] = k
             
             theta = -(pi*0.5)*(gk[k]-1)
