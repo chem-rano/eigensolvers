@@ -86,7 +86,7 @@ def generateSubspace(Hop,Ylist,sigma,eConv):
         print("Alert: Not normalizing add basis; norm <=0.001*eConv")
     return Ylist
 
-def transformationMatrix(Ylist,S,printObj,status):
+def transformationMatrix(Ylist,S,status,printObj=None):
     ''' Calculates transformation matrix from 
     overlap matrix in Ylist basis
     In: Ylist (list of basis)
@@ -104,13 +104,14 @@ def transformationMatrix(Ylist,S,printObj,status):
         
     linIndep, uS = lowdinOrtho(S)[1:3]
     status["lindep"] = not linIndep
-    printObj.writeFile("iteration",status)
-    printObj.writeFile("overlap",S)
-    printObj.writeFile("KSmaxD",status)
+    if printObj is not None:
+        printObj.writeFile("iteration",status)
+        printObj.writeFile("overlap",S)
+        printObj.writeFile("KSmaxD",status)
 
     return status, uS, S
     
-def diagonalizeHamiltonian(Hop,bases,X,qtAq,printObj,status):
+def diagonalizeHamiltonian(Hop,bases,X,qtAq,status,printObj=None):
     ''' Calculates matrix representation of Hop,
     forms truncated matrix (Hmat)
     and finally solves eigenvalue problem for Hmat
@@ -134,8 +135,9 @@ def diagonalizeHamiltonian(Hop,bases,X,qtAq,printObj,status):
     Hmat = X.T.conj()@qtAq@X
     ev, uv = sp.linalg.eigh(Hmat)
         
-    printObj.writeFile("hamiltonian",Hmat)
-    printObj.writeFile("eigenvalues",ev)
+    if printObj is not None:
+        printObj.writeFile("hamiltonian",Hmat)
+        printObj.writeFile("eigenvalues",ev)
 
     return Hmat,ev,uv,qtAq
 
@@ -210,7 +212,7 @@ def properFitting(evNew, ev,checkFit, status):
            print(f"Linearcombination inaccurate: After fit: {evNew}. Before fit: {ev}")
     return properFit
 
-def terminateRestart(energy,status,num=3):
+def terminateRestart(energy,eConv,status,num=3):
     """ If the eigenvalue change is lower than eConv,
     counted as an ineffective restart 
 
@@ -295,12 +297,12 @@ def inexactDiagonalization(H,v0,sigma,L,maxit,eConv,checkFit=1e-7,
     qtAq = typeClass.matrixRepresentation(H,Ylist)
 
     status = _getStatus(status,Ylist[0])
+    if pick is None:pick=get_pick_function_close_to_sigma(sigma)
+    assert callable(pick)
+
     printObj = lanczosPrintUtils(Ylist[0],sigma,L,maxit,eConv,checkFit,
             writeOut,fileRef,eShift,convertUnit,pick,status)
     printObj.fileHeader()
-
-    if pick is None:pick=get_pick_function_close_to_sigma(sigma)
-    assert callable(pick)
   
     for it in range(maxit):
         status["outerIter"] = it
@@ -311,7 +313,7 @@ def inexactDiagonalization(H,v0,sigma,L,maxit,eConv,checkFit=1e-7,
             status["cumIter"] += 1
             
             Ylist = generateSubspace(H,Ylist,sigma,eConv)
-            status, uS, S = transformationMatrix(Ylist,S,printObj,status)
+            status, uS, S = transformationMatrix(Ylist,S,status,printObj)
             if status['lindep']:
                 print("Restarting calculation: Got linearly dependent basis!")
                 Ylist = Ylist[:-1] # Excluding the last vector
@@ -322,7 +324,7 @@ def inexactDiagonalization(H,v0,sigma,L,maxit,eConv,checkFit=1e-7,
                     if it == 0: ev = typeClass.matrixRepresentation(H,Ylist)[0,0]
                 break
            
-            ev, uv, qtAq = diagonalizeHamiltonian(H,Ylist,uS,qtAq,printObj,status)[1:4]
+            ev, uv, qtAq = diagonalizeHamiltonian(H,Ylist,uS,qtAq,status,printObj)[1:4]
             uSH = uS@uv
             idx = pick(uSH,Ylist,ev)
             assert len(idx) == len(ev), f"{len(ev)=} {len(idx)=}"
@@ -344,7 +346,7 @@ def inexactDiagonalization(H,v0,sigma,L,maxit,eConv,checkFit=1e-7,
             qtAq=typeClass.matrixRepresentation(H,YlistNew)
             evNew = qtAq[0,0]
             if not properFitting(evNew,ev[0],checkFit,status):break
-            if terminateRestart(evNew,status):break
+            if terminateRestart(evNew,eConv,status):break
             Ylist = YlistNew # when Lanczos iteration continues
 
         if typeClass is TTNSVector:

@@ -26,7 +26,7 @@ class Test_stateFollowing(unittest.TestCase):
         self.sigma = 13.1
         options = {"linearSolver":"gcrotmk","linearIter":30000,"linear_tol":1e-04}
         optionDict = {"linearSystemArgs":options}
-        self.printChoices = {"writeOut": False,"writePlot": False}
+        self.writeOut = False
         idx = find_nearest(evEigh,self.sigma)[0]
         ovlpRef = NumpyVector(uvEigh[:,idx+1],optionDict)
         self.energyRef = evEigh[idx+1]
@@ -44,7 +44,7 @@ class Test_stateFollowing(unittest.TestCase):
 
     def test_following(self):
         evLanczos, uvLanczos,status = inexactDiagonalization(self.mat,self.guess,self.sigma,self.L,
-                self.maxit,self.eConv,self.pick,self.printChoices)
+                self.maxit,self.eConv,pick=self.pick,writeOut=self.writeOut)
         self.assertTrue(status["isConverged"]== True)
         with self.subTest("eigenvalue"):
             evCalc = evLanczos[0]

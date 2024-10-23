@@ -95,8 +95,7 @@ class Test_stateFollowing(unittest.TestCase):
         #options = {"linearSystemArgs":optionsLinear}
         options = {"orthogonalizationArgs":optionsOrtho, "linearSystemArgs":optionsLinear, "stateFittingArgs":optionsFitting}
 
-        status = {"eShift":0, "convertUnit":"au",
-                "writeOut": False,"writePlot": False}
+        self.writeOut = False
         ovlpRef = TTNSVector(tnsList[idx+1],options)
         self.energyRef = energies[idx+1]
         self.pick = get_pick_function_maxOvlp(ovlpRef)
@@ -115,12 +114,11 @@ class Test_stateFollowing(unittest.TestCase):
         self.eConv = eConv
         self.maxit = maxit
         self.ovlpRef = ovlpRef
-        self.status = status
 
     def test_following(self):
         sigma = self.target
         evLanczos, uvLanczos,status = inexactDiagonalization(self.mat,self.guess,sigma,self.L,
-                self.maxit,self.eConv,self.pick,self.status)
+                self.maxit,self.eConv,pick=self.pick,writeOut=self.writeOut)
 
         with self.subTest("eigenvalue"):
             evCalc = evLanczos[0]

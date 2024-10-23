@@ -23,7 +23,7 @@ class Test_lanczos(unittest.TestCase):
 
         options = {"linearSolver":"gcrotmk","linearIter":1000,"linear_tol":1e-04}
         optionDict = {"linearSystemArgs":options}
-        self.printChoices = {"writeOut": False,"writePlot": False}
+        self.writeOut = False
         Y0 = NumpyVector(np.random.random((n)),optionDict)
         
         self.guess = Y0
@@ -44,7 +44,7 @@ class Test_lanczos(unittest.TestCase):
     def test_Hmat(self):
         ''' Bypassing linear combination works for Hamitonian matrix formation'''
         uvLanczos, status = inexactDiagonalization(self.mat,self.guess,self.sigma,self.L,
-                self.maxit,self.eConv,self.pick,self.printChoices)[1:3]
+                self.maxit,self.eConv,pick=self.pick,writeOut=self.writeOut)[1:3]
         typeClass = uvLanczos[0].__class__
         S = typeClass.overlapMatrix(uvLanczos[:-1])
         qtAq = typeClass.matrixRepresentation(self.mat,uvLanczos[:-1])
@@ -58,7 +58,7 @@ class Test_lanczos(unittest.TestCase):
     def test_backTransform(self):
         ''' Checks linear combination'''
         uvLanczos, status = inexactDiagonalization(self.mat,self.guess,self.sigma,self.L,
-                self.maxit,self.eConv,self.pick,self.printChoices)[1:3]
+                self.maxit,self.eConv,pick=self.pick,writeOut=self.writeOut)[1:3]
         typeClass = uvLanczos[0].__class__
         S = typeClass.overlapMatrix(uvLanczos[:-1])
         assert len(uvLanczos) > 1
@@ -76,7 +76,7 @@ class Test_lanczos(unittest.TestCase):
     def test_orthogonalization(self):
         ''' Returned basis in old form is orthogonal'''
         uvLanczos = inexactDiagonalization(self.mat,self.guess,self.sigma,self.L,
-                self.maxit,self.eConv,self.pick,self.printChoices)[1]
+                self.maxit,self.eConv,pick=self.pick,writeOut=self.writeOut)[1]
         typeClass = uvLanczos[0].__class__
         S = typeClass.overlapMatrix(uvLanczos)
         np.testing.assert_allclose(S,np.eye(S.shape[0]),atol=1e-5) 
@@ -84,8 +84,8 @@ class Test_lanczos(unittest.TestCase):
         
     def test_transformationMatrix(self):
         ''' XH@S@X = 1'''
-        uvLanczos,status = inexactDiagonalization(self.mat,self.guess,self.sigma,self.L,
-                self.maxit,self.eConv,self.pick,self.printChoices)[1:3]
+        uvLanczos, status = inexactDiagonalization(self.mat,self.guess,self.sigma,self.L,
+                self.maxit,self.eConv,pick=self.pick,writeOut=self.writeOut)[1:3]
         typeClass = uvLanczos[0].__class__
         S = typeClass.overlapMatrix(uvLanczos)
         assert len(uvLanczos) > 1
@@ -100,7 +100,7 @@ class Test_lanczos(unittest.TestCase):
     def test_extension(self):
         ''' Checks if extension of matrix works or not'''
         uvLanczos = inexactDiagonalization(self.mat,self.guess,self.sigma,self.L,
-                self.maxit,self.eConv,self.pick,self.printChoices)[1]
+                self.maxit,self.eConv,pick=self.pick,writeOut=self.writeOut)[1]
         typeClass = uvLanczos[0].__class__
         assert len(uvLanczos) > 1
         Sfull = typeClass.overlapMatrix(uvLanczos)
@@ -116,7 +116,7 @@ class Test_lanczos(unittest.TestCase):
     def test_returnType(self):
         ''' Checks if the returned eigenvalue and eigenvectors are of correct type'''
         evLanczos, uvLanczos = inexactDiagonalization(self.mat,self.guess,self.sigma,self.L,
-                self.maxit,self.eConv,self.pick,self.printChoices)[0:2] 
+                self.maxit,self.eConv,pick=self.pick,writeOut=self.writeOut)[0:2]
         self.assertIsInstance(evLanczos, np.ndarray)
         self.assertIsInstance(uvLanczos, list)
         self.assertIsInstance(uvLanczos[0], NumpyVector)
@@ -125,7 +125,7 @@ class Test_lanczos(unittest.TestCase):
     def test_eigenvalue(self):
         ''' Checks if the calculated eigenvalue is accurate to seventh decimal place'''
         evLanczos = inexactDiagonalization(self.mat,self.guess,self.sigma,self.L,
-                self.maxit,self.eConv,self.pick,self.printChoices)[0]
+                self.maxit,self.eConv,pick=self.pick,writeOut=self.writeOut)[0]
         
         target_value = find_nearest(evLanczos,self.sigma)[1]
         closest_value = find_nearest(self.ev,self.sigma)[1]        # comapring with actual
@@ -135,7 +135,7 @@ class Test_lanczos(unittest.TestCase):
         ''' Checks if the calculated eigenvalue is accurate to fourth decimal place'''
        
         evLanczos, uvLanczos = inexactDiagonalization(self.mat,self.guess,self.sigma,self.L,
-                self.maxit,self.eConv,self.pick,self.printChoices)[0:2]
+                self.maxit,self.eConv,pick=self.pick,writeOut=self.writeOut)[0:2]
         idxE = find_nearest(self.evEigh,self.sigma)[0]
         idxT = find_nearest(evLanczos,self.sigma)[0]
         exactVector = self.uvEigh[:,idxE]

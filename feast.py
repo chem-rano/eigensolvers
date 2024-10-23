@@ -130,7 +130,7 @@ def updateQ(Q,im0,Qquad_k,k):
         Q[im0] = typeClass.linearCombination([Q[im0],Qquad_k],[1.0,1.0])
     return Q
        
-def transformationMatrix(vectors,printObj,lindep=1e-14):
+def transformationMatrix(vectors,printObj=None,lindep=1e-14):
     ''' Calculates transformation matrix from 
     overlap matrix in Q basis
     In: vectors (list of basis)
@@ -140,11 +140,11 @@ def transformationMatrix(vectors,printObj,lindep=1e-14):
     
     typeClass = vectors[0].__class__
     S = typeClass.overlapMatrix(vectors)
-    printObj.writeFile("overlap",S)
+    if printObj is not None:printObj.writeFile("overlap",S)
     idx, _, uS = lowdinOrtho(S,lindep)
     return uS, idx
 
-def diagonalizeHamiltonian(Hop,vectors,X,printObj):
+def diagonalizeHamiltonian(Hop,vectors,X,printObj=None):
     ''' Calculates matrix representation of Hop,
     forms truncated matrix (Hmat)
     and finally solves eigenvalue problem for Hmat
@@ -163,9 +163,10 @@ def diagonalizeHamiltonian(Hop,vectors,X,printObj):
     qtAq = typeClass.matrixRepresentation(Hop,vectors)   
     Hmat = X.T.conj()@qtAq@X
     ev, uv = sp.linalg.eigh(Hmat)
-        
-    printObj.writeFile("hamiltonian",Hmat)
-    printObj.writeFile("eigenvalues",ev)
+    
+    if printObj is not None:
+        printObj.writeFile("hamiltonian",Hmat)
+        printObj.writeFile("eigenvalues",ev)
 
     return Hmat,ev,uv
 
