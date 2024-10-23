@@ -75,8 +75,8 @@ class lanczosPrintUtils:
         lines += formatStyle.format("econv",f"{self.eConv:.03g}",\
                 "Eigenvalue convergence")+"\n"
         lines += formatStyle.format("checkFit",self.checkFit,"Checkfit")+"\n"
-        lines += formatStyle.format("pick",str(self.pick),\
-                "Choosing eigenvector for restart")+"\n"
+        pickname = str(self.pick).split(" ")[1]
+        lines += "{:10} {:>20}".format("pick",pickname)+"\n"
         lines += formatStyle.format("Guess",guessChoice,\
                 "Guess vector choice")+"\n"
 

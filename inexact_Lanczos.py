@@ -1,11 +1,12 @@
 import numpy as np
 import scipy as sp
 from util_funcs import find_nearest, lowdinOrtho
-from printUtils import printUtils
+from printUtils import lanczosPrintUtils
 import warnings
 import time
 import util
 from numpyVector import NumpyVector
+from ttnsVector import TTNSVector
 from util_funcs import headerBot
 from util_funcs import get_pick_function_close_to_sigma
 from util_funcs import get_pick_function_maxOvlp
@@ -294,7 +295,7 @@ def inexactDiagonalization(H,v0,sigma,L,maxit,eConv,checkFit=1e-7,
     qtAq = typeClass.matrixRepresentation(H,Ylist)
 
     status = _getStatus(status,Ylist[0])
-    printObj = printUtils(Ylist[0],sigma,L,maxit,eConv,checkFit,
+    printObj = lanczosPrintUtils(Ylist[0],sigma,L,maxit,eConv,checkFit,
             writeOut,fileRef,eShift,convertUnit,pick,status)
     printObj.fileHeader()
 
@@ -303,7 +304,7 @@ def inexactDiagonalization(H,v0,sigma,L,maxit,eConv,checkFit=1e-7,
   
     for it in range(maxit):
         status["outerIter"] = it
-        status["KSmaxD"] = [Ylist[0].ttns.maxD()]
+        if typeClass is TTNSVector:status["KSmaxD"] = [Ylist[0].ttns.maxD()]
         status["fitmaxD"] = None
         for i in range(1,L): # starts with 1 because Y0 is used as first basis vector
             status["innerIter"] = i
@@ -346,7 +347,8 @@ def inexactDiagonalization(H,v0,sigma,L,maxit,eConv,checkFit=1e-7,
             if terminateRestart(evNew,status):break
             Ylist = YlistNew # when Lanczos iteration continues
 
-        status["fitmaxD"] = [item.ttns.maxD() for item in Ylist]
+        if typeClass is TTNSVector:
+            status["fitmaxD"] = [item.ttns.maxD() for item in Ylist]
         printObj.writeFile("fitmaxD",status)
     
     printObj.writeFile("results",ev)
@@ -372,11 +374,6 @@ if __name__ == "__main__":
     Y0 = NumpyVector(np.random.random((n)),optionDict)
     sigma = target
 
-    headerBot("Inexact Lanczos")
-    print("{:50} :: {: <4}".format("Sigma",sigma))
-    print("{:50} :: {: <4}".format("Krylov space dimension",L+1))
-    print("{:50} :: {: <4}".format("Eigenvalue convergence tolarance",eConv))
-    print("\n")
     t1 = time.time()
     pick =  get_pick_function_close_to_sigma(sigma)
     #pick =  get_pick_function_maxOvlp(Y0)
@@ -386,4 +383,3 @@ if __name__ == "__main__":
     print("{:50} :: {: <4}".format("Eigenvalue nearest to sigma",round(find_nearest(lf,sigma)[1],8)))
     print("{:50} :: {: <4}".format("Actual eigenvalue nearest to sigma",round(find_nearest(ev,sigma)[1],8)))
     print("{:50} :: {: <4}".format("Time taken (in sec)",round((t2-t1),2)))
-    headerBot("Lanczos",yesBot=True)
