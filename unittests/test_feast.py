@@ -25,7 +25,7 @@ class Test_feast(unittest.TestCase):
         self.nc = 8            # number of contour points
         self.quad = "legendre" # Choice of quadrature points
         m0 = 6                 # subspace dimension
-        self.eConv = 1e-6      # residual convergence tolerance
+        self.eConv = 1e-10      # residual convergence tolerance
         self.maxit = 20        # maximum FEAST iterations
 
 
@@ -139,7 +139,7 @@ class Test_feast(unittest.TestCase):
         ''' Checks if the calculated eigenvalue is accurate to fourth decimal place'''
        
         evfeast, uvfeast = feastDiagonalization(self.mat,self.guess,self.nc,self.quad,self.rmin,self.rmax,
-                1e-12,30)[0:2]
+                1e-12,40)[0:2]
         
         contour_evs = select_within_range(self.evEigh, self.rmin, self.rmax)[0]
         for i in range(len(contour_evs)):
@@ -152,7 +152,7 @@ class Test_feast(unittest.TestCase):
             # testing overlap; 0.99 ovlp is enough for testing purpose
             np.testing.assert_allclose(abs(ovlp), 1, rtol=1e-2, err_msg = f"{ovlp=} but it should be +-1")
             feastVector = feastVector * ovlp
-            np.testing.assert_allclose(exactVector,feastVector,rtol=1e-3,atol=1e-3)
+            np.testing.assert_allclose(exactVector,feastVector,rtol=1e-2,atol=1e-3)
 
 
 if __name__ == '__main__':

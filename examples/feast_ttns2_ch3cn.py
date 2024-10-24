@@ -86,17 +86,17 @@ else:
 Emin = 720  # Lower limit of excitation energy for target interval
 Emax = 730   # Upper limit of excitation energy for target interval
 maxit = 3 
-nc = 3
+nc = 6 
 eps = 1e-6 
 quad = "legendre"
 zpve = 9837.4069
 
 # ---------- USER INPUT -----------------------
 
-bondAdaptFitting = [TruncationEps(EPS, maxD=10, offset=2, truncateViaDiscardedSum=False)]
+bondAdaptFitting = [TruncationEps(EPS, maxD=20, offset=2, truncateViaDiscardedSum=False)]
 optionsLinear = {"nSweep":1000, "iterativeLinearSystemOptions":
-        IterativeLinearSystemOptions(solver="gcrotmk",tol=1e-3,maxIter=1000),
-        "convTol":1e-3,"bondDimensionAdaptions":bondDimensionAdaptions}
+        IterativeLinearSystemOptions(solver="gcrotmk",tol=1e-4,maxIter=1000),
+        "convTol":1e-4,"bondDimensionAdaptions":bondDimensionAdaptions}
 optionsFitting = {"nSweep":1000, "convTol":1e-9,"bondDimensionAdaptions":bondAdaptFitting}
 options = {"linearSystemArgs":optionsLinear, "stateFittingArgs":optionsFitting}
 
