@@ -51,7 +51,8 @@ class Test_feast_ttns(unittest.TestCase):
         basisDict = {l:b for l,b in zip(Hop.DoFlabel, bases)}
         tns = getMPS(basisDict, 3)
         np.random.seed(13)
-        tns.setRandom(dtype=complex)
+        #tns.setRandom(dtype=complex)
+        tns.setRandom(dtype=float) # HRL suggested
 
 
         davidsonOptions = [IterativeDiagonalizationOptions(tol=1e-7, maxIter=500,maxSpaceFac=200)] * 8

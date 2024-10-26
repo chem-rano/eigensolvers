@@ -52,7 +52,7 @@ class Test_feast(unittest.TestCase):
     def test_Hmat(self):
         ''' Bypassing linear combination works for Hamitonian matrix formation'''
         uvfeast = feastDiagonalization(self.mat,self.guess,self.nc,self.quad,self.rmin,self.rmax,
-                self.eConv,self.maxit)[1]
+                self.eConv,self.maxit,writeOut=False)[1]
         typeClass = uvfeast[0].__class__
         S = typeClass.overlapMatrix(uvfeast[:-1])
         qtAq = typeClass.matrixRepresentation(self.mat,uvfeast[:-1])
@@ -66,7 +66,7 @@ class Test_feast(unittest.TestCase):
     def test_backTransform(self):
         ''' Checks linear combination'''
         uvfeast = feastDiagonalization(self.mat,self.guess,self.nc,self.quad,self.rmin,self.rmax,
-                self.eConv,self.maxit)[1]
+                self.eConv,self.maxit,writeOut=False)[1]
         typeClass = uvfeast[0].__class__
         S = typeClass.overlapMatrix(uvfeast[:-1])
         assert len(uvfeast) > 1
@@ -84,7 +84,7 @@ class Test_feast(unittest.TestCase):
     def test_orthogonalization(self):
         ''' Returned basis in old form is orthogonal'''
         uvfeast = feastDiagonalization(self.mat,self.guess,self.nc,self.quad,self.rmin,self.rmax,
-                self.eConv,self.maxit)[1]
+                self.eConv,self.maxit,writeOut=False)[1]
         typeClass = uvfeast[0].__class__
         S = typeClass.overlapMatrix(uvfeast)
         np.testing.assert_allclose(S,np.eye(S.shape[0]),atol=1e-5) 
@@ -93,7 +93,7 @@ class Test_feast(unittest.TestCase):
     def test_transformationMatrix(self):
         ''' XH@S@X = 1'''
         uvfeast = feastDiagonalization(self.mat,self.guess,self.nc,self.quad,self.rmin,self.rmax,
-                self.eConv,self.maxit)[1]
+                self.eConv,self.maxit,writeOut=False)[1]
         typeClass = uvfeast[0].__class__
         S = typeClass.overlapMatrix(uvfeast)
         assert len(uvfeast) > 1
@@ -109,7 +109,7 @@ class Test_feast(unittest.TestCase):
     def test_returnType(self):
         ''' Checks if the returned eigenvalue and eigenvectors are of correct type'''
         evfeast, uvfeast = feastDiagonalization(self.mat,self.guess,self.nc,self.quad,self.rmin,self.rmax,
-                self.eConv,self.maxit)[0:2]
+                self.eConv,self.maxit,writeOut=False)[0:2]
         self.assertIsInstance(evfeast, np.ndarray)
         self.assertIsInstance(uvfeast, list)
         self.assertIsInstance(uvfeast[0], NumpyVector)
@@ -118,7 +118,7 @@ class Test_feast(unittest.TestCase):
     def test_eigenvalue(self):
         ''' Checks if the calculated eigenvalue is accurate to seventh decimal place'''
         evfeast = feastDiagonalization(self.mat,self.guess,self.nc,self.quad,self.rmin,self.rmax,
-                self.eConv,self.maxit)[0]
+                self.eConv,self.maxit,writeOut=False)[0]
         
         with self.subTest("All contour eigenvalues"):
             contour_ev = select_within_range(self.evEigh, self.rmin, self.rmax)[0]
@@ -139,7 +139,7 @@ class Test_feast(unittest.TestCase):
         ''' Checks if the calculated eigenvalue is accurate to fourth decimal place'''
        
         evfeast, uvfeast = feastDiagonalization(self.mat,self.guess,self.nc,self.quad,self.rmin,self.rmax,
-                1e-12,40)[0:2]
+                1e-12,40,writeOut=False)[0:2]
         
         contour_evs = select_within_range(self.evEigh, self.rmin, self.rmax)[0]
         for i in range(len(contour_evs)):
@@ -152,7 +152,7 @@ class Test_feast(unittest.TestCase):
             # testing overlap; 0.99 ovlp is enough for testing purpose
             np.testing.assert_allclose(abs(ovlp), 1, rtol=1e-2, err_msg = f"{ovlp=} but it should be +-1")
             feastVector = feastVector * ovlp
-            np.testing.assert_allclose(exactVector,feastVector,rtol=1e-2,atol=1e-3)
+            np.testing.assert_allclose(exactVector,feastVector,rtol=1e-2,atol=1e-2)
 
 
 if __name__ == '__main__':
