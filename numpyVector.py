@@ -138,11 +138,9 @@ class NumpyVector(AbstractVector):
         else:
             x = None
         return x
-        
-    def solve(H, b, sigma = None, x0=None, reverseGF=False):
-        ''' reverseGF:False -> Linear equation (sigma-H)x0 =b solver
-            reverseGF:True ->  Linear equation (H-sigma)x0 =b  solver '''
-            
+
+    @staticmethod
+    def solve(H, b, sigma, x0=None, opType="her", reverseGF=False):
         n = H.shape[0]
         dtype = np.result_type(sigma, H.dtype, b.dtype)
         if not reverseGF:
@@ -159,7 +157,10 @@ class NumpyVector(AbstractVector):
         elif options["linearSolver"] == "minres":
             wk,conv = scipy.sparse.linalg.minres(linOp,b.array,x0, tol=tol,maxiter=maxiter)
         elif options["linearSolver"] == "pardiso": # only for comparing with fortran
-            A1 = csc_matrix(sigma*np.eye(n)-H)
+            if not reverseGF:
+                A1 = csc_matrix(sigma*np.eye(n)-H)
+            else:
+                A1 = csc_matrix(H-sigma * np.eye(n))
             b1 = csc_matrix(np.reshape(b.array,(n,1)))
             wk = spsolve(A1,b1)
             conv = 0 # converges, it is exact

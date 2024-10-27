@@ -112,7 +112,7 @@ class AbstractVector(ABC):
         raise NotImplementedError
     
     @staticmethod
-    def solve(H, b, sigma, x0, opType="her",reverseGF=False):
+    def solve(H, b, sigma, x0=None, opType="her",reverseGF=False):
         ''' Linear equation ((H-sigma*I)x0 =b ) solver
 
         :param opType: Operator type:
@@ -120,8 +120,8 @@ class AbstractVector(ABC):
             "pos" for positive definite
 
          param reverseGF
-         False for Green's function (sigma-H) form
-         True for reverse Green's function (H-sigma) form
+             False for Green's function (sigma-H)
+             True for reverse Green's function (H-sigma)
         '''
         raise NotImplementedError
 
