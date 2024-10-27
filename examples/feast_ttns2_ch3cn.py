@@ -99,10 +99,10 @@ optionsLinear = {"nSweep":1000, "iterativeLinearSystemOptions":
 optionsFitting = {"nSweep":1000, "convTol":1e-9,"bondDimensionAdaptions":bondAdaptFitting}
 options = {"linearSystemArgs":optionsLinear, "stateFittingArgs":optionsFitting}
 
-m0 = 4 
+N_SUBSPACE = 4
 # Random orthogonal tress
 setTrees = []
-for i in range(m0):
+for i in range(N_SUBSPACE):
     tns = parseTree(treeString, basisDict, returnType="TTNS")
     np.random.seed(20+i);tns.setRandom(dtype=complex)
     setTrees.append(tns)
@@ -110,7 +110,7 @@ setTrees= orthogonalize(setTrees)
         
 # Make a TTNSVector list from above orthogonal trees
 guess = []
-for i in range(m0):
+for i in range(N_SUBSPACE):
     guess.append(TTNSVector(setTrees[i],options))
 
 ev_min = util.unit2au((Emin+zpve),"cm-1")  # lower limit of eigenvalue in a.u.

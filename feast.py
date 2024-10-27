@@ -6,6 +6,7 @@ from scipy import linalg as la
 from util_funcs import select_within_range, quad_func, eigenvalueResidual
 from util_funcs import lowdinOrtho, basisTransformation
 from numpyVector import NumpyVector
+from abstractVector import AbstractVector
 import time
 import math
 from magic import ipsh
@@ -155,14 +156,14 @@ def diagonalizeHamiltonian(Hop,vectors,X,printObj=None):
 # ***************************************************
 # Part 1: main FEAST function for contour integral
 # ------------------------------
-def feastDiagonalization(A,Y,nc,quad,rmin,rmax,eConv,maxit,contourEllipseFactor=1.0,
+def feastDiagonalization(A,Y: list[AbstractVector],
+                         nc,quad,rmin,rmax,eConv,maxit,contourEllipseFactor=1.0,
         writeOut=True,eShift=0.0,convertUnit="au"):
     """ FEAST diagonalization of A 
 
         In A       ::  matrix or linearoperator or SOP operator
                     Note: Must be Hermitian. Otherwise, `calculateQuadrature` needs to be adapted.
-        In Y       ::  Initial guess of m0 vectors (m0 is called as 
-                       subspace dimension)
+        In Y       ::  Initial guess of vectors.
         In nc      ::  number of quadrature points
         In quad    ::  quadrature points distribution
                        Avaiable options - "legendre", "hermite", "trapezoidal"
@@ -181,7 +182,7 @@ def feastDiagonalization(A,Y,nc,quad,rmin,rmax,eConv,maxit,contourEllipseFactor=
     """
 
     typeClass = Y[0].__class__
-    m0 = len(Y)
+    N_SUBSPACE = len(Y)
     assert rmax > rmin
     r = (rmax-rmin)*0.5
     
@@ -199,14 +200,14 @@ def feastDiagonalization(A,Y,nc,quad,rmin,rmax,eConv,maxit,contourEllipseFactor=
         status["outerIter"] = it
         printObj.writeFile("iteration",status)
         # initialize Q
-        Q = [np.nan for it in range(m0)]
+        Q = [np.nan for it in range(N_SUBSPACE)]
         for k in range(len(gk)):
             status["quadrature"] = k
             
             theta = -(pi*0.5)*(gk[k]-1)
             z = (rmin+rmax) * 0.5 + r*math.cos(theta)+r*contourEllipseFactor*1.0j*math.sin(theta)
             
-            for im0 in range(m0):
+            for im0 in range(N_SUBSPACE):
                 Qquad_k = calculateQuadrature(A,Y[im0],z,r,theta,wk[k],contourEllipseFactor)
                 Q = updateQ(Q,im0,Qquad_k,k)
         
@@ -216,7 +217,8 @@ def feastDiagonalization(A,Y,nc,quad,rmin,rmax,eConv,maxit,contourEllipseFactor=
         
         uSH = uS@uv
         Y = basisTransformation(Q,uSH)
-        
+        del Q
+
         if it != 0: 
             res = abs(eigenvalueResidual(ev,ref_ev[idx],rmin,rmax))
             status["runTime"] = time.time() - status["startTime"]
@@ -224,8 +226,9 @@ def feastDiagonalization(A,Y,nc,quad,rmin,rmax,eConv,maxit,contourEllipseFactor=
             
             if res < eConv:
                 break
-       
-        m0 = len(Y);del Q
+
+        # TODO report change of N_SUBSPACE
+        N_SUBSPACE = len(Y)
         ref_ev = ev
 
     printObj.writeFile("results",ev)
