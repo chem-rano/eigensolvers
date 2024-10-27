@@ -38,17 +38,13 @@ class Test_lanczos(unittest.TestCase):
         ''' This specific case face lindep in the first Lanczos iteration, 
         check if status["lindep"] is indeed True or not'''
 
-        status = inexactDiagonalization(self.mat,self.guess,self.sigma,
-                self.L,self.maxit,self.eConv,pick=None,status = self.printChoices)[2]
-        self.assertTrue(status["lindep"]== True)
-
-        
-    def test_vectorsNumber(self):
+        evLanczos, uvLanczos, status = inexactDiagonalization(self.mat,self.guess,self.sigma,
+                self.L,self.maxit,self.eConv,pick=None,status = self.printChoices)
+        # TODO need to be made better
+        self.assertTrue(status["lindep"]== True, msg="mail fail on some machines; "
+                                                     "may be ok as this only tests an assertion")
         ''' Testing after getting linear dependency the list must be truncated
             or the length of vectors list should be iKrylov'''
-
-        uvLanczos, status = inexactDiagonalization(self.mat,self.guess,self.sigma,
-                self.L,self.maxit,self.eConv,pick=None,status = self.printChoices)[1:3]
         iKrylov = status["innerIter"]
         nvectors = len(uvLanczos)
         self.assertTrue(nvectors == iKrylov)
