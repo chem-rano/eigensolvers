@@ -22,7 +22,6 @@ from ttns2.driver import orthogonalize
 MAX_D = 3
 # 5e-9 ok
 EPS = 5e-9
-convTol = 1e-5
 #######################################################
 _print = getVerbosePrinter(True)
 _print("# EPS=",EPS)
