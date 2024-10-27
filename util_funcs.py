@@ -154,8 +154,10 @@ def print_krylov(in_arr, E, L):
     return out_arr
 # -----------------------------------------------------
 def quad_func(nc,quad,positiveHalf=True):
-    ''' positiveHalf: True => returns only
-    points on the positive half circle'''
+    ''' positiveHalf: True => returns only points on the positive half circle
+            This is fine for Hermitian problems.
+            See  PRB 79, 115112 (2009); eqn. 4, 10
+    '''
 
     if quad == "legendre":
         gk,wk = special.roots_legendre(nc)
@@ -211,7 +213,28 @@ def headerBot(method,yesBot=False):
         print("  computation complete      ")
         print("*"*nstars)
 
-# -----------------------------------------------------
+def basisTransformation(bases,coeffs):
+    ''' Basis transformation with eigenvectors
+    and Krylov bases
+
+    In: bases -> List of bases for combination
+        coeffs -> coefficients used for the combination
+
+    Out: combBases -> combination results'''
+
+    typeClass = bases[0].__class__
+    ndim = coeffs.shape
+    combBases = []
+    if len(ndim)==1:
+        if len(coeffs) == 1 and coeffs[0] == 1.0:
+            combBases = bases
+        else:
+            combBases.append(typeClass.linearCombination(bases,coeffs))
+    else:
+        for j in range(ndim[1]):
+            combBases.append(typeClass.linearCombination(bases,coeffs[:,j]))
+    return combBases
+
 def lowdinOrtho(oMat, tol= LINDEP_DEFAULT_VALUE):
     """ Extracts out linearly independent vectors from the overlap matrix `oMat` and 
     idx : (Boolean array) indices of the returned vectors
@@ -227,17 +250,15 @@ def lowdinOrtho(oMat, tol= LINDEP_DEFAULT_VALUE):
     info = all(idx)
     uvqTraf = uvq * evq**(-0.5)
     return idx, info, uvqTraf
-
-def eigenvalueResidual(ev,prev_ev,emin,emax,insideTarget=True):
+def eigenvalueResidual(ev:np.ndarray,prev_ev:np.ndarray,
+                       emin,emax,insideTarget=True):
     '''
     Eigenvalue residual calculation
-    Res = [sum abs(E(i-1)-E(i))]/[sum E(i-1)]
+    Residual = [sum abs(prev_ev-ev)]/[sum abs(prev_ev)]
     for eigenvalues of i and i-1 th iterations
 
-    Eigenvalues within the range (emin-emax) 
+    if `insideTarget`: Eigenvalues within the range (emin-emax)
     are only considered
-
-    N.T. Currently only used for FEAST
     '''
 
     diff = 0.0
@@ -256,7 +277,7 @@ def eigenvalueResidual(ev,prev_ev,emin,emax,insideTarget=True):
     m0 = len(ev)
     for i in range(m0):
         diff += abs(prev_ev[i]-ev[i])
-        prev_tot += prev_ev[i]
+        prev_tot += abs(prev_ev[i])
     res = diff/prev_tot
     return res
 

@@ -4,7 +4,7 @@ from scipy.sparse.linalg import LinearOperator
 from scipy import special
 from scipy import linalg as la
 from util_funcs import select_within_range, quad_func, eigenvalueResidual
-from util_funcs import lowdinOrtho
+from util_funcs import lowdinOrtho, basisTransformation
 from numpyVector import NumpyVector
 import time
 import math
@@ -39,30 +39,8 @@ def _getStatus(status,guess):
     
     return statusUp
 
-def basisTransformation(bases,coeffs):
-    ''' Basis transformation with eigenvectors 
-    and feast bases
-
-    In: bases -> List of bases for combination
-        coeffs -> coefficients used for the combination
-
-    Out: combBases -> combination results'''
-
-    typeClass = bases[0].__class__
-    ndim = coeffs.shape
-    combBases = []
-    
-    print("Fit: basisTransformation")
-    if len(ndim) == 1:
-        combBases.append(typeClass.linearCombination(bases,coeffs))
-    else:
-        for j in range(ndim[1]):
-            combBases.append(typeClass.linearCombination(bases,coeffs[:,j]))
-    
-    return combBases
-
-def calculateQuadrature(Amat,guess_b,z,radius,angle,weight,efactor):
-    ''' Calculates k-th quadrature Qquad_k
+def calculateQuadrature(Amat,guess_b,z,radius,angle,weight,contourEllipseFactor):
+    ''' Calculates k-th quadrature Qquad_k assuming `Amat` is Hermitian
     
     For Hermitian matrix:
     Qquad_k=-0.25*w_k*r{exp(i*angle_k)G(z)Y+exp(-i*theta)G\dagger(z)Y}
@@ -79,16 +57,16 @@ def calculateQuadrature(Amat,guess_b,z,radius,angle,weight,efactor):
         radius => radius of the contour
         angle => k-th countor angle
         weight => k-th quadrature distribution weight
-        efactor => contour shape factor (see below)
+        contourEllipseFactor => contour shape factor (see below)
     
     Out: Qquad_k => k-th quadrature vector
     N.T.: exp(+/-i*theta) is expanded as 
-    efactor*cos(theta)+/-isin(theta)
+    contourEllipseFactor*cos(theta)+/-isin(theta)
     This is to change countour shape
-    e.g., efactor = 1.0, circular contour
-          efactor = 0.3, ellipse contour
+    e.g., contourEllipseFactor = 1.0, circular contour
+          contourEllipseFactor = 0.3, ellipse contour
     
-    This efactor is implemented in Polizzi's code.
+    This contourEllipseFactor is implemented in Polizzi's code.
     It is necessary for testing fortran data.
     '''
 
@@ -97,15 +75,15 @@ def calculateQuadrature(Amat,guess_b,z,radius,angle,weight,efactor):
     
     if b.hasExactAddition:
         Qe = typeClass.solve(Amat,b,z)  # complex128
-        mult = -0.50*weight*radius*(efactor*math.cos(angle)+math.sin(angle)*1j)
+        mult = -0.50*weight*radius*(contourEllipseFactor*math.cos(angle)+math.sin(angle)*1j)
         Qquad_k = typeClass.real(mult*Qe)
     else:
         mult = -0.25*weight*radius
         part1 = typeClass.solve(Amat,b,z,opType="gen")
         part2 = typeClass.solve(Amat,b,z.conj(),opType="gen") #NOTE:assuming Amat is hermitian
-        c1 = mult*(efactor*math.cos(angle)+math.sin(angle)*1j)
-        c2 = mult*(efactor*math.cos(angle)-math.sin(angle)*1j)
-        print("Fit: calculateQuadrature")
+        c1 = mult*(contourEllipseFactor*math.cos(angle)+math.sin(angle)*1j)
+        c2 = mult*(contourEllipseFactor*math.cos(angle)-math.sin(angle)*1j)
+        #print("Fit: calculateQuadrature")
         Qquad_k = typeClass.linearCombination([part1,part2],[c1,c2])
 
     return Qquad_k
@@ -124,7 +102,7 @@ def updateQ(Q,im0,Qquad_k,k):
     if k == 0:
         Q[im0] = Qquad_k
     else:
-        print("Fit: Update quadrature")
+        #print("Fit: Update quadrature")
         Q[im0] = typeClass.linearCombination([Q[im0],Qquad_k],[1.0,1.0])
     return Q
        
@@ -138,6 +116,7 @@ def transformationMatrix(vectors,lindep=1e-14,printObj=None):
     Out: uS: transformation matrix
     idx : (Boolean array) indices of the returned vectors
           True if the element is linealy independent'''
+    # TODO merge with the one in Lanczos
     
     typeClass = vectors[0].__class__
     S = typeClass.overlapMatrix(vectors)
@@ -160,10 +139,11 @@ def diagonalizeHamiltonian(Hop,vectors,X,printObj=None):
                  (mainly for unit tests)
          ev -> eigenvalues
          uv -> eigenvectors in the basis defined through `X`'''
+    # TODO merge with the one in Lanczos
 
     typeClass = vectors[0].__class__
-    qtAq = typeClass.matrixRepresentation(Hop,vectors)   
-    Hmat = X.T.conj()@qtAq@X
+    HvecRepr = typeClass.matrixRepresentation(Hop,vectors)
+    Hmat = X.T.conj()@HvecRepr@X
     ev, uv = sp.linalg.eigh(Hmat)
     
     if printObj is not None:
@@ -175,11 +155,12 @@ def diagonalizeHamiltonian(Hop,vectors,X,printObj=None):
 # ***************************************************
 # Part 1: main FEAST function for contour integral
 # ------------------------------
-def feastDiagonalization(A,Y,nc,quad,rmin,rmax,eConv,maxit,efactor=1.0,
-        writeOut=True,eShift=0.0,convertUnit="au",status=None):
+def feastDiagonalization(A,Y,nc,quad,rmin,rmax,eConv,maxit,contourEllipseFactor=1.0,
+        writeOut=True,eShift=0.0,convertUnit="au"):
     """ FEAST diagonalization of A 
 
-        In A       ::  matrix or linearoperator or SOP operator 
+        In A       ::  matrix or linearoperator or SOP operator
+                    Note: Must be Hermitian. Otherwise, `calculateQuadrature` needs to be adapted.
         In Y       ::  Initial guess of m0 vectors (m0 is called as 
                        subspace dimension)
         In nc      ::  number of quadrature points
@@ -189,14 +170,14 @@ def feastDiagonalization(A,Y,nc,quad,rmin,rmax,eConv,maxit,efactor=1.0,
         In rmax    ::  eigenvalue upper limit
         In eConv   ::  eigenvalue residual convergence tolerance
         In maxit   ::  maximum feast iterations
-        In efactor (optional) ::  Countor shape factor
+        In contourEllipseFactor (optional) ::  Countor shape factor
+                See `calculateQuadrature`
         In writeOut (optional):: Instruction to writing output files 
-        In eShift (optional)   :: shift value for eigenvalues, Hmat elements
-        In convertUnit (optional):: convert unit for eigenvalues, Hmat elements
+        In eShift (optional)   :: shift value for printing. Assuming `A` is shifted by this value.
+        In convertUnit (optional):: unit for printing
 
         Out ev   ::  feast eigenvalues
         Out Y    ::  feast eigenvectors
-        Out status :: convergence information
     """
 
     typeClass = Y[0].__class__
@@ -206,10 +187,10 @@ def feastDiagonalization(A,Y,nc,quad,rmin,rmax,eConv,maxit,efactor=1.0,
     
 
     # numerical quadrature points.
-    gk,wk = quad_func(nc,quad)
+    gk,wk = quad_func(nc,quad, positiveHalf=True)
     pi = np.pi
     
-    status = _getStatus(status,Y)
+    status = _getStatus(None,Y)
     printObj = feastPrintUtils(Y[0],nc,quad,rmin,rmax,eConv,maxit,writeOut,eShift,
             convertUnit,status)
     printObj.fileHeader()
@@ -223,10 +204,10 @@ def feastDiagonalization(A,Y,nc,quad,rmin,rmax,eConv,maxit,efactor=1.0,
             status["quadrature"] = k
             
             theta = -(pi*0.5)*(gk[k]-1)
-            z = (rmin+rmax) * 0.5 + r*math.cos(theta)+r*efactor*1.0j*math.sin(theta)
+            z = (rmin+rmax) * 0.5 + r*math.cos(theta)+r*contourEllipseFactor*1.0j*math.sin(theta)
             
             for im0 in range(m0):
-                Qquad_k = calculateQuadrature(A,Y[im0],z,r,theta,wk[k],efactor)
+                Qquad_k = calculateQuadrature(A,Y[im0],z,r,theta,wk[k],contourEllipseFactor)
                 Q = updateQ(Q,im0,Qquad_k,k)
         
         # eigh in Lowdin orthogonal basis

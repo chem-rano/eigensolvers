@@ -1,6 +1,6 @@
 import numpy as np
 import scipy as sp
-from util_funcs import find_nearest, lowdinOrtho
+from util_funcs import find_nearest, lowdinOrtho, basisTransformation
 from printUtils import lanczosPrintUtils
 import warnings
 import time
@@ -126,6 +126,7 @@ def diagonalizeHamiltonian(Hop,bases,X,qtAq,printObj=None):
     Additional: prints matrix representation, 
                 eigenvalues in detailed 
     output file ("iterations_lanczos.out", default)'''
+    # TODO merge with the one in Lanczos
 
     typeClass = bases[0].__class__
     qtAq = typeClass.extendMatrixRepresentation(Hop,bases,qtAq)   
@@ -169,28 +170,6 @@ def checkConvergence(ev,eConv,status,printObj=None):
     if len(status["ref"]) > 2:status["ref"].pop(0)
     return status
  
-def basisTransformation(bases,coeffs):
-    ''' Basis transformation with eigenvectors 
-    and Krylov bases
-
-    In: bases -> List of bases for combination
-        coeffs -> coefficients used for the combination
-
-    Out: combBases -> combination results'''
-
-    typeClass = bases[0].__class__
-    ndim = coeffs.shape
-    combBases = []
-    if len(ndim)==1:
-        if len(coeffs) == 1 and coeffs[0] == 1.0:
-            combBases = bases
-        else:
-            combBases.append(typeClass.linearCombination(bases,coeffs))
-    else:
-        for j in range(ndim[1]):
-            combBases.append(typeClass.linearCombination(bases,coeffs[:,j]))
-    return combBases
-
 def properFitting(evNew, ev,checkFit, status):
     ''' Checks the eigenvalue after fitting
     (at the end of Lanczos iteration)
