@@ -130,6 +130,5 @@ options = {"orthogonalizationArgs":optionsOrtho, "linearSystemArgs":optionsLinea
 
 tns = TTNSVector(tns,options)
 sigma = util.unit2au((target+zpve),unit="cm-1")
-eConvAU = util.unit2au(eConv,unit="cm-1")
-ev, tnsList = inexactLanczosDiagonalization(Hop,tns,sigma,L,maxit,eConvAU,eShift=zpve,convertUnit="cm-1")[0:2]
+ev, tnsList = inexactLanczosDiagonalization(Hop,tns,sigma,L,maxit,eConv,eShift=zpve,convertUnit="cm-1")[0:2]
 # -----------------   EOF  -----------------------
