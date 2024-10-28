@@ -24,12 +24,13 @@ def _getStatus(status,guess):
 
     Out: StatusUp: Initiated and updated dictionary
     '''
-    
+
     statusUp ={"flagAddition":guess[0].hasExactAddition,
-            "outerIter":0, "quadrature":0,
-            "isConverged":False,
-            "phase":1,
-            "startTime":time.time(), "runTime":0.0}
+               "outerIter":0, "quadrature":0,
+               "isConverged":False,
+               "phase":1,
+               "residual":None,
+               "startTime":time.time(), "runTime":0.0}
     
     if status is not None:
         givenkeys = status.keys()
@@ -180,6 +181,8 @@ def feastDiagonalization(A,Y: list[AbstractVector],
         In rmin    ::  eigenvalue lower limit
         In rmax    ::  eigenvalue upper limit
         In eConv   ::  eigenvalue residual convergence tolerance
+                Residual is calculated through Sum |E - Eprev| / sum(abs(E)
+                    where E (Eprev) is the eigenvalue vector of the current (previous) iteration
         In maxit   ::  maximum feast iterations
         In contourEllipseFactor (optional) ::  Countor shape factor
                 See `calculateQuadrature`
@@ -226,15 +229,23 @@ def feastDiagonalization(A,Y: list[AbstractVector],
         ev, uv = diagonalizeHamiltonian(A,Q,uS,printObj)[1:3]
         
         uSH = uS@uv
+        del uv
         Y = basisTransformation(Q,uSH)
         del Q
 
-        if it != 0: 
-            res = abs(eigenvalueResidual(ev,ref_ev[idx],rmin,rmax))
+        if it != 0:
+            if len(ref_ev) > len(ev):
+                # Get elements in ref_ev that are closest to ev
+                indices = np.argmin(np.abs(ref_ev[:, None] - ev[None, :]) , axis=0)
+                ref_ev = ref_ev[indices]
+            elif len(ref_ev) < len(ev):
+                raise RuntimeError(f"{ref_ev=} but {ev=}. Enlarged space?")
+            residual = eigenvalueResidual(ev,ref_ev,rmin,rmax)
             status["runTime"] = time.time() - status["startTime"]
-            printObj.writeFile("summary",ev,res,status)
+            status["residual"] = residual
+            printObj.writeFile("summary",ev,residual,status)
             
-            if res < eConv:
+            if residual < eConv:
                 break
 
         # TODO report change of N_SUBSPACE
