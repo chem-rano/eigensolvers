@@ -10,7 +10,7 @@ from abstractVector import AbstractVector
 import time
 import math
 from magic import ipsh
-from printUtils import feastPrintUtils
+from printUtils import FeastPrintUtils
 
 def _getStatus(status,guess):
     ''' Dictionary for storing info of stage of the computation
@@ -170,7 +170,8 @@ def diagonalizeHamiltonian(Hop,vectors,X,printObj=None):
 # ------------------------------
 def feastDiagonalization(A, Y: list[AbstractVector],
                          nc, quad, eMin, eMax, eConv, maxit, contourEllipseFactor=1.0,
-                         writeOut=True, eShift=0.0, convertUnit="au"):
+                         writeOut=True, eShift=0.0, convertUnit="au",
+                         outFileName=None, summaryFileName=None):
     """ FEAST diagonalization of A
 
     See Polizzi, PRB, 79, 115112 (2009) 10.1103/PhysRevB.79.115112
@@ -193,6 +194,8 @@ def feastDiagonalization(A, Y: list[AbstractVector],
         In writeOut (optional):: Instruction to writing output files 
         In eShift (optional)   :: shift value for printing. Assuming `A` is shifted by this value.
         In convertUnit (optional):: unit for printing
+        In outFileName (optional): output file name
+        In summaryFileName (optional): summary file name
 
         Out ev   ::  feast eigenvalues
         Out Y    ::  feast eigenvectors
@@ -209,8 +212,8 @@ def feastDiagonalization(A, Y: list[AbstractVector],
     pi = np.pi
     
     status = _getStatus(None,Y)
-    printObj = feastPrintUtils(Y[0], nc, quad, eMin, eMax, eConv, maxit, writeOut, eShift,
-                               convertUnit, status)
+    printObj = FeastPrintUtils(Y[0], nc, quad, eMin, eMax, eConv, maxit, writeOut, eShift,
+                               convertUnit, status, outFileName, summaryFileName)
     printObj.fileHeader()
     
     for it in range(maxit):

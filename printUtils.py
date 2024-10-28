@@ -259,10 +259,15 @@ class lanczosPrintUtils:
 # ****************************************************************************
 #                   Print modules for FEAST
 # ****************************************************************************
-class feastPrintUtils:
-    """ Print module for file heder, footer, iteration outputs"""
+class FeastPrintUtils:
+    """ Print module for file header, footer, iteration outputs"""
     def __init__(self,guessVector,nc,quad,rmin,rmax,eConv,maxit,writeOut,
-            eShift,convertUnit,status):
+            eShift,convertUnit,status,
+                 outFileName=None, summaryFileName=None):
+        if outFileName is None:
+            outFileName = "iterations_feast.out"
+        if summaryFileName is None:
+            summaryFileName = "summary_feast.out"
 
         self.typeClass = guessVector.__class__
         self.options = guessVector.options
@@ -276,12 +281,14 @@ class feastPrintUtils:
         self.eShift = eShift
         self.convertUnit = convertUnit
         self.status = status
-        self.outfile = "iterations_feast.out"
-        self.sumfile = "summary_feast.out"
+        self.outfile = open(outFileName,"w")
+        self.sumfile = open(summaryFileName,"w")
 
     def fileHeader(self,guessChoice="Random"):
         """ Prints header with all input informations 
         printInfo prints this header to the screen, recorded in sweepOutputs"""
+        if not self.writeOut:
+            return
          
         # .....................  get typeClass & options .....................
         if "linearSystemArgs" in self.options:
@@ -291,12 +298,9 @@ class feastPrintUtils:
         if "linearSystemArgs" in self.options:
             optOrtho = self.options["linearSystemArgs"]
 
-        # ..........................  Open files .............................
-        if self.writeOut:
-            outfile = open(self.outfile,"a")
-            sumfile = open(self.sumfile,"a")
-
-        if self.writeOut:sumfile.write("startingPoint"+"\n") # data extractor
+        sumfile = self.sumfile
+        outfile = self.outfile
+        sumfile.write("startingPoint"+"\n") # data extractor
         # ..........................  timeStamp ..............................
         dateTime = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
         dt_string = "\t\t"+dateTime+"\t\t\n"
@@ -371,81 +375,74 @@ class feastPrintUtils:
                 "Stage of phase calculation")+"\n\n"
 
         # ..........................  write and print info ..................
-        if self.writeOut:
-            outfile.write(lines)
-            sumfile.write(lines)
-            print(lines)
+        outfile.write(lines)
+        sumfile.write(lines)
+        print(lines)
 
         # ..........................  data description in plot file ..........
         lines = "it\tquad\t\teigenvalues\t\t"
         lines += "res\t\ttime (seconds)\n"
-        if self.writeOut:sumfile.write(lines)
-    
-        if self.writeOut:
-            outfile.close()
-            sumfile.close()
+        sumfile.write(lines)
+        outfile.flush()
+        sumfile.flush()
+        return
 # ****************************************************************************
 
     def fileFooter(self):
         """ Prints footer with job complete message
         printInfo prints this footer to the screen, recorded in sweepOutputs"""
-    # ..........................  Open files ..........................
-        if self.writeOut:
-            outfile = open(self.outfile,"a")
-            sumfile = open(self.sumfile,"a")
-
-            sumfile.write("endingPoint"+"\n") # for data extractor code
+        if not self.writeOut:
+            return
+        sumfile = self.sumfile
+        outfile = self.outfile
+        # ..........................  Open files ..........................
+        sumfile.write("endingPoint"+"\n") # for data extractor code
 
     # ..........................  timeStamp ..........................
         dateTime = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
         dt_string = "\t\t"+dateTime+"\t\t\n"
         line = "\n"+"*"*70 + "\n\t\tEnd of computation\t\t\n"+dt_string+\
                 "*"*70+"\n\n"
-        if self.writeOut:
-            outfile.write(line+"\n")
-            sumfile.write(line+"\n")
-            print(line)
-
-            outfile.close() 
-            sumfile.close() 
+        outfile.write(line+"\n")
+        sumfile.write(line+"\n")
+        print(line)
+        outfile.flush()
+        sumfile.flush()
+        return
 # ****************************************************************************
     
     def writeFile(self,label,*args):
         """ A single print function for overlap, Hamitonian matrix,
         iteration details and final eigenvalues"""
-    
-        if self.writeOut:
-            outfile = open(self.outfile,"a")
-            sumfile = open(self.sumfile,"a")
+        if not self.writeOut:
+            return
+        sumfile = self.sumfile
+        outfile = self.outfile
     # ........................ OVERlAP MATRIX ........................
-        if self.writeOut and label == "overlap":
+        if label == "overlap":
             outfile.write("OVERLAP MATRIX\n")
             outfile.write(f"{args[0]}")
             outfile.write("\n\n")
-
     # ........................ HAMILTONIAN MATRIX ......................
-        elif self.writeOut and label == "hamiltonian":
+        elif label == "hamiltonian":
             outfile.write("HAMILTONIAN MATRIX\n")
             hmat = convert(args[0],self.eShift,self.convertUnit)
             outfile.write(f"{hmat}")
             outfile.write("\n\n")
-
     # ........................ EIGENVALUES ..............................
-        elif self.writeOut and label == "eigenvalues":
+        elif label == "eigenvalues":
             outfile.write("Eigenvalues\n")
             evalues = convert(args[0],self.eShift,self.convertUnit)
             outfile.write(f"{evalues}")
             outfile.write("\n")
-
     # ...................... ITERATION INFOs ..............................
-        elif self.writeOut and label == "iteration":
+        elif label == "iteration":
             line = "\n\n"+"."*20+"\tInfo per iteration\t"+"."*20+"\n"
             line += "FEAST iteration: "+str(args[0]["outerIter"])+"\n"
             outfile.write(line)
             print(line) # for sweepOutput
-
     # ....................... SUMMARY FILE ..............................
-        elif self.writeOut and label == "summary":
+        elif label == "summary":
             status = args[2]
             it = status["outerIter"]
             quad = status["quadrature"]
@@ -458,8 +455,7 @@ class feastPrintUtils:
             sumfile.write(f'{it}\t{quad}\t')
             sumfile.write(f'{excitation}\t{res}\t')
             sumfile.write(f'{runTime}\n')
-
-        if self.writeOut:
-            outfile.close()
-            sumfile.close() 
+        outfile.flush()
+        sumfile.flush()
+        return
 # **************************************************************************************
