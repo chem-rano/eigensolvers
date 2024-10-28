@@ -242,11 +242,12 @@ def lowdinOrtho(oMat, tol= LINDEP_DEFAULT_VALUE):
     info = all(idx)
     uvqTraf = uvq * evq**(-0.5)
     return idx, info, uvqTraf
+
 def eigenvalueResidual(ev:np.ndarray,prev_ev:np.ndarray,
                        emin,emax,insideTarget=True):
     '''
     Eigenvalue residual calculation
-    Residual = [sum abs(prev_ev-ev)]/[sum abs(prev_ev)]
+    Residual = [sum abs(prev_ev-ev)]/[sum abs(ev)]
     for eigenvalues of i and i-1 th iterations
 
     if `insideTarget`: Eigenvalues within the range (emin-emax)
@@ -269,7 +270,7 @@ def eigenvalueResidual(ev:np.ndarray,prev_ev:np.ndarray,
     m0 = len(ev)
     for i in range(m0):
         diff += abs(prev_ev[i]-ev[i])
-        prev_tot += abs(prev_ev[i])
+        prev_tot += abs(ev[i])
     res = diff/prev_tot
     return res
 

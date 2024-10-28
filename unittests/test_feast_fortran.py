@@ -3,7 +3,7 @@ import numpy as np
 import math
 from magic import ipsh
 from numpyVector import NumpyVector
-from util_funcs import quad_func
+from util_funcs import quadraturePointsWeights
 from feast  import calculateQuadrature, updateQ
 
 # This tests our FEAST code (partial comparison) 
@@ -56,14 +56,14 @@ class Test_feast_fortran(unittest.TestCase):
     def test_legendre_points(self):
         ''' Checks distribution points with the help of manual order '''
         fgk,fwk = read_fortranData()[2:4]
-        gk,wk = quad_func(self.nc,self.quad,positiveHalf=False)
+        gk,wk = quadraturePointsWeights(self.nc,self.quad,positiveHalf=False)
         np.testing.assert_allclose(fgk,gk[self.order],rtol=1e-5,atol=0)
         np.testing.assert_allclose(fwk,wk[self.order],rtol=1e-5,atol=0)
 
     def test_theta(self):
         ''' Checks angle for quadrature, theta '''
         ftheta= read_fortranData()[4]
-        gk = quad_func(self.nc,self.quad,positiveHalf=False)[0]
+        gk = quadraturePointsWeights(self.nc,self.quad,positiveHalf=False)[0]
         pi = np.pi
         theta = np.empty((self.nc))
         for k in range(self.nc):
@@ -74,7 +74,7 @@ class Test_feast_fortran(unittest.TestCase):
         ''' Checks quadrature points, zne '''
         fzne= read_fortranData()[5]
         r = abs(self.rmax-self.rmin)*0.5
-        gk = quad_func(self.nc,self.quad,positiveHalf=False)[0]
+        gk = quadraturePointsWeights(self.nc,self.quad,positiveHalf=False)[0]
         pi = np.pi
         zne = np.empty((self.nc),dtype=complex)
         for k in range(self.nc):
@@ -86,7 +86,7 @@ class Test_feast_fortran(unittest.TestCase):
         ''' Checks linear solutions, Qe '''
         typeClass = self.guess[0].__class__
         r = abs(self.rmax-self.rmin)*0.5
-        gk,wk = quad_func(self.nc,self.quad,positiveHalf=False)
+        gk,wk = quadraturePointsWeights(self.nc,self.quad,positiveHalf=False)
         pi = np.pi
         zne = np.empty((self.nc),dtype=complex)
         n,m = len(self.guess),len(self.guess[0].array)
@@ -106,7 +106,7 @@ class Test_feast_fortran(unittest.TestCase):
         ''' Checks integrated solutions, Q '''
         typeClass = self.guess[0].__class__
         r = abs(self.rmax-self.rmin)*0.5
-        gk,wk = quad_func(self.nc,self.quad,positiveHalf=False)
+        gk,wk = quadraturePointsWeights(self.nc,self.quad,positiveHalf=False)
         pi = np.pi
         theta = np.empty((self.nc))
         zne = np.empty((self.nc),dtype=complex)

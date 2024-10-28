@@ -201,7 +201,7 @@ def feastDiagonalization(A,Y: list[AbstractVector],
     
 
     # numerical quadrature points.
-    gk,wk = quadraturePointsWeights(nc, quad, positiveHalf=True)
+    gk, wk = quadraturePointsWeights(nc, quad, positiveHalf=True)
     pi = np.pi
     
     status = _getStatus(None,Y)
