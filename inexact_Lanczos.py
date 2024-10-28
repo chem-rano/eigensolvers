@@ -309,7 +309,10 @@ def inexactDiagonalization(H,v0,sigma,L,maxit,eConv,checkFit=1e-7,
                     assert len(Ylist) == 1
                     uSH = np.ones(1)  # single item in Ylist
                     continueIteration = False # No need for further iteration
-                    if it == 0: ev = typeClass.matrixRepresentation(H,Ylist)[0,0]
+                    if it == 0:
+                        # Ylist is one vector, so ev is just the matrix element
+                        ev = typeClass.matrixRepresentation(H,Ylist)[0,0]
+                        ev /= Ylist[0].norm()**2 # in case it is not fully normalized
                 break
            
             ev, uv, qtAq = diagonalizeHamiltonian(H,Ylist,uS,qtAq,printObj)[1:4]
