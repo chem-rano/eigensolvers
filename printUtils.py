@@ -2,9 +2,10 @@ import util
 from datetime import datetime
 from util_funcs import find_nearest
 import numpy as np
-from ttns2.diagonalization import IterativeLinearSystemOptions
+from numpyVector import NumpyVector
+from ttnsVector import TTNSVector
 
-# -----------------------------------------------------
+# ****************************************************************************
 def convert(arr,eShift=0.0,unit='au'):
     ''' For converting ndarray (energy or matrix) with 
     adjusted eShift and unit conversion'''
@@ -16,221 +17,450 @@ def convert(arr,eShift=0.0,unit='au'):
         arrShifted = util.au2unit(arr,unit)-eShift
     return arrShifted
 
-# -----------------------------------------------------
+# ****************************************************************************
+#                   Print modules for LANCZOS
+# ****************************************************************************
+class LanczosPrintUtils:
+    """ Print module for file heder, footer, iteration outputs"""
+    def __init__(self,guessVector,sigma,L,maxit,eConv,checkFit, 
+            writeOut,fileRef,eShift,convertUnit,pick,status,
+                 outFileName=None, summaryFileName=None):
+        if outFileName is None:
+            outFileName = "iterations_lanczos.out"
+        if summaryFileName is None:
+            summaryFileName = "summary_lanczos.out"
 
-def fileHeader(fstring,options,sigma,L,maxit,eConv,
-        zpve=0.0,D=None,guess="Random",printInfo=True):
-    """ Prints header with all input informations 
-    printInfo prints this header to the screen, recorded in sweepOutputs"""
-    
-    file = open("iterations.out","a") if fstring == "out" else open("data2Plot.out","a")
-   
-    # This can be more organized  in three groups
-    optionsLinear = options["linearSystemArgs"]
-    sweepAlgo = False
-    if len(options) >= 2:
-        sweepAlgo = True
-        optionsOrtho = options["orthogonalizationArgs"]
-        optionsFitting = options["stateFittingArgs"]
-    
-    if "iterativeLinearSystemOptions" in optionsLinear:
-        solver = optionsLinear["iterativeLinearSystemOptions"].solver
-        siteLinearTol = optionsLinear["iterativeLinearSystemOptions"].tol
-        globalLinearTol = optionsLinear["convTol"]
-        nsweepLinear = optionsLinear["nSweep"]
-    else:
-        solver = optionsLinear["linearSolver"]
-        globalLinearTol = optionsLinear["linear_tol"]
-        nsweepLinear = optionsLinear["linearIter"]
-    
-    if fstring == "plot":    # for data extractor code
-        line = "startingPoint"
-        file.write(line+"\n")
+        self.typeClass = guessVector.__class__
+        self.options = guessVector.options
+        self.sigma = sigma
+        self.L = L
+        self.maxit = maxit
+        self.eConv = eConv
+        self.checkFit = checkFit
+        self.writeOut = writeOut
+        self.fileRef = fileRef
+        self.eShift = eShift
+        self.convertUnit = convertUnit
+        self.pick = pick
+        self.status = status
+        self.outfile = open(outFileName,"w")
+        self.sumfile = open(summaryFileName,"w")
 
-    dateTime = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
-    dt_string = "\t\t"+dateTime+"\t\t\n"
-    line = "*"*70 + "\n\t\tStarting computation\t\t\n"+dt_string+"*"*70+"\n"
-    file.write(line+"\n")
-    if printInfo:
+    def __del__(self):
+        self.outfile.close()
+        self.sumfile.close()
+
+    def fileHeader(self,guessChoice="Random"):
+        """ Prints header with all input informations 
+        printInfo prints this header to the screen, recorded in sweepOutputs"""
+        if not self.writeOut:
+            return
+
+        # .....................  get typeClass & options .....................
+        if "linearSystemArgs" in self.options:
+            optLinear = self.options["linearSystemArgs"]
+        if "stateFittingArgs" in self.options:
+            optFitting = self.options["stateFittingArgs"]
+        if "linearSystemArgs" in self.options:
+            optOrtho = self.options["linearSystemArgs"]
+
+        # ..........................  Open files .............................
+        outfile = self.outfile
+        sumfile = self.sumfile
+
+        sumfile.write("startingPoint"+"\n") # data extractor
+        # ..........................  timeStamp ..............................
+        dateTime = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+        dt_string = "\t\t"+dateTime+"\t\t\n"
+        lines = "*"*70 + "\n\t\tStarting computation\t\t\n"+dt_string+\
+                "*"*70+"\n\n"
+
+        # ..........................  general infos ..........................
+        formatStyle = "{:10} {:>14} :: {:20}"
+        target = convert(self.sigma,self.eShift,self.convertUnit)
+        lines += formatStyle.format("target",target,"Target excitation")+"\n"
+        lines += formatStyle.format("L",self.L,"Krylov space")+"\n"
+        lines += formatStyle.format("maxit",self.maxit,\
+                "Maximum Lanczos iterations")+"\n"
+        lines += formatStyle.format("econv",f"{self.eConv:.03g}",\
+                "Eigenvalue convergence")+"\n"
+        lines += formatStyle.format("checkFit",self.checkFit,"Checkfit")+"\n"
+        pickname = str(self.pick).split(" ")[1]
+        lines += "{:10} {:>20}".format("pick",pickname)+"\n"
+        lines += formatStyle.format("Guess",guessChoice,\
+                "Guess vector choice")+"\n"
+
+        # ..........................  sweep infos numpyVector.................
+        if self.typeClass is NumpyVector:
+            solver = optLinear["linearSolver"]
+            linearTol = optLinear["linear_tol"]
+            nsweepLinear = optLinear["linearIter"]
+
+            lines += formatStyle.format("lsweep",nsweepLinear,\
+                    "Number of sweeps: Linear solver")+"\n"
+            lines += formatStyle.format("solver",solver,"Linear solver")+"\n"
+            lines += formatStyle.format("ltol",linearTol,\
+                    "Tolerance: Linear solver")+"\n"
+    # ..........................  sweep infos ttnsVector......................
+        elif self.typeClass is TTNSVector:
+            solver = optLinear["iterativeLinearSystemOptions"].solver
+            siteLinearTol = optLinear["iterativeLinearSystemOptions"].tol
+            maxIter = optLinear["iterativeLinearSystemOptions"].maxIter
+            globalLinearTol = optLinear["convTol"]
+            nsweep = optLinear["nSweep"]
+            adaptLinear = optLinear["bondDimensionAdaptions"]
+
+            lines += formatStyle.format("solver",solver,"Linear solver")+"\n"
+            lines += formatStyle.format("ltol1",siteLinearTol,\
+                    "Site tolerance:Linear solver")+"\n"
+            lines += formatStyle.format("maxIter",maxIter,\
+                    "Iterative solver maximum iterations")+"\n"
+            lines += formatStyle.format("lsweep",nsweep,\
+                    "Number of DMRG sweeps: Linear solver")+"\n"
+            lines += formatStyle.format("ltol2",globalLinearTol,\
+                    "global tolerance:Linear solver")+"\n"
+            lines += formatStyle.format("maxD",adaptLinear[0].maxD,\
+                    "Maximum bond dimension:Linear solver")+"\n"
+
+            fittingTol = optFitting["convTol"]
+            nsweepFitting = optFitting["nSweep"]
+            adaptFitting = optFitting["bondDimensionAdaptions"]
+
+            lines += formatStyle.format("ftol",fittingTol,"Fitting Tolerance")+"\n"
+            lines += formatStyle.format("fsweep",nsweepFitting,\
+                    "Number of sweeps:fitting")+"\n"
+            lines += formatStyle.format("maxD",adaptFitting[0].maxD,\
+                    "Maximum bond dimension:Fitting")+"\n"
+
+        # ..........................  Space for phase calculations ..........
+        lines += formatStyle.format("Phase",self.status["phase"],\
+                "Stage of phase calculation")+"\n\n"
+
+        # ..........................  write and print info ..................
+        outfile.write(lines)
+        sumfile.write(lines)
+        print(lines)
+
+        # ..........................  data description in plot file ..........
+        lines = "it\ti\tnCum\ttarget\tReference\t\tev_nearest\t\tabs_ev"
+        lines += "\t\trel_ev\t\ttime (seconds)\n"
+        sumfile.write(lines)
+    
+        outfile.flush()
+        sumfile.flush()
+# ****************************************************************************
+
+    def fileFooter(self):
+        """ Prints footer with job complete message
+        printInfo prints this footer to the screen, recorded in sweepOutputs"""
+        if not self.writeOut:
+            return
+        sumfile = self.sumfile
+        outfile = self.outfile
+        sumfile.write("endingPoint"+"\n") # for data extractor code
+
+    # ..........................  timeStamp ..........................
+        dateTime = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+        dt_string = "\t\t"+dateTime+"\t\t\n"
+        line = "\n"+"*"*70 + "\n\t\tEnd of computation\t\t\n"+dt_string+\
+                "*"*70+"\n\n"
+        outfile.write(line+"\n")
+        sumfile.write(line+"\n")
         print(line)
 
-    line = "{:6} {:>10} :: {:20}".format("sigma",sigma,"Target")
-    file.write(line+"\n")
-    if printInfo:
+        outfile.flush()
+        sumfile.flush()
+        return
+# ****************************************************************************
+    
+    def writeFile(self,label,*args):
+        """ A single print function for overlap, Hamitonian matrix,
+        iteration details and final eigenvalues"""
+        if not self.writeOut:
+            return
+        sumfile = self.sumfile
+        outfile = self.outfile
+
+    # ........................ OVERlAP MATRIX ........................
+        if label == "overlap":
+            outfile.write("OVERLAP MATRIX\n")
+            outfile.write(f"{args[0]}")
+            outfile.write("\n\n")
+    # ........................ HAMILTONIAN MATRIX ......................
+        elif label == "hamiltonian":
+            outfile.write("HAMILTONIAN MATRIX\n")
+            hmat = convert(args[0],self.eShift,self.convertUnit)
+            outfile.write(f"{hmat}")
+            outfile.write("\n\n")
+    # ........................ EIGENVALUES ..............................
+        elif label == "eigenvalues":
+            outfile.write("Eigenvalues\n")
+            evalues = convert(args[0],self.eShift,self.convertUnit)
+            outfile.write(f"{evalues}")
+            outfile.write("\n")
+    # ...................... ITERATION INFOs ..............................
+        elif label == "iteration":
+            line = "\n\n"+"."*20+"\tInfo per iteration\t"+"."*20+"\n"
+            line += "Lanczos iteration: "+str(args[0]["outerIter"])
+            line += "\tKrylov iteration: "+str(args[0]["innerIter"])
+            line += "\tCumulative Krylov iteration: "+str(args[0]["cumIter"])+"\n"
+            outfile.write(line)
+            print(line) # for sweepOutput
+    # ...................... MAXIMUM BOND DIMENSION ......................
+        elif label == "KSmaxD":
+            line = "Maximum bond dimensions of Krylov vectors"
+            KSmaxD = args[0]["KSmaxD"]
+            line += f"{KSmaxD}"+"\n\n"
+            outfile.write(line)
+        elif label == "fitmaxD":
+            line = "Maximum bond dimensions of fitted vectors"
+            fitmaxD = args[0]["fitmaxD"]
+            line += f"{fitmaxD}"+"\n\n"
+            outfile.write(line)
+    # ........................FINAL RESULTS ..............................
+        elif label == "results":
+            # same as 'eigenvalues', with ev_nearest and final message
+            lines = "\n\n" +"-"*20+"\tFINAL RESULTS\t"+"-"*20+"\n"
+            energies = convert(args[0],self.eShift,self.convertUnit)
+            lines += "All subspace eigenvalues:\n"
+            lines += f"{energies}"+"\n"
+            target = convert(self.sigma,self.eShift,self.convertUnit)
+            ev_nearest = find_nearest(energies,target)[1]
+            lines += f"Target, Lanczos (nearest) {target}, {ev_nearest}\n"
+            outfile.write(lines)
+    # ....................... SUMMARY FILE ..............................
+        elif label == "summary":
+            status = args[1]
+            it = status["outerIter"]
+            i = status["innerIter"]
+            nCum = status["cumIter"]
+            runTime = status["runTime"]
+
+            target = convert(self.sigma,self.eShift,self.convertUnit)
+            evalue = convert(args[0],unit=self.convertUnit)
+            excitation = convert(evalue,eShift=self.eShift)
+
+            ref = util.au2unit(status["ref"][-1],self.convertUnit)
+            abs_diff = np.abs(evalue - ref)
+            rel_ev = abs_diff/np.abs(evalue)
+
+            sumfile.write(f'{it}\t{i}\t{nCum}\t{target}\t')
+            
+            # a file of containing references
+            if self.fileRef is not None:
+                ev = np.loadtxt(self.fileRef)
+                reference = find_nearest(ev,target)[1]
+                sumfile.write(f'{reference}\t')
+            sumfile.write(f'{excitation}\t{abs_diff}\t{rel_ev}\t')
+            sumfile.write(f'{runTime}\n')
+        outfile.flush()
+        sumfile.flush()
+        return
+
+# ****************************************************************************
+#                   Print modules for FEAST
+# ****************************************************************************
+class FeastPrintUtils:
+    """ Print module for file header, footer, iteration outputs"""
+    def __init__(self,guessVector,nc,quad,rmin,rmax,eConv,maxit,writeOut,
+            eShift,convertUnit,status,
+                 outFileName=None, summaryFileName=None):
+        if outFileName is None:
+            outFileName = "iterations_feast.out"
+        if summaryFileName is None:
+            summaryFileName = "summary_feast.out"
+
+        self.typeClass = guessVector.__class__
+        self.options = guessVector.options
+        self.nc = nc
+        self.quad = quad
+        self.rmin = rmin
+        self.rmax = rmax
+        self.eConv = eConv
+        self.maxit = maxit
+        self.writeOut = writeOut
+        self.eShift = eShift
+        self.convertUnit = convertUnit
+        self.status = status
+        self.outfile = open(outFileName,"w")
+        self.sumfile = open(summaryFileName,"w")
+
+    def __del__(self):
+        self.outfile.close()
+        self.sumfile.close()
+
+    def fileHeader(self,guessChoice="Random"):
+        """ Prints header with all input informations 
+        printInfo prints this header to the screen, recorded in sweepOutputs"""
+        if not self.writeOut:
+            return
+         
+        # .....................  get typeClass & options .....................
+        if "linearSystemArgs" in self.options:
+            optLinear = self.options["linearSystemArgs"]
+        if "stateFittingArgs" in self.options:
+            optFitting = self.options["stateFittingArgs"]
+        if "linearSystemArgs" in self.options:
+            optOrtho = self.options["linearSystemArgs"]
+
+        sumfile = self.sumfile
+        outfile = self.outfile
+        sumfile.write("startingPoint"+"\n") # data extractor
+        # ..........................  timeStamp ..............................
+        dateTime = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+        dt_string = "\t\t"+dateTime+"\t\t\n"
+        lines = "*"*70 + "\n\t\tStarting computation\t\t\n"+dt_string+\
+                "*"*70+"\n\n"
+
+        # ..........................  general infos ..........................
+        formatStyle = "{:10} {:>14} :: {:20}"
+        lines += formatStyle.format("nc",self.nc,"Number of quadrature points")\
+                +"\n"
+        lines += formatStyle.format("quad",self.quad,\
+                "Quadrature distribution")+"\n"
+        minTarget = convert(self.rmin,self.eShift,self.convertUnit)
+        lines += formatStyle.format("emin",minTarget,\
+                "Minimum target excitation energy")+"\n"
+        maxTarget = convert(self.rmax,self.eShift,self.convertUnit)
+        lines += formatStyle.format("emax",maxTarget,\
+                "Maximum target excitation energy")+"\n"
+        lines += formatStyle.format("econv",f"{self.eConv:.03g}",\
+                "Eigenvalue convergence")+"\n"
+        lines += formatStyle.format("maxit",self.maxit,\
+                "Maximum FEAST iterations")+"\n"
+        lines += formatStyle.format("eShift",self.eShift,"shift energy")+"\n"
+        lines += formatStyle.format("convertUnit",self.convertUnit,"convertUnit")+"\n"
+        lines += formatStyle.format("Guess",guessChoice,\
+                "Guess vector choice")+"\n"
+
+        # ..........................  sweep infos numpyVector.................
+        if self.typeClass is NumpyVector:
+            solver = optLinear["linearSolver"]
+            linearTol = optLinear["linear_tol"]
+            nsweepLinear = optLinear["linearIter"]
+
+            lines += formatStyle.format("lsweep",nsweepLinear,\
+                    "Number of sweeps: Linear solver")+"\n"
+            lines += formatStyle.format("solver",solver,"Linear solver")+"\n"
+            lines += formatStyle.format("ltol",linearTol,\
+                    "Tolerance: Linear solver")+"\n"
+    # ..........................  sweep infos ttnsVector......................
+        elif self.typeClass is TTNSVector:
+            solver = optLinear["iterativeLinearSystemOptions"].solver
+            siteLinearTol = optLinear["iterativeLinearSystemOptions"].tol
+            maxIter = optLinear["iterativeLinearSystemOptions"].maxIter
+            globalLinearTol = optLinear["convTol"]
+            nsweep = optLinear["nSweep"]
+            adaptLinear = optLinear["bondDimensionAdaptions"]
+
+            lines += formatStyle.format("solver",solver,"Linear solver")+"\n"
+            lines += formatStyle.format("ltol1",siteLinearTol,\
+                    "Site tolerance:Linear solver")+"\n"
+            lines += formatStyle.format("maxIter",maxIter,\
+                    "Iterative solver maximum iterations")+"\n"
+            lines += formatStyle.format("lsweep",nsweep,\
+                    "Number of DMRG sweeps: Linear solver")+"\n"
+            lines += formatStyle.format("ltol2",globalLinearTol,\
+                    "global tolerance:Linear solver")+"\n"
+            lines += formatStyle.format("maxD",adaptLinear[0].maxD,\
+                    "Maximum bond dimension:Linear solver")+"\n"
+
+            fittingTol = optFitting["convTol"]
+            nsweepFitting = optFitting["nSweep"]
+            adaptFitting = optFitting["bondDimensionAdaptions"]
+
+            lines += formatStyle.format("ftol",fittingTol,"Fitting Tolerance")+"\n"
+            lines += formatStyle.format("fsweep",nsweepFitting,\
+                    "Number of sweeps:fitting")+"\n"
+            lines += formatStyle.format("maxD",adaptFitting[0].maxD,\
+                    "Maximum bond dimension:Fitting")+"\n"
+
+        # ..........................  Space for phase calculations ..........
+        lines += formatStyle.format("Phase",self.status["phase"],\
+                "Stage of phase calculation")+"\n\n"
+
+        # ..........................  write and print info ..................
+        outfile.write(lines)
+        sumfile.write(lines)
+        print(lines)
+
+        # ..........................  data description in plot file ..........
+        lines = "it\tquad\t\teigenvalues\t\t"
+        lines += "res\t\ttime (seconds)\n"
+        sumfile.write(lines)
+        outfile.flush()
+        sumfile.flush()
+        return
+# ****************************************************************************
+
+    def fileFooter(self):
+        """ Prints footer with job complete message
+        printInfo prints this footer to the screen, recorded in sweepOutputs"""
+        if not self.writeOut:
+            return
+        sumfile = self.sumfile
+        outfile = self.outfile
+        # ..........................  Open files ..........................
+        sumfile.write("endingPoint"+"\n") # for data extractor code
+
+    # ..........................  timeStamp ..........................
+        dateTime = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+        dt_string = "\t\t"+dateTime+"\t\t\n"
+        line = "\n"+"*"*70 + "\n\t\tEnd of computation\t\t\n"+dt_string+\
+                "*"*70+"\n\n"
+        outfile.write(line+"\n")
+        sumfile.write(line+"\n")
         print(line)
+        outfile.flush()
+        sumfile.flush()
+        return
+# ****************************************************************************
     
-    line = "{:6} {:>10} :: {:20}".format("L",L,"Krylov space")
-    file.write(line+"\n")
-    if printInfo:
-        print(line)
+    def writeFile(self,label,*args):
+        """ A single print function for overlap, Hamitonian matrix,
+        iteration details and final eigenvalues"""
+        if not self.writeOut:
+            return
+        sumfile = self.sumfile
+        outfile = self.outfile
+    # ........................ OVERlAP MATRIX ........................
+        if label == "overlap":
+            outfile.write("OVERLAP MATRIX\n")
+            outfile.write(f"{args[0]}")
+            outfile.write("\n\n")
+    # ........................ HAMILTONIAN MATRIX ......................
+        elif label == "hamiltonian":
+            outfile.write("HAMILTONIAN MATRIX\n")
+            hmat = convert(args[0],self.eShift,self.convertUnit)
+            outfile.write(f"{hmat}")
+            outfile.write("\n\n")
+    # ........................ EIGENVALUES ..............................
+        elif label == "eigenvalues":
+            outfile.write("Eigenvalues\n")
+            evalues = convert(args[0],self.eShift,self.convertUnit)
+            outfile.write(f"{evalues}")
+            outfile.write("\n")
+    # ...................... ITERATION INFOs ..............................
+        elif label == "iteration":
+            line = "\n\n"+"."*20+"\tInfo per iteration\t"+"."*20+"\n"
+            line += "FEAST iteration: "+str(args[0]["outerIter"])+"\n"
+            outfile.write(line)
+            print(line) # for sweepOutput
+    # ....................... SUMMARY FILE ..............................
+        elif label == "summary":
+            status = args[2]
+            it = status["outerIter"]
+            quad = status["quadrature"]
+            runTime = status["runTime"]
 
-    line = "{:6} {:>10} :: {:20}".format("maxit",maxit,"Maximum Lanczos iterations")
-    file.write(line+"\n")
-    if printInfo:
-        print(line)
+            evalue = convert(args[0],unit=self.convertUnit)
+            excitation = convert(evalue,eShift=self.eShift)
 
-    line = "{:6} {:>10} :: {:20}".format("econv",eConv,"Eigenvalue convergence")
-    file.write(line+"\n")
-    if printInfo:
-        print(line)
-    
-    if D is not None:
-        line = "{:6} {:>10} :: {:20}".format("D",D,"Bond dimension")
-        file.write(line+"\n")
-        if printInfo:
-            print(line)
-    if sweepAlgo: 
-        fittingTol = optionsFitting["convTol"]
-        nsweepFitting = optionsFitting["nSweep"]
-        line = "{:6} {:>10} :: {:20}".format("ftol",fittingTol,"Fitting Tolerance")
-        file.write(line+"\n")
-        if printInfo:
-            print(line)
-
-        line = "{:6} {:>10} :: {:20}".format("fsweep",nsweepFitting,"Number of sweeps: fitting")
-        file.write(line+"\n")
-        if printInfo:
-            print(line)
-
-    if sweepAlgo: 
-        line = "{:6} {:>10} :: {:20}".format("ltol1",siteLinearTol,"Site tolerance: Linear solver")
-        file.write(line+"\n")
-        if printInfo:
-            print(line)
-
-    line = "{:6} {:>10} :: {:20}".format("ltol2",globalLinearTol,"global tolerance: Linear solver")
-    file.write(line+"\n")
-    if printInfo:
-        print(line)
-
-    line = "{:6} {:>10} :: {:20}".format("lsweep",nsweepLinear,"Number of sweeps: Linear solver")
-    file.write(line+"\n")
-    if printInfo:
-        print(line)
-
-    line = "{:6} {:>10} :: {:20}".format("solver",solver,"Linear solver")
-    file.write(line+"\n")
-    if printInfo:
-        print(line)
-
-    line = "{:6} {:>10} :: {:20}".format("Guess",guess,"Guess vector\n\n")
-    file.write(line+"\n")
-    if printInfo:
-        print(line)
-    
-    #line = "{:16}  :: {:20}".format("Statefollowing",status["Statefollowing"]\n\n")
-    #file.write(line+"\n")
-    #if printInfo:
-    #    print(line)
-    
-    if fstring == "plot":
-        line = "it\ti\tnCum\ttarget\tReference\t\tev_nearest\t\tabs_ev"
-        line += "\t\trel_ev\t\ttime (seconds)\n"
-        file.write(line)
-    
-    file.close()
-
-def fileFooter(fstring,printInfo=True):
-    """ Prints footer with job complete message
-    printInfo prints this footer to the screen, recorded in sweepOutputs"""
-    
-    file = open("iterations.out","a") if fstring == "out" else open("data2Plot.out","a")
-    
-    if fstring == "plot":    # for data extractor code
-        line = "endingPoint"
-        file.write(line+"\n")
-    
-    dateTime = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
-    dt_string = "\t\t"+dateTime+"\t\t\n"
-    line = "\n"+"*"*70 + "\n\t\tEnd of computation\t\t\n"+dt_string+"*"*70+"\n\n"
-    file.write(line+"\n")
-    if printInfo:
-        print(line)
-    
-    file.close()
-
-def _outputFile(status,args):
-    file = open("iterations.out","a")
-    
-    if args[0] == "overlap":
-        file.write("OVERLAP MATRIX\n")
-        file.write(f"{args[1]}")
-        file.write("\n")
-        file.write("\n")
-        
-    elif args[0] == "hamiltonian":
-        file.write("HAMILTONIAN MATRIX\n")
-        hmat = convert(args[1],status["eShift"],status["convertUnit"])
-        file.write(f"{hmat}")
-        file.write("\n")
-        file.write("\n")
-        
-    elif args[0] == "eigenvalues":
-        file.write("Eigenvalues\n")
-        evalues = convert(args[1],status["eShift"],status["convertUnit"])
-        file.write(f"{evalues}")
-        file.write("\n")
-    
-    elif args[0] == "results":
-        # same as 'eigenvalues', with ev_nearest and final message
-        file.write("\n")
-        file.write("\n")
-        file.write("-"*20)
-        file.write("\tFINAL RESULTS\t")
-        file.write("-"*20)
-        file.write("\n")
-        energies = convert(args[1],status["eShift"],status["convertUnit"])
-        file.write("All subspace eigenvalues:")
-        file.write("\n")
-        file.write(f"{energies}")
-        file.write("\n")
-        assert len(args) > 2; target = args[2]
-        ev_nearest = find_nearest(energies,target)[1]
-        file.write("Target, Lanczos (nearest)")
-        file.write("{target}, {ev_nearest}")
-        file.write("\n")
-        
-    elif args[0] == "iteration":
-        file.write("\n")
-        file.write("\n")
-        file.write("."*20)
-        file.write("\tInfo per iteration\t")
-        file.write("."*20)
-        file.write("\n")
-        file.write("Lanczos iteration: "+str(status["outerIter"]))
-        file.write("\tKrylov iteration: "+str(status["innerIter"]))
-        file.write("\tCumulative Krylov iteration: "+str(status["cumIter"]))
-        file.write("\n")
-    file.close()
-
-
-def _plotFile(status,args):
-
-    file = open("data2Plot.out","a")
-    
-    it = status["outerIter"]
-    i = status["innerIter"]
-    nCum = status["cumIter"]
-    target = status.get("target",status["sigma"])
-    runTime = status["runTime"]
-    evalue = util.au2unit(args[0],status["convertUnit"])
-    ref = util.au2unit(args[1],status["convertUnit"])
-    abs_diff = np.abs(evalue - ref)
-    rel_ev = abs_diff/np.abs(evalue)
-    exEnergy = evalue - status["eShift"]
-    file.write(f'{it}\t{i}\t{nCum}\t{target}\t')
-    if "actualEvalues" in status.keys():
-        ev = status["actualEvalues"]
-        reference = find_nearest(ev,target)[1]
-        file.write(f'{reference}\t')
-    file.write(f'{exEnergy}\t{abs_diff}\t{rel_ev}\t{runTime}\n')
-    file.close()
-
-def writeFile(filestring,status,*args):
-    """ A single print function for overlap, Hamitonian matrix, iteration details 
-    and final eigenvalue"""
-    
-    if filestring == "out":
-        _outputFile(status,args)
-    elif filestring == "plot":
-        _plotFile(status,args)
+            res = args[1]
+            sumfile.write(f'{it}\t{quad}\t')
+            sumfile.write(f'{excitation}\t{res}\t')
+            sumfile.write(f'{runTime}\n')
+        outfile.flush()
+        sumfile.flush()
+        return
+# **************************************************************************************

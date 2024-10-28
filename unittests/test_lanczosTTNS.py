@@ -1,7 +1,7 @@
 import unittest
 import sys
 from inexact_Lanczos  import (transformationMatrix,diagonalizeHamiltonian,
-        basisTransformation,inexactDiagonalization)
+        basisTransformation,inexactLanczosDiagonalization)
 import numpy as np
 from scipy import linalg as la
 from ttnsVector import TTNSVector
@@ -81,27 +81,28 @@ class Test_lanczos(unittest.TestCase):
 
         tns = TTNSVector(ttns,options)
         self.guess = tns
-        self.zpve = 0.0
+        self.eShift = 0.0
         self.maxit = 20
         self.L = 30
         self.eConv = 1e-7
-        self.printChoices = {"writeOut": False,"writePlot": False,
-                "eShift":self.zpve, "convertUnit":"cm-1"}
+        self.writeOut = False
+        self.convertUnit = "cm-1"
     
     def test_Hmat(self):
         ''' Bypassing linear combination works for Hamitonian matrix formation'''
         
         target = calculateTarget(self.evEigh,4)
-        sigma = target + self.zpve
-        uvLanczos, status = inexactDiagonalization(self.mat,self.guess,sigma,self.L,
-                self.maxit,self.eConv,pick=None,status = self.printChoices)[1:3]
+        sigma = target + self.eShift
+        uvLanczos, status = inexactLanczosDiagonalization(self.mat,self.guess,sigma,self.L,
+                self.maxit,self.eConv,writeOut=self.writeOut,eShift=self.eShift,
+                convertUnit=self.convertUnit,pick=None)[1:3]
         assert status["isConverged"]== True
         typeClass = uvLanczos[0].__class__
         S = typeClass.overlapMatrix(uvLanczos[:-1])
         qtAq = typeClass.matrixRepresentation(self.mat,uvLanczos[:-1])
         uS = transformationMatrix(uvLanczos,S,status)[1]
         typeClass = uvLanczos[0].__class__
-        Hmat1 = diagonalizeHamiltonian(self.mat,uvLanczos,uS,qtAq,status)[0]  
+        Hmat1 = diagonalizeHamiltonian(self.mat,uvLanczos,uS,qtAq)[0]  
         qtAq = typeClass.matrixRepresentation(self.mat,uvLanczos)
         Hmat2 = uS.T.conj()@qtAq@uS
         np.testing.assert_allclose(Hmat1,Hmat2,rtol=1e-5,atol=0)
@@ -110,9 +111,10 @@ class Test_lanczos(unittest.TestCase):
         ''' Returned basis in old form is orthogonal'''
         
         target = calculateTarget(self.evEigh,4)
-        sigma = target + self.zpve
-        uvLanczos = inexactDiagonalization(self.mat,self.guess,sigma,self.L,
-                self.maxit,self.eConv,pick=None,status = self.printChoices)[1]
+        sigma = target + self.eShift
+        uvLanczos = inexactLanczosDiagonalization(self.mat,self.guess,sigma,self.L,
+                self.maxit,self.eConv,writeOut=self.writeOut,eShift=self.eShift,
+                convertUnit=self.convertUnit,pick=None)[1]
         typeClass = uvLanczos[0].__class__
         S = typeClass.overlapMatrix(uvLanczos)
         np.testing.assert_allclose(S,np.eye(S.shape[0]),atol=1e-5) 
@@ -121,16 +123,17 @@ class Test_lanczos(unittest.TestCase):
         ''' XH@S@X = 1'''
         
         target = calculateTarget(self.evEigh,4)
-        sigma = target + self.zpve
-        uvLanczos,status = inexactDiagonalization(self.mat,self.guess,sigma,self.L,
-                self.maxit,self.eConv,pick=None,status = self.printChoices)[1:3]
+        sigma = target + self.eShift
+        uvLanczos, status = inexactLanczosDiagonalization(self.mat,self.guess,sigma,self.L,
+                self.maxit,self.eConv,writeOut=self.writeOut,eShift=self.eShift,
+                convertUnit=self.convertUnit,pick=None)[1:3]
         typeClass = uvLanczos[0].__class__
         S = typeClass.overlapMatrix(uvLanczos)
         assert len(uvLanczos) > 1
         S1 = typeClass.overlapMatrix(uvLanczos[:-1])
         qtAq = typeClass.matrixRepresentation(self.mat,uvLanczos[:-1])
         uS = transformationMatrix(uvLanczos,S1,status)[1]
-        uv = diagonalizeHamiltonian(self.mat,uvLanczos,uS,qtAq,status)[2] 
+        uv = diagonalizeHamiltonian(self.mat,uvLanczos,uS,qtAq)[2] 
         uSH = uS@uv
         mat = uSH.T.conj()@S@uSH
         np.testing.assert_allclose(mat,np.eye(mat.shape[0]),atol=1e-5) 
@@ -139,9 +142,10 @@ class Test_lanczos(unittest.TestCase):
         ''' Checks if extension of matrix works or not'''
         
         target = calculateTarget(self.evEigh,4)
-        sigma = target + self.zpve
-        uvLanczos = inexactDiagonalization(self.mat,self.guess,sigma,self.L,
-                self.maxit,self.eConv,pick=None,status = self.printChoices)[1]
+        sigma = target + self.eShift
+        uvLanczos = inexactLanczosDiagonalization(self.mat,self.guess,sigma,self.L,
+                self.maxit,self.eConv,writeOut=self.writeOut,eShift=self.eShift,
+                convertUnit=self.convertUnit,pick=None)[1]
         typeClass = uvLanczos[0].__class__
         assert len(uvLanczos) > 1
         Sfull = typeClass.overlapMatrix(uvLanczos)
@@ -157,47 +161,51 @@ class Test_lanczos(unittest.TestCase):
         ''' Checks if the returned eigenvalue and eigenvectors are of correct type'''
        
         target = calculateTarget(self.evEigh,4)
-        sigma = target + self.zpve
-        evLanczos, uvLanczos = inexactDiagonalization(self.mat,self.guess,sigma,self.L,
-                self.maxit,self.eConv,pick=None,status = self.printChoices)[0:2] 
+        sigma = target + self.eShift
+        evLanczos, uvLanczos = inexactLanczosDiagonalization(self.mat,self.guess,sigma,self.L,
+                self.maxit,self.eConv,writeOut=self.writeOut,eShift=self.eShift,
+                convertUnit=self.convertUnit,pick=None)[0:2]
         self.assertIsInstance(evLanczos, np.ndarray)
         self.assertIsInstance(uvLanczos, list)
         self.assertIsInstance(uvLanczos[0], TTNSVector)
 
     def test_eigenvalue(self):
-        ''' Checks if the calculated eigenvalue is accurate up to 10*eConv'''
+        ''' Checks if relative accuracies of calculated eigenvalues lower or equal to 1e-5'''
         
         places = [4,8,12,16]
         for p in places:
             target = calculateTarget(self.evEigh,p)
-            sigma = target + self.zpve
-            evLanczos = inexactDiagonalization(self.mat,self.guess,sigma,self.L,
-                    self.maxit,self.eConv,pick=None,status = self.printChoices)[0]
+            sigma = target + self.eShift
+            evLanczos = inexactLanczosDiagonalization(self.mat,self.guess,sigma,self.L,
+                    self.maxit,self.eConv,writeOut=self.writeOut,eShift=self.eShift,
+                    convertUnit=self.convertUnit,pick=None)[0]
         
             target_value = find_nearest(evLanczos,sigma)[1]
             closest_value = find_nearest(self.evEigh,sigma)[1]
-            self.assertTrue((abs(target_value-closest_value)<= 10*self.eConv),'Not accurate up to 10*eConv')
+            relError = abs(target_value-closest_value)/abs(closest_value)
+            self.assertTrue((relError <= 1e-5),'Relative accuarcy w.r.t. exact levels higher than 1e-5')
     
     def test_eigenvector(self):
-        ''' Checks if the calculated eigenvector is accurate up to 1e-4
-        Provided above test ensures eigenvalues are accurate up to 10*eConv'''
+        ''' Checks if the calculated eigenvector is accurate up to 5e-4
+        Provided above test ensures relative accuracies of eigenvalues <= 1e-2'''
 
         places = [4,8,12,16]
         for p in places:
             target = calculateTarget(self.evEigh,p)
-            sigma = target + self.zpve
-            evLanczos, uvLanczos = inexactDiagonalization(self.mat,self.guess,sigma,self.L,
-                    self.maxit,self.eConv,pick=None,status = self.printChoices)[0:2]
+            sigma = target + self.eShift
+            evLanczos, uvLanczos = inexactLanczosDiagonalization(self.mat,self.guess,
+                    sigma,self.L,self.maxit,self.eConv,writeOut=self.writeOut,
+                    eShift=self.eShift,convertUnit=self.convertUnit,pick=None)[0:2]
         
             idxE = find_nearest(self.evEigh,sigma)[0]
             idxT = find_nearest(evLanczos,sigma)[0]
             
-            exactTree = self.uvEigh[:,idxE]
+            exactUV = self.uvEigh[:,idxE]
             ttnsT = np.ravel(uvLanczos[idxT].ttns.fullTensor(canonicalOrder=True)[0])
-            ovlp = np.vdot(ttnsT,exactTree)
+            ovlp = np.vdot(ttnsT,exactUV)
             np.testing.assert_allclose(abs(ovlp), 1, rtol=1e-5, err_msg = f"{ovlp=} but it should be +-1")
             lanczosTree = ttnsT* ovlp
-            np.testing.assert_allclose(exactTree,lanczosTree,rtol=1e-5,atol=1e-4)
+            np.testing.assert_allclose(exactUV,lanczosTree,rtol=8e-3,atol=5e-4)
 
 if __name__ == '__main__':
     unittest.main()

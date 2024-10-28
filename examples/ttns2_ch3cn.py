@@ -13,16 +13,15 @@ from ttns2.diagonalization import IterativeDiagonalizationOptions
 from ttns2.parseInput import parseTree
 from ttns2.contraction import TruncationEps
 from ttns2.misc import mpsToTTNS, getVerbosePrinter
-from inexact_Lanczos import inexactDiagonalization
+from inexact_Lanczos import inexactLanczosDiagonalization
 from ttnsVector import TTNSVector
 from util_funcs import find_nearest
-from printUtils import *
 from ttns2.diagonalization import IterativeLinearSystemOptions
 
 
 timeStarting = time.time()
 #######################################################
-MAX_D = 10 
+MAX_D = 3 
 # if EPS < 0: EPS = None
 # 5e-9 ok
 EPS = 5e-9
@@ -121,32 +120,15 @@ maxit = 10
 L = 20 
 eConv = 1e-6 
 zpve = 9837.4069  
-nsweepOrtho = 800
-orthoTol = 1e-08
-optShift = 0.0
-
-siteLinearTol = 1e-3
-globalLinearTol = 1e-2
-nsweepLinear = 1000
-
-fittingTol = 1e-9
-nsweepFitting = 1000
 # ---------- USER INPUT -----------------------
 
-optsCheck = IterativeLinearSystemOptions(solver="gcrotmk",tol=siteLinearTol,maxIter=500) 
-optionsOrtho = {"nSweep":nsweepOrtho, "convTol":orthoTol, "optShift":optShift, "bondDimensionAdaptions":bondDimensionAdaptions}
-optionsLinear = {"nSweep":nsweepLinear, "iterativeLinearSystemOptions":optsCheck,"convTol":globalLinearTol,"bondDimensionAdaptions":bondDimensionAdaptions}
-optionsFitting = {"nSweep":nsweepFitting, "convTol":fittingTol,"bondDimensionAdaptions":bondDimensionAdaptions}
+optionsOrtho = {"nSweep":1000, "convTol":1e-2, "bondDimensionAdaptions":bondDimensionAdaptions}
+optsCheck = IterativeLinearSystemOptions(solver="gcrotmk",tol=1e-4,maxIter=500) 
+optionsLinear = {"nSweep":30, "iterativeLinearSystemOptions":optsCheck,"convTol":1e-4,"bondDimensionAdaptions":bondDimensionAdaptions}
+optionsFitting = {"nSweep":1000, "convTol":1e-9,"bondDimensionAdaptions":bondDimensionAdaptions}
 options = {"orthogonalizationArgs":optionsOrtho, "linearSystemArgs":optionsLinear, "stateFittingArgs":optionsFitting}
-status = {"eShift":zpve, "convertUnit":"cm-1"}
 
-fileHeader("out",options,target,L, maxit,eConv,zpve,MAX_D)
-fileHeader("plot",options,target,L,maxit,eConv,zpve,MAX_D,printInfo=False)
 tns = TTNSVector(tns,options)
 sigma = util.unit2au((target+zpve),unit="cm-1")
-eConvAU = util.unit2au(eConv,unit="cm-1")
-ev, tnsList = inexactDiagonalization(Hop,tns,sigma,L,maxit,eConvAU,status)[0:2]
-writeFile(status,"out","results",ev,target)
-fileFooter("out")
-fileFooter("plot",printInfo=False)
+ev, tnsList = inexactLanczosDiagonalization(Hop,tns,sigma,L,maxit,eConv,eShift=zpve,convertUnit="cm-1")[0:2]
 # -----------------   EOF  -----------------------

@@ -67,6 +67,10 @@ class AbstractVector(ABC):
         raise NotImplementedError
 
     @abstractmethod
+    def conjugate(self):
+        raise NotImplementedError
+
+    @abstractmethod
     def vdot(self,other,conjugate=True):
         raise NotImplementedError
      
@@ -108,12 +112,16 @@ class AbstractVector(ABC):
         raise NotImplementedError
     
     @staticmethod
-    def solve(H, b, sigma, x0, opType="her"):
-        ''' Linear equation ((H-sigma*I)x0 =b ) solver
+    def solve(H, b, sigma, x0=None, opType="her",reverseGF=False):
+        ''' Linear equation (sigma*I-H) x =b solver
 
         :param opType: Operator type:
             "gen" for generic operator, "sym" for (complex) symmetric, "her" for hermitian,
             "pos" for positive definite
+
+         param reverseGF
+             False for Green's function (sigma-H)
+             True for reverse Green's function (H-sigma)
         '''
         raise NotImplementedError
 

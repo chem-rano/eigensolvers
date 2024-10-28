@@ -4,6 +4,10 @@ from scipy import linalg as la
 from abstractVector import AbstractVector
 from scipy.sparse.linalg import LinearOperator
 import warnings
+from scipy.sparse.linalg import spsolve
+import math
+from scipy.sparse import csc_matrix
+
 
 ####################################################################
 # Creates a numpyVector class, which has defined elementary operations
@@ -22,14 +26,14 @@ class NumpyVector(AbstractVector):
         self.array = array
         self.size = array.size
         self.shape = array.shape
-        self.optionsDict = dict()
+        self.options = dict()
          
         opt = options.get("linearSystemArgs",dict())
         opt["linearSolver"] = opt.get("linearSolver", "minres")
         opt["linearIter"] = opt.get("linearIter", 1000)
         opt["linear_tol"] = opt.get("linear_tol", 1e-4)
         opt["linear_atol"] = opt.get("linear_atol", 1e-4)
-        self.optionsDict["linearSystemArgs"] = opt
+        self.options["linearSystemArgs"] = opt
     
     @property
     def hasExactAddition(self):
@@ -46,13 +50,13 @@ class NumpyVector(AbstractVector):
         return self.array.dtype
         
     def __mul__(self,other):
-        return NumpyVector(self.array*other,self.optionsDict)
+        return NumpyVector(self.array*other,self.options)
     
     def __rmul__(self,other):
-        return NumpyVector(self.array*other,self.optionsDict)
+        return NumpyVector(self.array*other,self.options)
 
     def __truediv__(self,other):
-        return NumpyVector(self.array/other,self.optionsDict)
+        return NumpyVector(self.array/other,self.options)
     
     def __imul__(self, other):
         raise NotImplementedError
@@ -66,13 +70,16 @@ class NumpyVector(AbstractVector):
     
     def normalize(self):
         out = self.array/la.norm(self.array)
-        return NumpyVector(out, self.optionsDict)
+        return NumpyVector(out, self.options)
 
     def norm(self) -> float:
         return la.norm(self.array)
 
     def real(self):
-        return NumpyVector(np.real(self.array),self.optionsDict)
+        return NumpyVector(np.real(self.array),self.options)
+
+    def conjugate(self):
+        return NumpyVector(self.array.conj(),self.options)
 
     def vdot(self,other,conjugate:bool=True):
         if conjugate:
@@ -81,27 +88,28 @@ class NumpyVector(AbstractVector):
             return np.dot(self.array.ravel(),other.array.ravel())
     
     def copy(self):
-        return NumpyVector(self.array.copy(), self.optionsDict)
+        return NumpyVector(self.array.copy(), self.options)
 
     def applyOp(self,other):
         ''' Apply rmatmul as other@self.array '''
-        return NumpyVector(other@self.array,self.optionsDict)
+        return NumpyVector(other@self.array,self.options)
     
 
-    def linearCombination(other,coeff):
+    def linearCombination(vectors,coeffs):
         '''
         Returns the linear combination of n vectors [v1, v2, ..., vn]
         combArray = c1*v1 + c2*v2 + cn*vn 
         Useful for addition, subtraction: c1 = 1.0/-1.0, respectively
 
-        In:: other == list of vectors
-             coeff == list of coefficients, [c1,c2,...,cn]
+        In:: vectors == list of vectors
+             coeffs == list of coefficients, [c1,c2,...,cn]
         '''
-        dtype = other[0].dtype
-        combArray = np.zeros(len(other[0]),dtype=dtype)
-        for n in range(len(other)):
-            combArray += coeff[n]*other[n].array
-        return NumpyVector(combArray,other[0].optionsDict)
+        assert len(vectors) == len(coeffs)
+        dtype = vectors[0].dtype
+        combArray = np.zeros(len(vectors[0]),dtype=dtype)
+        for n in range(len(vectors)):
+            combArray += coeffs[n]*vectors[n].array
+        return NumpyVector(combArray,vectors[0].options)
 
     
 
@@ -130,15 +138,17 @@ class NumpyVector(AbstractVector):
         else:
             x = None
         return x
-        
-    def solve(H, b, sigma = None, x0=None):
-        ''' Linear equation ((H-sigma*I)x0 =b ) solver'''
-            
+
+    @staticmethod
+    def solve(H, b, sigma, x0=None, opType="her", reverseGF=False):
         n = H.shape[0]
         dtype = np.result_type(sigma, H.dtype, b.dtype)
-        linOp = LinearOperator((n,n),matvec = lambda x, sigma=sigma, H=H:(sigma*x-H@x),dtype=dtype)
+        if not reverseGF:
+            linOp = LinearOperator((n,n),matvec = lambda x, sigma=sigma, H=H:(sigma*x-H@x),dtype=dtype)
+        elif reverseGF:
+            linOp = LinearOperator((n,n),matvec = lambda x, sigma=sigma, H=H:(H@x-sigma*x),dtype=dtype)
         
-        options = b.optionsDict["linearSystemArgs"]
+        options = b.options["linearSystemArgs"]
         tol = options["linear_tol"]
         atol = options["linear_atol"]
         maxiter = options["linearIter"]
@@ -146,13 +156,21 @@ class NumpyVector(AbstractVector):
             wk,conv = scipy.sparse.linalg.gcrotmk(linOp,b.array,x0, tol=tol,atol=atol,maxiter=maxiter)
         elif options["linearSolver"] == "minres":
             wk,conv = scipy.sparse.linalg.minres(linOp,b.array,x0, tol=tol,maxiter=maxiter)
+        elif options["linearSolver"] == "pardiso": # only for comparing with fortran
+            if not reverseGF:
+                A1 = csc_matrix(sigma*np.eye(n)-H)
+            else:
+                A1 = csc_matrix(H-sigma * np.eye(n))
+            b1 = csc_matrix(np.reshape(b.array,(n,1)))
+            wk = spsolve(A1,b1)
+            conv = 0 # converges, it is exact
         else:
-            raise Exception("Got linear solver other than gcrotmk and minres!")
+            raise Exception("Got linear solver other than gcrotmk, minres and pardiso!")
 
         if conv != 0:
             warnings.simplefilter('error', UserWarning)
             warnings.warn("Warning:: Iterative solver is not converged ")
-        return NumpyVector(wk,b.optionsDict)
+        return NumpyVector(wk,b.options)
 
     def matrixRepresentation(operator,vectors):
         ''' Calculates and returns matrix in the "vectors" space '''

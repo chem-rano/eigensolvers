@@ -109,16 +109,20 @@ def getRes(lest,x,resvecs,eps):
 
 
 # -----------------------------------------------------
-def print_a_range(in_arr, arr_min, arr_max):
+def select_within_range(in_arr, arr_min, arr_max):
     '''
-    Prints elements of an array(in_arr) from the selected interval rr_min and arr_max
+    Returns elements of an array(in_arr) from the selected interval arr_min and arr_max
+    out_arr: array with element within specified range
+    rangeIdx: Indices of the elements in the original array
     '''
     out_arr = []
+    rangeIdx = []
     n = len(in_arr)
     for i in range(n):
         if in_arr[i] >= arr_min and in_arr[i] <= arr_max:
             out_arr.append(in_arr[i])
-    return out_arr
+            rangeIdx.append(i)
+    return np.array(out_arr), rangeIdx
 # -----------------------------------------------------
 def find_nearest(array, value):
     array = np.asarray(array)
@@ -135,27 +139,30 @@ def nearest_degenerate(array, value):
             if(abs(array[i] - array[j]) <= 1e-6):
                 degen += 1
     if degen > 0 :
-        print("Got degenracy")
+        print("Got degeneracy")
     idx = (np.abs(array - value)).argmin()
     return idx, array[idx]
 # -----------------------------------------------------
-def print_krylov(in_arr, E, L):
+def quadraturePointsWeights(nc:int, quad:str, positiveHalf=True):
+    ''' Returns `nc` quadrature points and weights based on quadrature `quad`.
+    Currently supported: legendre, hermite, trapezoidal
+     positiveHalf: True => returns only points on the positive half circle
+            This is fine for Hermitian problems.
+            See  PRB 79, 115112 (2009); eqn. 4, 10
     '''
-    Prints L elements of an array (in_arr) near to E
-    '''
-    idx, value = find_nearest(in_arr,E)
-    lower_idx = idx - int(L/2) 
-    upper_idx = idx + int(L/2) 
-    out_arr = in_arr[lower_idx:upper_idx]
-    return out_arr
-# -----------------------------------------------------
-def quad_func(nc,quad):
+
     if quad == "legendre":
         gk,wk = special.roots_legendre(nc)
     elif quad == "hermite":
         gk,wk = special.roots_hermite(nc)
     elif quad == "trapezoidal":
         gk,wk = trapezoidal(nc)
+
+    if positiveHalf:
+        idx = gk > 0.0
+        gk = gk[idx]
+        wk = wk[idx]
+
     return gk,wk
 
 # -----------------------------------------------------
@@ -198,32 +205,75 @@ def headerBot(method,yesBot=False):
         print("  computation complete      ")
         print("*"*nstars)
 
-# -----------------------------------------------------
+def basisTransformation(bases,coeffs):
+    ''' Basis transformation with eigenvectors
+    and Krylov bases
+
+    In: bases -> List of bases for combination
+        coeffs -> coefficients used for the combination
+
+    Out: combBases -> combination results'''
+
+    typeClass = bases[0].__class__
+    ndim = coeffs.shape
+    combBases = []
+    if len(ndim)==1:
+        if len(coeffs) == 1 and coeffs[0] == 1.0:
+            combBases = bases
+        else:
+            combBases.append(typeClass.linearCombination(bases,coeffs))
+    else:
+        for j in range(ndim[1]):
+            combBases.append(typeClass.linearCombination(bases,coeffs[:,j]))
+    return combBases
+
 def lowdinOrtho(oMat, tol= LINDEP_DEFAULT_VALUE):
     """ Extracts out linearly independent vectors from the overlap matrix `oMat` and 
-    returns orthogonalized vectors (vector*S-1/2).
+    idx : (Boolean array) indices of the returned vectors
+          True if the element is linealy independent
     :returns info (is all linear independent: True or not), vectors
+    returns orthogonalized vectors (vector*S-1/2).
     """
     evq, uvq = la.eigh(oMat)
     idx = evq > tol
     evq = evq[idx]
     uvq = uvq[:,idx]
-    
+   
     info = all(idx)
     uvqTraf = uvq * evq**(-0.5)
-    return info, uvqTraf
+    return idx, info, uvqTraf
 
-def eigenvalueResidual(ev,prev_ev):
+def eigenvalueResidual(ev:np.ndarray,prev_ev:np.ndarray,
+                       emin,emax,insideTarget=True):
+    '''
+    Eigenvalue residual calculation
+    Residual = [sum abs(prev_ev-ev)]/[sum abs(ev)]
+    for eigenvalues of i and i-1 th iterations
 
-    m0 = len(ev)
+    if `insideTarget`: Eigenvalues within the range (emin-emax)
+    are only considered
+    '''
+
     diff = 0.0
     prev_tot = 0.0
-
+    
+    if insideTarget:
+        idx = select_within_range(prev_ev,emin,emax)[1]
+        if len(idx) >= 1:
+            prev_ev = prev_ev[idx]
+            ev = ev[idx]
+            assert len(prev_ev) == len(ev),"Eigenvalues are not equal in number"
+        else:
+            prev_ev = prev_ev
+            ev = ev
+    
+    m0 = len(ev)
     for i in range(m0):
         diff += abs(prev_ev[i]-ev[i])
-        prev_tot += prev_ev[i]
+        prev_tot += abs(ev[i])
     res = diff/prev_tot
     return res
+
 # -----------------------------------------------------
 def calculateTarget(eigenvalues, indx, tol=1e-14):
     ''' Calculates target for the given 
