@@ -245,6 +245,7 @@ def feastDiagonalization(A, Y: list[AbstractVector],
 
         if it != 0:
             if len(ref_ev) > len(ev):
+                # TODO add unit test for this case
                 # Get elements in ref_ev that are closest to ev
                 indices = np.argmin(np.abs(ref_ev[:, None] - ev[None, :]) , axis=0)
                 ref_ev = ref_ev[indices]
