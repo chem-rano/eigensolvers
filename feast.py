@@ -73,15 +73,25 @@ def calculateQuadrature(Amat,guess_b,z,radius,angle,weight,contourEllipseFactor)
 
     b = guess_b # copying of guess to unalter guess
     typeClass = b.__class__
-    
+    if abs(z.imag) < 1e-15:
+        # Some contours are on the real axis only
+        opType = "her"
+        z = z.real
+    else:
+        # Assuming Amat is Hermitian
+        # TODO `sym` seems to have some numerical stability problems in scipy.solve
+        #       TTNS unit tests don't converge.
+        #opType = "sym"
+        opType = "gen"
+
     if b.hasExactAddition:
-        Qe = typeClass.solve(Amat,b,z)  # complex128
+        Qe = typeClass.solve(Amat,b,z, opType=opType)  # complex128
         mult = -0.50*weight*radius*(contourEllipseFactor*math.cos(angle)+math.sin(angle)*1j)
         Qquad_k = typeClass.real(mult*Qe)
     else:
         mult = -0.25*weight*radius
-        part1 = typeClass.solve(Amat,b,z,opType="gen")
-        part2 = typeClass.solve(Amat,b,z.conj(),opType="gen") #NOTE:assuming Amat is hermitian
+        part1 = typeClass.solve(Amat,b,z,opType=opType)
+        part2 = typeClass.solve(Amat,b,z.conj(),opType=opType)
         c1 = mult*(contourEllipseFactor*math.cos(angle)+math.sin(angle)*1j)
         c2 = mult*(contourEllipseFactor*math.cos(angle)-math.sin(angle)*1j)
         #print("Fit: calculateQuadrature")
