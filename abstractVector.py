@@ -113,7 +113,7 @@ class AbstractVector(ABC):
     
     @staticmethod
     def solve(H, b, sigma, x0=None, opType="her",reverseGF=False):
-        ''' Linear equation ((H-sigma*I)x0 =b ) solver
+        ''' Linear equation (sigma*I-H) x =b solver
 
         :param opType: Operator type:
             "gen" for generic operator, "sym" for (complex) symmetric, "her" for hermitian,
