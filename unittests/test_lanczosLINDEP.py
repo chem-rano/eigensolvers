@@ -38,7 +38,7 @@ class Test_lanczos(unittest.TestCase):
         ''' This specific case face lindep in the first Lanczos iteration, 
         check if status["lindep"] is indeed True or not'''
 
-        evLanczos, uvLanczos, status = inexactDiagonalization(self.mat,self.guess,self.sigma,
+        evLanczos, uvLanczos, status = inexactLanczosDiagonalization(self.mat,self.guess,self.sigma,
                 self.L,self.maxit,self.eConv,pick=None,status = self.printChoices)
         # TODO need to be made better
         self.assertTrue(status["lindep"]== True, msg="mail fail on some machines; "
@@ -53,7 +53,7 @@ class Test_lanczos(unittest.TestCase):
         ''' For this specific case, number of futile restarts is larger than 3'''
 
         eConv = 1e-18 # stoping from early convergence
-        status = inexactDiagonalization(self.mat,self.guess,self.sigma,
+        status = inexactLanczosDiagonalization(self.mat,self.guess,self.sigma,
                 self.L,self.maxit,eConv,pick=None,status = self.printChoices)[2]
         nfutileRestarts = status["futileRestart"]
         # one or more futile restarts 

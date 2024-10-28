@@ -38,5 +38,5 @@ L = 5
 maxit = 200  
 eConv = 1e-10
 
-evlanczos,uvlanczos,status = inexactDiagonalization(mat,guess,sigma,L,maxit,
+evlanczos,uvlanczos,status = inexactLanczosDiagonalization(mat,guess,sigma,L,maxit,
         eConv,pick=pick,status=status)

@@ -13,7 +13,7 @@ from ttns2.diagonalization import IterativeDiagonalizationOptions
 from ttns2.parseInput import parseTree
 from ttns2.contraction import TruncationEps
 from ttns2.misc import mpsToTTNS, getVerbosePrinter
-from inexact_Lanczos import inexactDiagonalization
+from inexact_Lanczos import inexactLanczosDiagonalization
 from ttnsVector import TTNSVector
 from util_funcs import find_nearest
 from ttns2.diagonalization import IterativeLinearSystemOptions
@@ -131,5 +131,5 @@ options = {"orthogonalizationArgs":optionsOrtho, "linearSystemArgs":optionsLinea
 tns = TTNSVector(tns,options)
 sigma = util.unit2au((target+zpve),unit="cm-1")
 eConvAU = util.unit2au(eConv,unit="cm-1")
-ev, tnsList = inexactDiagonalization(Hop,tns,sigma,L,maxit,eConvAU,eShift=zpve,convertUnit="cm-1")[0:2]
+ev, tnsList = inexactLanczosDiagonalization(Hop,tns,sigma,L,maxit,eConvAU,eShift=zpve,convertUnit="cm-1")[0:2]
 # -----------------   EOF  -----------------------

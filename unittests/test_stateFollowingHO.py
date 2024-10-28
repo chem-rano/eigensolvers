@@ -43,7 +43,7 @@ class Test_stateFollowing(unittest.TestCase):
         self.ovlpRef = ovlpRef
 
     def test_following(self):
-        evLanczos, uvLanczos,status = inexactDiagonalization(self.mat,self.guess,self.sigma,self.L,
+        evLanczos, uvLanczos,status = inexactLanczosDiagonalization(self.mat,self.guess,self.sigma,self.L,
                 self.maxit,self.eConv,pick=self.pick,writeOut=self.writeOut)
         self.assertTrue(status["isConverged"]== True)
         with self.subTest("eigenvalue"):

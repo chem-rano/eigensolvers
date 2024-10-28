@@ -1,7 +1,7 @@
 import unittest
 import sys
 from inexact_Lanczos  import (transformationMatrix,diagonalizeHamiltonian,
-        basisTransformation,inexactDiagonalization)
+        basisTransformation,inexactLanczosDiagonalization)
 import numpy as np
 from scipy import linalg as la
 from ttnsVector import TTNSVector
@@ -93,7 +93,7 @@ class Test_lanczos(unittest.TestCase):
         
         target = calculateTarget(self.evEigh,4)
         sigma = target + self.eShift
-        uvLanczos, status = inexactDiagonalization(self.mat,self.guess,sigma,self.L,
+        uvLanczos, status = inexactLanczosDiagonalization(self.mat,self.guess,sigma,self.L,
                 self.maxit,self.eConv,writeOut=self.writeOut,eShift=self.eShift,
                 convertUnit=self.convertUnit,pick=None)[1:3]
         assert status["isConverged"]== True
@@ -112,7 +112,7 @@ class Test_lanczos(unittest.TestCase):
         
         target = calculateTarget(self.evEigh,4)
         sigma = target + self.eShift
-        uvLanczos = inexactDiagonalization(self.mat,self.guess,sigma,self.L,
+        uvLanczos = inexactLanczosDiagonalization(self.mat,self.guess,sigma,self.L,
                 self.maxit,self.eConv,writeOut=self.writeOut,eShift=self.eShift,
                 convertUnit=self.convertUnit,pick=None)[1]
         typeClass = uvLanczos[0].__class__
@@ -124,7 +124,7 @@ class Test_lanczos(unittest.TestCase):
         
         target = calculateTarget(self.evEigh,4)
         sigma = target + self.eShift
-        uvLanczos, status = inexactDiagonalization(self.mat,self.guess,sigma,self.L,
+        uvLanczos, status = inexactLanczosDiagonalization(self.mat,self.guess,sigma,self.L,
                 self.maxit,self.eConv,writeOut=self.writeOut,eShift=self.eShift,
                 convertUnit=self.convertUnit,pick=None)[1:3]
         typeClass = uvLanczos[0].__class__
@@ -143,7 +143,7 @@ class Test_lanczos(unittest.TestCase):
         
         target = calculateTarget(self.evEigh,4)
         sigma = target + self.eShift
-        uvLanczos = inexactDiagonalization(self.mat,self.guess,sigma,self.L,
+        uvLanczos = inexactLanczosDiagonalization(self.mat,self.guess,sigma,self.L,
                 self.maxit,self.eConv,writeOut=self.writeOut,eShift=self.eShift,
                 convertUnit=self.convertUnit,pick=None)[1]
         typeClass = uvLanczos[0].__class__
@@ -162,7 +162,7 @@ class Test_lanczos(unittest.TestCase):
        
         target = calculateTarget(self.evEigh,4)
         sigma = target + self.eShift
-        evLanczos, uvLanczos = inexactDiagonalization(self.mat,self.guess,sigma,self.L,
+        evLanczos, uvLanczos = inexactLanczosDiagonalization(self.mat,self.guess,sigma,self.L,
                 self.maxit,self.eConv,writeOut=self.writeOut,eShift=self.eShift,
                 convertUnit=self.convertUnit,pick=None)[0:2]
         self.assertIsInstance(evLanczos, np.ndarray)
@@ -176,7 +176,7 @@ class Test_lanczos(unittest.TestCase):
         for p in places:
             target = calculateTarget(self.evEigh,p)
             sigma = target + self.eShift
-            evLanczos = inexactDiagonalization(self.mat,self.guess,sigma,self.L,
+            evLanczos = inexactLanczosDiagonalization(self.mat,self.guess,sigma,self.L,
                     self.maxit,self.eConv,writeOut=self.writeOut,eShift=self.eShift,
                     convertUnit=self.convertUnit,pick=None)[0]
         
@@ -193,7 +193,7 @@ class Test_lanczos(unittest.TestCase):
         for p in places:
             target = calculateTarget(self.evEigh,p)
             sigma = target + self.eShift
-            evLanczos, uvLanczos = inexactDiagonalization(self.mat,self.guess,
+            evLanczos, uvLanczos = inexactLanczosDiagonalization(self.mat,self.guess,
                     sigma,self.L,self.maxit,self.eConv,writeOut=self.writeOut,
                     eShift=self.eShift,convertUnit=self.convertUnit,pick=None)[0:2]
         

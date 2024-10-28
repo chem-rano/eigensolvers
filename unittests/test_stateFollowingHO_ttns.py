@@ -14,7 +14,7 @@ from ttns2.driver import eigenStateComputations
 from ttns2.diagonalization import IterativeDiagonalizationOptions
 from ttns2.parseInput import parseTree, getMPS
 from ttns2.contraction import TruncationEps
-from inexact_Lanczos import inexactDiagonalization
+from inexact_Lanczos import inexactLanczosDiagonalization
 from ttns2.diagonalization import IterativeLinearSystemOptions
 from ttns2.contraction import TruncationFixed
 import util
@@ -117,7 +117,7 @@ class Test_stateFollowing(unittest.TestCase):
 
     def test_following(self):
         sigma = self.target
-        evLanczos, uvLanczos,status = inexactDiagonalization(self.mat,self.guess,sigma,self.L,
+        evLanczos, uvLanczos,status = inexactLanczosDiagonalization(self.mat,self.guess,sigma,self.L,
                 self.maxit,self.eConv,pick=self.pick,writeOut=self.writeOut)
 
         with self.subTest("eigenvalue"):

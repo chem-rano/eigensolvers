@@ -1,7 +1,7 @@
 import numpy as np
 import scipy as sp
 from util_funcs import find_nearest, lowdinOrtho, basisTransformation
-from printUtils import lanczosPrintUtils
+from printUtils import LanczosPrintUtils
 import warnings
 import time
 import util
@@ -246,8 +246,9 @@ def analyzeStatus(status,maxit,L):
 #    Inexact Lanczos with AbstractClass interface
 #------------------------------------------------------
 
-def inexactDiagonalization(H,v0,sigma,L,maxit,eConv,checkFit=1e-7,
-        writeOut=True,fileRef=None,eShift=0.0,convertUnit="au",pick=None,status=None):
+def inexactLanczosDiagonalization(H, v0, sigma, L, maxit, eConv, checkFit=1e-7,
+                                  writeOut=True, fileRef=None, eShift=0.0, convertUnit="au", pick=None, status=None,
+                                  outFileName=None, summaryFileName=None):
     '''
     This is core function to calculate eigenvalues and eigenvectors
     with inexact Lanczos method
@@ -273,6 +274,8 @@ def inexactDiagonalization(H,v0,sigma,L,maxit,eConv,checkFit=1e-7,
                             Default is get_pick_function_close_to_sigma
              status (optional) => Additional information dictionary
                     (more details see _getStatus doc)
+            outFileName (optional): output file name
+            summaryFileName (optional): summary file name
 
     Output:: ev as inexact Lanczos eigenvalues
              uv as inexact Lanczos eigenvectors
@@ -288,8 +291,8 @@ def inexactDiagonalization(H,v0,sigma,L,maxit,eConv,checkFit=1e-7,
     if pick is None:pick=get_pick_function_close_to_sigma(sigma)
     assert callable(pick)
 
-    printObj = lanczosPrintUtils(Ylist[0],sigma,L,maxit,eConv,checkFit,
-            writeOut,fileRef,eShift,convertUnit,pick,status)
+    printObj = LanczosPrintUtils(Ylist[0],sigma,L,maxit,eConv,checkFit,
+            writeOut,fileRef,eShift,convertUnit,pick,status, outFileName, summaryFileName)
     printObj.fileHeader()
   
     for it in range(maxit):
@@ -303,7 +306,8 @@ def inexactDiagonalization(H,v0,sigma,L,maxit,eConv,checkFit=1e-7,
             Ylist = generateSubspace(H,Ylist,sigma,eConv)
             status, uS, S = transformationMatrix(Ylist,S,status,printObj)
             if status['lindep']:
-                print("Restarting calculation: Got linearly dependent basis!")
+                if printObj.writeFile:
+                    print("Restarting calculation: Got linearly dependent basis!")
                 Ylist = Ylist[:-1] # Excluding the last vector
                 if i == 1:# Corner case for 1st iteration
                     assert len(Ylist) == 1
@@ -370,7 +374,7 @@ if __name__ == "__main__":
     t1 = time.time()
     pick =  get_pick_function_close_to_sigma(sigma)
     #pick =  get_pick_function_maxOvlp(Y0)
-    lf,xf,status =  inexactDiagonalization(A,Y0,sigma,L,maxit,eConv,pick=pick,status=status)
+    lf,xf,status =  inexactLanczosDiagonalization(A, Y0, sigma, L, maxit, eConv, pick=pick, status=status)
     t2 = time.time()
 
     print("{:50} :: {: <4}".format("Eigenvalue nearest to sigma",round(find_nearest(lf,sigma)[1],8)))
