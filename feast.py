@@ -90,6 +90,7 @@ def calculateQuadrature(Amat,guess_b,z,radius,angle,weight,contourEllipseFactor)
         mult = -0.50*weight*radius*(contourEllipseFactor*math.cos(angle)+math.sin(angle)*1j)
         Qquad_k = typeClass.real(mult*Qe)
     else:
+        # Polizzi (12)
         mult = -0.25*weight*radius
         part1 = typeClass.solve(Amat,b,z,opType=opType)
         part2 = typeClass.solve(Amat,b,z.conj(),opType=opType)
@@ -167,10 +168,13 @@ def diagonalizeHamiltonian(Hop,vectors,X,printObj=None):
 # ***************************************************
 # Part 1: main FEAST function for contour integral
 # ------------------------------
-def feastDiagonalization(A,Y: list[AbstractVector],
-                         nc,quad,rmin,rmax,eConv,maxit,contourEllipseFactor=1.0,
-        writeOut=True,eShift=0.0,convertUnit="au"):
-    """ FEAST diagonalization of A 
+def feastDiagonalization(A, Y: list[AbstractVector],
+                         nc, quad, eMin, eMax, eConv, maxit, contourEllipseFactor=1.0,
+                         writeOut=True, eShift=0.0, convertUnit="au"):
+    """ FEAST diagonalization of A
+
+    See Polizzi, PRB, 79, 115112 (2009) 10.1103/PhysRevB.79.115112
+    and Baiardi, Kelemen, Reiher, JCTC, 18, 1415 (2021) 10.1021/acs.jctc.1c00984
 
         In A       ::  matrix or linearoperator or SOP operator
                     Note: Must be Hermitian. Otherwise, `calculateQuadrature` needs to be adapted.
@@ -178,8 +182,8 @@ def feastDiagonalization(A,Y: list[AbstractVector],
         In nc      ::  number of quadrature points
         In quad    ::  quadrature points distribution
                        Avaiable options - "legendre", "hermite", "trapezoidal"
-        In rmin    ::  eigenvalue lower limit
-        In rmax    ::  eigenvalue upper limit
+        In eMin    ::  eigenvalue lower limit
+        In eMax    ::  eigenvalue upper limit
         In eConv   ::  eigenvalue residual convergence tolerance
                 Residual is calculated through Sum |E - Eprev| / sum(abs(E)
                     where E (Eprev) is the eigenvalue vector of the current (previous) iteration
@@ -196,8 +200,8 @@ def feastDiagonalization(A,Y: list[AbstractVector],
 
     typeClass = Y[0].__class__
     N_SUBSPACE = len(Y)
-    assert rmax > rmin
-    r = (rmax-rmin)*0.5
+    assert eMax > eMin
+    eRadius = (eMax - eMin) * 0.5
     
 
     # numerical quadrature points.
@@ -205,8 +209,8 @@ def feastDiagonalization(A,Y: list[AbstractVector],
     pi = np.pi
     
     status = _getStatus(None,Y)
-    printObj = feastPrintUtils(Y[0],nc,quad,rmin,rmax,eConv,maxit,writeOut,eShift,
-            convertUnit,status)
+    printObj = feastPrintUtils(Y[0], nc, quad, eMin, eMax, eConv, maxit, writeOut, eShift,
+                               convertUnit, status)
     printObj.fileHeader()
     
     for it in range(maxit):
@@ -216,12 +220,15 @@ def feastDiagonalization(A,Y: list[AbstractVector],
         Q = [np.nan for it in range(N_SUBSPACE)]
         for k in range(len(gk)):
             status["quadrature"] = k
-            
-            theta = -(pi*0.5)*(gk[k]-1)
-            z = (rmin+rmax) * 0.5 + r*math.cos(theta)+r*contourEllipseFactor*1.0j*math.sin(theta)
+
+            # Polizzi (13,14); Baiardi uses slightly different equation
+            theta = -(pi*0.5)*(gk[k]-1) # Polizzi (13)
+            # z =(eMin + eMax) * 0.5 + eRadius  * exp(2pi i theta)
+            # here changed to allow for ellipse and not circle on imag axis
+            z = (eMin + eMax) * 0.5 + eRadius * (math.cos(theta) + contourEllipseFactor * 1.0j * math.sin(theta) )
             
             for im0 in range(N_SUBSPACE):
-                Qquad_k = calculateQuadrature(A,Y[im0],z,r,theta,wk[k],contourEllipseFactor)
+                Qquad_k = calculateQuadrature(A,Y[im0],z,eRadius,theta,wk[k],contourEllipseFactor)
                 Q = updateQ(Q,im0,Qquad_k,k)
         
         # eigh in Lowdin orthogonal basis
@@ -240,7 +247,7 @@ def feastDiagonalization(A,Y: list[AbstractVector],
                 ref_ev = ref_ev[indices]
             elif len(ref_ev) < len(ev):
                 raise RuntimeError(f"{ref_ev=} but {ev=}. Enlarged space?")
-            residual = eigenvalueResidual(ev,ref_ev,rmin,rmax)
+            residual = eigenvalueResidual(ev, ref_ev, eMin, eMax)
             status["runTime"] = time.time() - status["startTime"]
             status["residual"] = residual
             printObj.writeFile("summary",ev,residual,status)
