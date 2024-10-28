@@ -51,8 +51,10 @@ class LanczosPrintUtils:
             self.sumfile = None
 
     def __del__(self):
-        self.outfile.close()
-        self.sumfile.close()
+        if self.outfile is not None:
+            self.outfile.close()
+        if self.sumfile is not None:
+            self.sumfile.close()
 
     def fileHeader(self,guessChoice="Random"):
         """ Prints header with all input informations 
@@ -294,8 +296,10 @@ class FeastPrintUtils:
             self.sumfile = None
 
     def __del__(self):
-        self.outfile.close()
-        self.sumfile.close()
+        if self.outfile is not None:
+            self.outfile.close()
+        if self.sumfile is not None:
+            self.sumfile.close()
 
     def fileHeader(self,guessChoice="Random"):
         """ Prints header with all input informations 
