@@ -91,7 +91,7 @@ class Test_lanczos(unittest.TestCase):
         self.maxit = 20
         self.L = 10
         self.eConv = 1e-7
-        self.writeOut = True
+        self.writeOut = False
 
     def test_LanczosTTNSBlock(self):
         nBlock = self.nBlock
