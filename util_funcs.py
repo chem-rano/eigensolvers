@@ -139,19 +139,9 @@ def nearest_degenerate(array, value):
             if(abs(array[i] - array[j]) <= 1e-6):
                 degen += 1
     if degen > 0 :
-        print("Got degenracy")
+        print("Got degeneracy")
     idx = (np.abs(array - value)).argmin()
     return idx, array[idx]
-# -----------------------------------------------------
-def print_krylov(in_arr, E, L):
-    '''
-    Prints L elements of an array (in_arr) near to E
-    '''
-    idx, value = find_nearest(in_arr,E)
-    lower_idx = idx - int(L/2) 
-    upper_idx = idx + int(L/2) 
-    out_arr = in_arr[lower_idx:upper_idx]
-    return out_arr
 # -----------------------------------------------------
 def quad_func(nc,quad,positiveHalf=True):
     ''' positiveHalf: True => returns only points on the positive half circle
