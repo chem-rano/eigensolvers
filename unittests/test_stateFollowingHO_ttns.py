@@ -89,7 +89,7 @@ class Test_stateFollowing(unittest.TestCase):
 
         optsCheck = IterativeLinearSystemOptions(solver="gcrotmk",tol=siteLinearTol,maxIter=70000) 
         verbose = False
-        optionsOrtho = None # not used
+        optionsOrtho = {} # not used
         optionsLinear = {"nSweep":nsweepLinear, "iterativeLinearSystemOptions":optsCheck,"convTol":globalLinearTol, "verbose": verbose, "bondDimensionAdaptions": bondDimensionAdaptionsLinear}
         optionsFitting = {"nSweep":nsweepFitting, "convTol":fittingTol,"bondDimensionAdaptions":bondDimensionAdaptionsFitting, "noises":[1e-6]*4}
         #options = {"linearSystemArgs":optionsLinear}

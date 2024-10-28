@@ -194,7 +194,8 @@ def terminateRestart(energy,eConv,status,num=3):
     if status["lindep"]:
         if _convergence(energy,prevEnergy) < max(1e-9,eConv):
             status["futileRestart"] += 1
-    
+            # TODO what is futileRestart? This needs to be documented
+
     if status["futileRestart"] > num:
         print("Lindep and did not have fruitful restarts")
         decision = True
@@ -301,13 +302,13 @@ def inexactLanczosDiagonalization(H,  v0: Union[AbstractVector,List[AbstractVect
     if printObj.writeOut:
         print(f"# Inexact Lanczos with {nBlock} guess vectors") # TODO in printObjs
 
-    for it in range(maxit):
-        status["outerIter"] = it
+    for outerIter in range(maxit):
+        status["outerIter"] = outerIter
         if typeClass is TTNSVector:
             status["KSmaxD"] = [Ylist[0].ttns.maxD()]
             status["fitmaxD"] = None
-        for i in range(1,L): # starts with 1 because Y0 is used as first basis vector
-            status["innerIter"] = i
+        for innerIter in range(1,L): # starts with 1 because Y0 is used as first basis vector
+            status["innerIter"] = innerIter
             status["cumIter"] += 1
             #
             # Generate subspace
@@ -330,15 +331,15 @@ def inexactLanczosDiagonalization(H,  v0: Union[AbstractVector,List[AbstractVect
                 if newOrthVec is None:
                     lindepProblem = True
                     if printObj.writeOut:
-                        warnings.warn(f"Linear dependency problem in iteration {it} "
-                                  f"and microiteration {i} for block state {iBlock},"
+                        warnings.warn(f"Linear dependency problem in iteration {outerIter} "
+                                  f"and microiteration {innerIter} for block state {iBlock},"
                                   f" abort current Lanczos iteration and restart.")
                     # As extension, in principle I can continue with the remaining block iterations.
                     #   But I assume that this here rarely happens
                     break
                 Ylist.append(newOrthVec.compress())
                 if typeClass is TTNSVector:
-                    status["Krylov_maxD"].append(Ylist[-1].ttns.maxD()) # TODO generalize
+                    status["KSmaxD"].append(Ylist[-1].ttns.maxD()) # TODO generalize
                 # Extend matrices
                 Smat = typeClass.extendOverlapMatrix(Ylist, Smat)
                 Hmat = typeClass.extendMatrixRepresentation(H, Ylist, Hmat)
@@ -351,13 +352,15 @@ def inexactLanczosDiagonalization(H,  v0: Union[AbstractVector,List[AbstractVect
                 # TODO vv add
                 #writeFile("out", status, f"overlap condition number {np.linalg.cond(Smat):5.3e}")
             if lindepProblem:
+                ev = np.array([np.nan] * len(Ylist))
+                del uSH, Hmat, Smat # not up to date
                 break
             #
             # Diagonalize
             #
-            # Transform to orthgonal basis to check once again linear dependencies
+            # Transform to orthogonal basis to check once again linear dependencies
             # I could also just solve the generalized eigenvalue problem directly
-            # But this way I could aovid the above GS orthogonalization or modify it
+            # But this way I could avoid the above GS orthogonalization or modify it
             #   to ignore linear dependency problems
             status, uS = lowdinOrthoMatrix(Smat, status, printObj)
             assert not status["lindep"] # should have been taken care of above
@@ -377,7 +380,9 @@ def inexactLanczosDiagonalization(H,  v0: Union[AbstractVector,List[AbstractVect
             
             if not continueIteration:
                 break
-        
+        if lindepProblem:
+            break
+
         if not continueIteration:
             # Finish up and then return
             Ylist = basisTransformation(Ylist,uSH)
