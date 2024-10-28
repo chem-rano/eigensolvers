@@ -43,12 +43,18 @@ class LanczosPrintUtils:
         self.convertUnit = convertUnit
         self.pick = pick
         self.status = status
-        self.outfile = open(outFileName,"w")
-        self.sumfile = open(summaryFileName,"w")
+        if self.writeOut:
+            self.outfile = open(outFileName,"w")
+            self.sumfile = open(summaryFileName,"w")
+        else:
+            self.outfile = None
+            self.sumfile = None
 
     def __del__(self):
-        self.outfile.close()
-        self.sumfile.close()
+        if self.outfile is not None:
+            self.outfile.close()
+        if self.sumfile is not None:
+            self.sumfile.close()
 
     def fileHeader(self,guessChoice="Random"):
         """ Prints header with all input informations 
@@ -119,7 +125,7 @@ class LanczosPrintUtils:
                     "Number of DMRG sweeps: Linear solver")+"\n"
             lines += formatStyle.format("ltol2",globalLinearTol,\
                     "global tolerance:Linear solver")+"\n"
-            lines += formatStyle.format("maxD",adaptLinear[0].maxD,\
+            lines += formatStyle.format("maxD",adaptLinear[0].maxD if adaptLinear is not None else -1,\
                     "Maximum bond dimension:Linear solver")+"\n"
 
             fittingTol = optFitting["convTol"]
@@ -129,7 +135,7 @@ class LanczosPrintUtils:
             lines += formatStyle.format("ftol",fittingTol,"Fitting Tolerance")+"\n"
             lines += formatStyle.format("fsweep",nsweepFitting,\
                     "Number of sweeps:fitting")+"\n"
-            lines += formatStyle.format("maxD",adaptFitting[0].maxD,\
+            lines += formatStyle.format("maxD",adaptFitting[0].maxD if adaptFitting is not None else -1,\
                     "Maximum bond dimension:Fitting")+"\n"
 
         # ..........................  Space for phase calculations ..........
@@ -282,12 +288,18 @@ class FeastPrintUtils:
         self.eShift = eShift
         self.convertUnit = convertUnit
         self.status = status
-        self.outfile = open(outFileName,"w")
-        self.sumfile = open(summaryFileName,"w")
+        if self.writeOut:
+            self.outfile = open(outFileName,"w")
+            self.sumfile = open(summaryFileName,"w")
+        else:
+            self.outfile = None
+            self.sumfile = None
 
     def __del__(self):
-        self.outfile.close()
-        self.sumfile.close()
+        if self.outfile is not None:
+            self.outfile.close()
+        if self.sumfile is not None:
+            self.sumfile.close()
 
     def fileHeader(self,guessChoice="Random"):
         """ Prints header with all input informations 

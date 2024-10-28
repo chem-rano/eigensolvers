@@ -205,21 +205,24 @@ def headerBot(method,yesBot=False):
         print("  computation complete      ")
         print("*"*nstars)
 
-def basisTransformation(bases,coeffs):
+def basisTransformation(bases: "List[AbstractVector]",coeffs: np.ndarray):
     ''' Basis transformation with eigenvectors
     and Krylov bases
 
     In: bases -> List of bases for combination
         coeffs -> coefficients used for the combination
+            Can be a 1D array if only one vector should be transformed.
 
-    Out: combBases -> combination results'''
+    Out: combBases -> combination results.
+        Note that this MAY be a reference of `bases`.
+    '''
 
     typeClass = bases[0].__class__
     ndim = coeffs.shape
     combBases = []
     if len(ndim)==1:
         if len(coeffs) == 1 and coeffs[0] == 1.0:
-            combBases = bases
+            combBases = bases # TODO this will copy. is this ok?
         else:
             combBases.append(typeClass.linearCombination(bases,coeffs))
     else:

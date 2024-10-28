@@ -56,6 +56,7 @@ class AbstractVector(ABC):
     
     @abstractmethod
     def normalize(self):
+        """ Normalizes in-place"""
         raise NotImplementedError
         
     @abstractmethod
@@ -83,6 +84,12 @@ class AbstractVector(ABC):
         ''' Apply rmatmul as other@self.array '''
         raise NotImplementedError
 
+    @abstractmethod
+    def compress(self):
+        """ Compress vector if it is compressible.
+        Note: May be a copy or a ref of `self`."""
+        raise NotImplementedError
+
     @staticmethod
     def linearCombination(other,coeff):
         '''
@@ -98,7 +105,7 @@ class AbstractVector(ABC):
     @staticmethod
     def orthogonalize(xs,lindep = LINDEP_DEFAULT_VALUE):
         raise NotImplementedError
-    
+
     @staticmethod
     def orthogonalize_against_set(x,xs,lindep=LINDEP_DEFAULT_VALUE):
         '''

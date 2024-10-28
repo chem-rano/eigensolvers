@@ -200,8 +200,7 @@ def feastDiagonalization(A, Y: list[AbstractVector],
         Out ev   ::  feast eigenvalues
         Out Y    ::  feast eigenvectors
     """
-
-    typeClass = Y[0].__class__
+    typeClass = type(Y[0])
     N_SUBSPACE = len(Y)
     assert eMax > eMin
     eRadius = (eMax - eMin) * 0.5

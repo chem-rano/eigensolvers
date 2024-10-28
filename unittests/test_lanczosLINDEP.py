@@ -6,7 +6,6 @@ from scipy import linalg as la
 from numpyVector import NumpyVector
     
 class Test_lanczos(unittest.TestCase):
-
     def setUp(self):
         # This is a specific case where linearly dependent vectors
         # generation happens
@@ -35,9 +34,8 @@ class Test_lanczos(unittest.TestCase):
         self.uvEigh = uvEigh
 
     def test_status(self):
-        ''' This specific case face lindep in the first Lanczos iteration, 
-        check if status["lindep"] is indeed True or not'''
-
+        """ This specific case face lindep in the first Lanczos iteration,
+        check if status["lindep"] is indeed True or not"""
         evLanczos, uvLanczos, status = inexactLanczosDiagonalization(self.mat,self.guess,self.sigma,
                 self.L,self.maxit,self.eConv,pick=None,status = self.printChoices)
         # TODO need to be made better
@@ -50,8 +48,7 @@ class Test_lanczos(unittest.TestCase):
         self.assertTrue(nvectors == iKrylov)
 
     def test_futileRestarts(self):
-        ''' For this specific case, number of futile restarts is larger than 3'''
-
+        """ For this specific case, number of futile restarts is larger than 3"""
         eConv = 1e-18 # stoping from early convergence
         status = inexactLanczosDiagonalization(self.mat,self.guess,self.sigma,
                 self.L,self.maxit,eConv,pick=None,status = self.printChoices)[2]

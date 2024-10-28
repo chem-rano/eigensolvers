@@ -1,10 +1,12 @@
 import numpy as np
 import scipy as sp
+from typing import List, Union
 from util_funcs import find_nearest, lowdinOrtho, basisTransformation
 from printUtils import LanczosPrintUtils
 import warnings
 import time
 import util
+from abstractVector import AbstractVector
 from numpyVector import NumpyVector
 from ttnsVector import TTNSVector
 from util_funcs import headerBot
@@ -15,7 +17,7 @@ import copy
 # -----------------------------------------------------
 # Dividing in to functions for better readability 
 # and convenient testing
-def _getStatus(status,guessVector):
+def _getStatus(status, guessVector):
     """ 
     Initialize and update status dictionary
     
@@ -59,43 +61,39 @@ def _getStatus(status,guessVector):
     
     return statusUp
 
-def generateSubspace(Hop,Ylist,sigma,eConv):
-    ''' Builds Krylov space with solving linear system
-    and subsequent normalization after checking norm > 0.001*eConv
+def generateSubspace(Hop, vec:List[AbstractVector],sigma,eConv):
+    """ Builds Krylov space by solving linear system
+    (Hop-sigma) x = vec
+    and subsequent normalization if x is nonzero.
+    Nonzero is defined by norm > 0.001*eConv
 
     In: Hop -> Operator (either as matrix or linearOperator)
-        Ylist -> List of Krylov vectors
+        vec -> List of Krylov vectors
         sigma -> Eigenvalue target
-        eConv -> Eigenvalue convergence
+        eConv -> Eigenvalue convergence tolerance
 
-    Out: Ylist -> Updates list of vectors'''
+    Out: New vector x, nonzero
+    """
 
-    typeClass = Ylist[0].__class__
-    Ysolved = typeClass.solve(Hop,Ylist[-1],sigma)
-    if typeClass.norm(Ysolved) > 0.001*eConv:
-        Ylist.append(typeClass.normalize(Ysolved))
+    typeClass = type(vec)
+    out = typeClass.solve(Hop,vec,sigma)
+    if typeClass.norm(out) > 0.001*eConv:
+        out = typeClass.normalize(out)
+        nonzero = True
     else:
-        Ylist.append(Ysolved)
-        print("Alert: Not normalizing add basis; norm <=0.001*eConv")
-    return Ylist
+        nonzero = False
+    return out, nonzero
 
-def transformationMatrix(Ylist,S,status,printObj=None):
-    ''' Calculates transformation matrix from 
-    overlap matrix in Ylist basis
-    In: Ylist (list of basis)
-        lindep (default value is 1e-14, lowdinOrtho())
-        S: previous overlap matrix (for extension purpose)
-        printObj (opional): print object 
+def lowdinOrthoMatrix(S,status,printObj=None):
+    ''' Calculates transformation matrix from overlap matrix in Ylist basis
+    In: lindep (default value is 1e-14, lowdinOrtho())
+        printObj (opional): print object
 
     Out: status (dict: updated lindep)
          uS: transformation matrix
-         S: exatended overlap matrix
-    Additional: prints overlap matrix in detailed 
+    Additional: prints overlap matrix in detailed
     output file ("iterations_lanczos.out", default)'''
     
-    typeClass = Ylist[0].__class__
-    S = typeClass.extendOverlapMatrix(Ylist,S)
-        
     linIndep, uS = lowdinOrtho(S)[1:3]
     status["lindep"] = not linIndep
     if printObj is not None:
@@ -103,49 +101,39 @@ def transformationMatrix(Ylist,S,status,printObj=None):
         printObj.writeFile("overlap",S)
         printObj.writeFile("KSmaxD",status)
 
-    return status, uS, S
+    return status, uS
     
-def diagonalizeHamiltonian(Hop,bases,X,qtAq,printObj=None):
-    ''' Calculates matrix representation of Hop,
-    forms truncated matrix (Hmat)
-    and finally solves eigenvalue problem for Hmat
+def diagonalizeHamiltonian(X,Hmat,printObj=None):
+    ''' Solves eigenvalue problem for Hmat using transformation `X`
 
-    In: Hop -> Operator (either as matrix or linearOperator)
-        bases -> list of basis
+    In:
         X -> transformation matrix
-        qtAq -> previous matrix representation 
-                (for extension purpose)
-        printObj (opional): print object 
+        Hmat -> previous matrix representation
+        printObj (opional): print object
 
-    Out: Hmat -> Matrix represenation
-                 (mainly for unit tests)
+    Out:
          ev -> eigenvalues
          uv -> eigenvectors
-        qtAq -> present matrix representation 
-                (for extension purpose)
-    Additional: prints matrix representation, 
+    Additional: prints matrix representation,
                 eigenvalues in detailed 
     output file ("iterations_lanczos.out", default)'''
-    # TODO merge with the one in Lanczos
+    # TODO merge with the one in Feast
 
-    typeClass = bases[0].__class__
-    qtAq = typeClass.extendMatrixRepresentation(Hop,bases,qtAq)   
-    Hmat = X.T.conj()@qtAq@X
+    Hmat = X.T.conj()@Hmat@X
     ev, uv = sp.linalg.eigh(Hmat)
         
     if printObj is not None:
         printObj.writeFile("hamiltonian",Hmat)
         printObj.writeFile("eigenvalues",ev)
 
-    return Hmat,ev,uv,qtAq
+    return ev,uv
 
 
-def _convergence(value,ref):
+def _convergence(value, ref):
     ''' Computes convergence quantity (absolute error or 
     relative error, current one is relative error )'''
     
     check_ev = abs(value - ref)/max(abs(value), 1e-14)
-    #if absConvergenc:check_ev = abs(ev_nearest - ref)    
     return check_ev
 
 
@@ -170,7 +158,7 @@ def checkConvergence(ev,eConv,status,printObj=None):
     if len(status["ref"]) > 2:status["ref"].pop(0)
     return status
  
-def properFitting(evNew, ev,checkFit, status):
+def properFitting(evNew, ev, checkFit, status):
     ''' Checks the eigenvalue after fitting
     (at the end of Lanczos iteration)
     In : evNew -> energy after fitting sum of states
@@ -206,7 +194,8 @@ def terminateRestart(energy,eConv,status,num=3):
     if status["lindep"]:
         if _convergence(energy,prevEnergy) < max(1e-9,eConv):
             status["futileRestart"] += 1
-    
+            # TODO what is futileRestart? This needs to be documented
+
     if status["futileRestart"] > num:
         print("Lindep and did not have fruitful restarts")
         decision = True
@@ -246,17 +235,20 @@ def analyzeStatus(status,maxit,L):
 #    Inexact Lanczos with AbstractClass interface
 #------------------------------------------------------
 
-def inexactLanczosDiagonalization(H, v0, sigma, L, maxit, eConv, checkFit=1e-7,
+def inexactLanczosDiagonalization(H,  v0: Union[AbstractVector,List[AbstractVector]],
+                                  sigma, L, maxit, eConv, checkFit=1e-7,
                                   writeOut=True, fileRef=None, eShift=0.0, convertUnit="au", pick=None, status=None,
                                   outFileName=None, summaryFileName=None):
     '''
-    This is core function to calculate eigenvalues and eigenvectors
-    with inexact Lanczos method
+    Calculate eigenvalues and eigenvectors using the inexact Lanczos method
 
 
     ---Doing inexact Lanczos in canonical orthogonal basis.---
     Input::  H => diagonalizable input matrix or linearoperator
              v0 => eigenvector guess
+                    Can be a list of `AbstractVectors`.
+                    Then, block Lanczos is performed (Krylov space on each of the guesses).
+                    Note that the guess vectors should be orthogonal.
              sigma => eigenvalue estimate
              L => Krylov space dimension
              maxit => Maximum Lanczos iterations
@@ -281,77 +273,153 @@ def inexactLanczosDiagonalization(H, v0, sigma, L, maxit, eConv, checkFit=1e-7,
              uv as inexact Lanczos eigenvectors
              status for convergence information
     '''
-    
-    typeClass = v0.__class__
-    Ylist = [typeClass.normalize(v0)]
-    S = typeClass.overlapMatrix(Ylist)
-    qtAq = typeClass.matrixRepresentation(H,Ylist)
+    if issubclass(type(v0), AbstractVector):
+        v0 = [v0]
+    else:
+        assert isinstance(v0, (list, tuple, np.ndarray)), f"{v0=} {type(v0)=}"
+    typeClass = type(v0[0])
+    nBlock = len(v0)
 
-    status = _getStatus(status,Ylist[0])
-    if pick is None:pick=get_pick_function_close_to_sigma(sigma)
+    Ylist = v0.copy() # Krylov subspace lists.
+    Smat = typeClass.overlapMatrix(Ylist)
+    if not np.allclose(Smat, np.eye(nBlock), rtol=1e-3, atol=1e-3):
+        if nBlock > 1:
+            raise RuntimeError(f"Input vectors not orthogonalized: {Smat=}")
+        else:
+            # gracefully do this. I do not want to do it for nBlock as GS orthogonalization modifies the block space
+            Ylist[0].normalize()
+            Smat[0,0] = 1
+    Hmat = typeClass.matrixRepresentation(H,Ylist)
+
+    status = _getStatus(status,Ylist[0]) # TODO adapt to nBlock > 0
+    if pick is None:
+        pick = get_pick_function_close_to_sigma(sigma)
     assert callable(pick)
 
     printObj = LanczosPrintUtils(Ylist[0],sigma,L,maxit,eConv,checkFit,
             writeOut,fileRef,eShift,convertUnit,pick,status, outFileName, summaryFileName)
     printObj.fileHeader()
-  
-    for it in range(maxit):
-        status["outerIter"] = it
-        if typeClass is TTNSVector:status["KSmaxD"] = [Ylist[0].ttns.maxD()]
-        status["fitmaxD"] = None
-        for i in range(1,L): # starts with 1 because Y0 is used as first basis vector
-            status["innerIter"] = i
+    if printObj.writeOut:
+        print(f"# Inexact Lanczos with {nBlock} guess vectors") # TODO in printObjs
+
+    for outerIter in range(maxit):
+        status["outerIter"] = outerIter
+        if typeClass is TTNSVector:
+            status["KSmaxD"] = [Ylist[0].ttns.maxD()]
+            status["fitmaxD"] = None
+        for innerIter in range(1,L): # starts with 1 because Y0 is used as first basis vector
+            status["innerIter"] = innerIter
             status["cumIter"] += 1
-            
-            Ylist = generateSubspace(H,Ylist,sigma,eConv)
-            status, uS, S = transformationMatrix(Ylist,S,status,printObj)
-            if status['lindep']:
-                if printObj.writeFile:
-                    print("Restarting calculation: Got linearly dependent basis!")
-                Ylist = Ylist[:-1] # Excluding the last vector
-                if i == 1:# Corner case for 1st iteration
-                    assert len(Ylist) == 1
-                    uSH = np.ones(1)  # single item in Ylist
-                    continueIteration = False # No need for further iteration
-                    if it == 0:
-                        # Ylist is one vector, so ev is just the matrix element
-                        ev = typeClass.matrixRepresentation(H,Ylist)[0,0]
-                        ev /= Ylist[0].norm()**2 # in case it is not fully normalized
+            #
+            # Generate subspace
+            #
+            newVectors = []
+            for iBlock in range(1,nBlock+1):
+                out, nonzero = generateSubspace(H, Ylist[-iBlock], sigma, eConv)
+                if not nonzero:
+                    # TODO proper return
+                    raise RuntimeError(f"zero vector: ||inv(H-sigma)vec||={typeClass.norm(out):5.3e}")
+                newVectors.append(out)
+            #
+            # Orthogonalize and append
+            # Note that the new vectors are also orthogonalized against each other.
+            # Also extends overlap and Hamiltonian matrices
+            #
+            lindepProblem = False
+            for iBlock in range(nBlock):
+                newOrthVec = typeClass.orthogonalize_against_set(newVectors[iBlock],Ylist)
+                if newOrthVec is None:
+                    lindepProblem = True
+                    if printObj.writeOut:
+                        warnings.warn(f"Linear dependency problem in iteration {outerIter} "
+                                  f"and microiteration {innerIter} for block state {iBlock},"
+                                  f" abort current Lanczos iteration and restart.")
+                    # As extension, in principle I can continue with the remaining block iterations.
+                    #   But I assume that this here rarely happens
+                    break
+                Ylist.append(newOrthVec.compress())
+                if typeClass is TTNSVector:
+                    status["KSmaxD"].append(Ylist[-1].ttns.maxD()) # TODO generalize
+                # Extend matrices
+                Smat = typeClass.extendOverlapMatrix(Ylist, Smat)
+                Hmat = typeClass.extendMatrixRepresentation(H, Ylist, Hmat)
+            # Overlap info
+            if printObj is not None:
+                printObj.writeFile("iteration", status)
+                printObj.writeFile("overlap", Smat)
+                if typeClass is TTNSVector:
+                    printObj.writeFile("KSmaxD", status)
+                # TODO vv add
+                #writeFile("out", status, f"overlap condition number {np.linalg.cond(Smat):5.3e}")
+            if lindepProblem:
+                ev = np.array([np.nan] * len(Ylist))
+                del uSH, Hmat, Smat # not up to date
                 break
-           
-            ev, uv, qtAq = diagonalizeHamiltonian(H,Ylist,uS,qtAq,printObj)[1:4]
+            #
+            # Diagonalize
+            #
+            # Transform to orthogonal basis to check once again linear dependencies
+            # I could also just solve the generalized eigenvalue problem directly
+            # But this way I could avoid the above GS orthogonalization or modify it
+            #   to ignore linear dependency problems
+            status, uS = lowdinOrthoMatrix(Smat, status, printObj)
+            assert not status["lindep"] # should have been taken care of above
+            ev, uv = diagonalizeHamiltonian(uS,Hmat,printObj)
             uSH = uS@uv
+            del uv
+            # Reorder uv and ev indices based on `pick`
             idx = pick(uSH,Ylist,ev)
             assert len(idx) == len(ev), f"{len(ev)=} {len(idx)=}"
             ev = ev[idx]
             uSH = uSH[:,idx]
+            #
+            # Checks
+            #
             status = checkConvergence(ev,eConv,status,printObj)
             continueIteration = analyzeStatus(status,maxit,L)
             
             if not continueIteration:
                 break
-        
+        if lindepProblem:
+            break
+
         if not continueIteration:
+            # Finish up and then return
             Ylist = basisTransformation(Ylist,uSH)
+            # TODO give warning if the basis transformation is not accurate
+            if typeClass is TTNSVector:
+                status["fitmaxD"] = [item.ttns.maxD() for item in Ylist]
+                printObj.writeFile("fitmaxD", status)
             break
         else:
-            y = basisTransformation(Ylist,uSH[:,0])
-            YlistNew = [typeClass.normalize(y[0])]
-            S = typeClass.overlapMatrix(YlistNew)
-            qtAq=typeClass.matrixRepresentation(H,YlistNew)
-            evNew = qtAq[0,0]
-            if not properFitting(evNew,ev[0],checkFit,status):break
-            if terminateRestart(evNew,eConv,status):break
-            Ylist = YlistNew # when Lanczos iteration continues
-
-        if typeClass is TTNSVector:
-            status["fitmaxD"] = [item.ttns.maxD() for item in Ylist]
-        printObj.writeFile("fitmaxD",status)
+            # Simple restart of Lanczos iteration using new eigenvectors
+            # Could be improved using thick restart
+            newGuessList = []
+            for iBlock in range(nBlock):
+                guess = basisTransformation(Ylist,uSH[:,iBlock])
+                guess = typeClass.normalize(guess[0])
+                newGuessList.append(guess)
+            Ylist = newGuessList
+            Smat = typeClass.overlapMatrix(Ylist)
+            Hmat= typeClass.matrixRepresentation(H,Ylist)
+            # Check accuracy of basis transformation
+            evNew = []
+            for iBlock in range(nBlock):
+                evNew.append(Hmat[iBlock,iBlock] / Smat[iBlock,iBlock])
+                if not properFitting(evNew[iBlock],ev[iBlock],checkFit,status):
+                    # TODO add information about block.
+                    break
+            ##################################################
+            if terminateRestart(evNew,eConv,status):
+                break
+            if typeClass is TTNSVector:
+                status["fitmaxD"] = [item.ttns.maxD() for item in Ylist]
+                printObj.writeFile("fitmaxD",status)
     
     printObj.writeFile("results",ev)
     printObj.fileFooter()
     
-    return ev,Ylist,status
+    return ev, Ylist, status
 # -----------------------------------------------------
 if __name__ == "__main__":
     n = 100

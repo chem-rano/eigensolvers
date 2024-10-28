@@ -1,7 +1,7 @@
 import numpy as np
 import scipy
 from scipy import linalg as la
-from abstractVector import AbstractVector
+from abstractVector import AbstractVector, LINDEP_DEFAULT_VALUE
 from scipy.sparse.linalg import LinearOperator
 import warnings
 from scipy.sparse.linalg import spsolve
@@ -69,8 +69,8 @@ class NumpyVector(AbstractVector):
         return len(self.array)
     
     def normalize(self):
-        out = self.array/la.norm(self.array)
-        return NumpyVector(out, self.options)
+        self.array /= la.norm(self.array)
+        return self
 
     def norm(self) -> float:
         return la.norm(self.array)
@@ -93,7 +93,9 @@ class NumpyVector(AbstractVector):
     def applyOp(self,other):
         ''' Apply rmatmul as other@self.array '''
         return NumpyVector(other@self.array,self.options)
-    
+
+    def compress(self):
+        return self
 
     def linearCombination(vectors,coeffs):
         '''
@@ -111,9 +113,7 @@ class NumpyVector(AbstractVector):
             combArray += coeffs[n]*vectors[n].array
         return NumpyVector(combArray,vectors[0].options)
 
-    
-
-    def orthogonalize_against_set(x,qs,lindep):
+    def orthogonalize_against_set(x, qs, lindep=LINDEP_DEFAULT_VALUE):
         '''
         Orthogonalizes a vector against the previously obtained set of 
         orthogonalized vectors
@@ -189,13 +189,13 @@ class NumpyVector(AbstractVector):
 
         m = len(vectors)
         dtype = vectors[0].dtype
-        qtq = np.zeros((m,m),dtype=dtype)
+        Smat = np.zeros((m,m),dtype=dtype)
         
         for i in range(m):
             for j in range(i,m):
-                qtq[i,j] = vectors[i].vdot(vectors[j],True)
-                qtq[j,i] = qtq[i,j].conj()
-        return qtq
+                Smat[i,j] = vectors[i].vdot(vectors[j],True)
+                Smat[j,i] = Smat[i,j].conj()
+        return Smat
     
     def extendMatrixRepresentation(operator,vectors,opMat):
         ''' Extends the existing operator matrix representation (opMat) 

@@ -29,13 +29,17 @@ class TTNSVector(AbstractVector):
         self.options = options
         # default options
         self.options["sweepAlgorithmArgs"] = options.get("sweepAlgorithmArgs", {"nSweep":1000, "convTol":1e-8})
+        assert self.options["sweepAlgorithmArgs"] is not None
         op = self.options["sweepAlgorithmArgs"]
         # some changed default options
         op["indent"] = op.get("indent","\t")
         self.options["stateFittingArgs"] = options.get("stateFittingArgs", self.options["sweepAlgorithmArgs"])
         self.options["orthogonalizationArgs"] = options.get("orthogonalizationArgs", self.options["sweepAlgorithmArgs"])
         self.options["linearSystemArgs"] = options.get("linearSystemArgs", self.options["sweepAlgorithmArgs"])
-    
+        assert self.options["stateFittingArgs"] is not None
+        assert self.options["orthogonalizationArgs"] is not None
+        assert self.options["linearSystemArgs"] is not None
+
     @property
     def hasExactAddition(self):
         """
@@ -106,6 +110,20 @@ class TTNSVector(AbstractVector):
         # Need to add operators to `StateFitting`
         raise NotImplementedError
 
+    def compress(self):
+        """ Compresses bond dimension of the vector
+        Currently, from fitting bond dimension to
+        linear solver max bond dimension"""
+        # TODO vv own option class
+        args = copy.deepcopy(self.options["stateFittingArgs"])
+        args["bondDimensionAdaptions"] = self.options["linearSystemArgs"]["bondDimensionAdaptions"]
+        out = self.copy()
+        solver = StateFitting(self.ttns, out.ttns, [1.0], **args)
+        converged, optVal = solver.run()
+        if not converged:
+            warnings.warn("compress: TTNS sweeps not converged!")
+        return out
+
     @staticmethod
     def linearCombination(vectors: List[TTNSVector], coeffs:Optional[List[Number]]=None) -> TTNSVector:
         # Initial guess: The one with largest coefficient.
@@ -130,14 +148,15 @@ class TTNSVector(AbstractVector):
     def orthogonalize_against_set(x:TTNSVector, vectors:List[TTNSVector],
                                   lindep = LINDEP_DEFAULT_VALUE) -> TTNSVector|None:
         listVectors = [vector.ttns for vector in vectors]
-        solver = orthogonalizeAgainstSet(listVectors, x.ttns, **x.options["orthogonalizationArgs"])
-        
-        converged, optVal = solver.run()
-        if not converged:
-            warnings.warn("orthogonalize_against_set: TTNS sweeps not converged!")
+        options = x.options.get("orthogonalizationArgs",{})
+        x.ttns = orthogonalizeAgainstSet(x.ttns, listVectors,
+                                         normalize=False,
+                                         **options)
         if x.norm()**2 < lindep:
+            # TODO would be better to just return what I have
             return None
         else:
+            x.normalize()
             return x
 
     @staticmethod
