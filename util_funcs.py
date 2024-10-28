@@ -143,8 +143,10 @@ def nearest_degenerate(array, value):
     idx = (np.abs(array - value)).argmin()
     return idx, array[idx]
 # -----------------------------------------------------
-def quad_func(nc,quad,positiveHalf=True):
-    ''' positiveHalf: True => returns only points on the positive half circle
+def quadraturePointsWeights(nc:int, quad:str, positiveHalf=True):
+    ''' Returns `nc` quadrature points and weights based on quadrature `quad`.
+    Currently supported: legendre, hermite, trapezoidal
+     positiveHalf: True => returns only points on the positive half circle
             This is fine for Hermitian problems.
             See  PRB 79, 115112 (2009); eqn. 4, 10
     '''

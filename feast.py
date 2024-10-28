@@ -3,7 +3,7 @@ import scipy as sp
 from scipy.sparse.linalg import LinearOperator
 from scipy import special
 from scipy import linalg as la
-from util_funcs import select_within_range, quad_func, eigenvalueResidual
+from util_funcs import select_within_range, quadraturePointsWeights, eigenvalueResidual
 from util_funcs import lowdinOrtho, basisTransformation
 from numpyVector import NumpyVector
 from abstractVector import AbstractVector
@@ -198,7 +198,7 @@ def feastDiagonalization(A,Y: list[AbstractVector],
     
 
     # numerical quadrature points.
-    gk,wk = quad_func(nc,quad, positiveHalf=True)
+    gk,wk = quadraturePointsWeights(nc, quad, positiveHalf=True)
     pi = np.pi
     
     status = _getStatus(None,Y)
