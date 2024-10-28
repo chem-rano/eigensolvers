@@ -87,6 +87,7 @@ class Test_lanczos(unittest.TestCase):
         self.eConv = 1e-7
         self.writeOut = False
         self.convertUnit = "cm-1"
+
     def test_LanczosTTNS(self):
         target = calculateTarget(self.evEigh,4)
         sigma = target + self.eShift

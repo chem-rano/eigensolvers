@@ -43,8 +43,12 @@ class LanczosPrintUtils:
         self.convertUnit = convertUnit
         self.pick = pick
         self.status = status
-        self.outfile = open(outFileName,"w")
-        self.sumfile = open(summaryFileName,"w")
+        if self.writeOut:
+            self.outfile = open(outFileName,"w")
+            self.sumfile = open(summaryFileName,"w")
+        else:
+            self.outfile = None
+            self.sumfile = None
 
     def __del__(self):
         self.outfile.close()
@@ -282,8 +286,12 @@ class FeastPrintUtils:
         self.eShift = eShift
         self.convertUnit = convertUnit
         self.status = status
-        self.outfile = open(outFileName,"w")
-        self.sumfile = open(summaryFileName,"w")
+        if self.writeOut:
+            self.outfile = open(outFileName,"w")
+            self.sumfile = open(summaryFileName,"w")
+        else:
+            self.outfile = None
+            self.sumfile = None
 
     def __del__(self):
         self.outfile.close()
