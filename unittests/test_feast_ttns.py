@@ -108,7 +108,7 @@ class Test_feast_ttns(unittest.TestCase):
         self.guess = guess
 
     
-    def test_feast(self):
+    def test_feast_ttns(self):
         evfeast, uvfeast = feastDiagonalization(self.mat,self.guess,self.nc,self.quad,self.rmin,self.rmax,
                 self.eConv,self.maxit,writeOut=self.writeOut)[0:2]
         typeClass = uvfeast[0].__class__

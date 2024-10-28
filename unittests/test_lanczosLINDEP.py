@@ -6,7 +6,6 @@ from scipy import linalg as la
 from numpyVector import NumpyVector
     
 class Test_lanczos(unittest.TestCase):
-
     def setUp(self):
         # This is a specific case where linearly dependent vectors
         # generation happens
@@ -35,9 +34,8 @@ class Test_lanczos(unittest.TestCase):
         self.uvEigh = uvEigh
 
     def test_status(self):
-        ''' This specific case face lindep in the first Lanczos iteration, 
-        check if status["lindep"] is indeed True or not'''
-
+        """ This specific case face lindep in the first Lanczos iteration,
+        check if status["lindep"] is indeed True or not"""
         evLanczos, uvLanczos, status = inexactLanczosDiagonalization(self.mat,self.guess,self.sigma,
                 self.L,self.maxit,self.eConv,pick=None,status = self.printChoices)
         # TODO need to be made better
@@ -50,16 +48,14 @@ class Test_lanczos(unittest.TestCase):
         self.assertTrue(nvectors == iKrylov)
 
     def test_futileRestarts(self):
-        ''' For this specific case, number of futile restarts is larger than 3'''
-        eConv = 1e-18 # stopping from early convergence
+        """ For this specific case, number of futile restarts is larger than 3"""
+        eConv = 1e-18 # stoping from early convergence
         status = inexactLanczosDiagonalization(self.mat,self.guess,self.sigma,
                 self.L,self.maxit,eConv,pick=None,status = self.printChoices)[2]
         nfutileRestarts = status["futileRestart"]
         # one or more futile restarts 
         if status["outerIter"] < self.maxit-1:
-            # TODO make better. also if the if is not true, there is no testing at all!
-            self.assertTrue(nfutileRestarts >= 1, msg=f"{nfutileRestarts=} "
-                                                      f"may fail with updated code")
+            self.assertTrue(nfutileRestarts >= 1)
 
 if __name__ == "__main__":
     unittest.main()
