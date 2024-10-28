@@ -6,7 +6,7 @@ import copy
 import sys
 import time
 from mpiWrapper import MPI
-MPI.activateMPI()
+#MPI.activateMPI()
 import operatornD
 from ttns2.driver import eigenStateComputations
 from ttns2.diagonalization import IterativeDiagonalizationOptions
