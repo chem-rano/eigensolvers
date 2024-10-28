@@ -6,7 +6,7 @@ import warnings
 import time
 import util
 from numpyVector import NumpyVector
-from inexact_Lanczos import inexactDiagonalization
+from inexact_Lanczos import inexactLanczosDiagonalization
 from printUtils import *
 
 
@@ -41,11 +41,6 @@ status = {"writeOut": False,"writePlot": False, "actualEvalues":ev, "stateFollow
 Y0 = NumpyVector(np.random.random((n)),optionDict)
 sigma = target
 
-if status["writeOut"]:fileHeader("out",options,target,L, maxit,eConv,printInfo=False)
-if status["writePlot"]:fileHeader("plot",options,target,L,maxit,eConv,printInfo=False)
-lf,xf,status = inexactDiagonalization(A,Y0,sigma,L,maxit,eConv,status)
+lf,xf,status = inexactLanczosDiagonalization(A,Y0,sigma,L,maxit,eConv,pick=None,status=status)
 del status["actualEvalues"]
 print(status)
-
-if status["writeOut"]:fileFooter("out",printInfo=False)
-if status["writePlot"]:fileFooter("plot",printInfo=False)

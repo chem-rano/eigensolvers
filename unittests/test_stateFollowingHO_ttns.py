@@ -14,7 +14,7 @@ from ttns2.driver import eigenStateComputations
 from ttns2.diagonalization import IterativeDiagonalizationOptions
 from ttns2.parseInput import parseTree, getMPS
 from ttns2.contraction import TruncationEps
-from inexact_Lanczos import inexactDiagonalization
+from inexact_Lanczos import inexactLanczosDiagonalization
 from ttns2.diagonalization import IterativeLinearSystemOptions
 from ttns2.contraction import TruncationFixed
 import util
@@ -95,8 +95,7 @@ class Test_stateFollowing(unittest.TestCase):
         #options = {"linearSystemArgs":optionsLinear}
         options = {"orthogonalizationArgs":optionsOrtho, "linearSystemArgs":optionsLinear, "stateFittingArgs":optionsFitting}
 
-        status = {"eShift":0, "convertUnit":"au",
-                "writeOut": True,"writePlot": True}
+        self.writeOut = False
         ovlpRef = TTNSVector(tnsList[idx+1],options)
         self.energyRef = energies[idx+1]
         self.pick = get_pick_function_maxOvlp(ovlpRef)
@@ -115,12 +114,11 @@ class Test_stateFollowing(unittest.TestCase):
         self.eConv = eConv
         self.maxit = maxit
         self.ovlpRef = ovlpRef
-        self.status = status
 
     def test_following(self):
         sigma = self.target
-        evLanczos, uvLanczos,status = inexactDiagonalization(self.mat,self.guess,sigma,self.L,
-                self.maxit,self.eConv,self.pick,self.status)
+        evLanczos, uvLanczos,status = inexactLanczosDiagonalization(self.mat,self.guess,sigma,self.L,
+                self.maxit,self.eConv,pick=self.pick,writeOut=self.writeOut)
 
         with self.subTest("eigenvalue"):
             evCalc = evLanczos[0]

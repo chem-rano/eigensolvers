@@ -12,7 +12,7 @@ from ttns2.renormalization import AbstractRenormalization, SumOfOperators
 from ttns2.sweepAlgorithms import LinearSystem, StateFitting
 from ttns2.driver import bracket, getRenormalizedOp
 from ttns2.driver import overlapMatrix as _overlapMatrix
-from ttns2.driver import orthogonalize,orthogonalizeAgainstSet
+from ttns2.driver import orthogonalizeAgainstSet
 
 class TTNSVector(AbstractVector):
     def __init__(self, ttns: TTNS, options:Dict[str, Dict]):
@@ -106,6 +106,20 @@ class TTNSVector(AbstractVector):
         # Need to add operators to `StateFitting`
         raise NotImplementedError
 
+    def compress(self):
+        ''' Compresses bond dimension of the vector
+        Currently, from fitting bond dimension to
+        linear solver max bond dimension'''
+        # TODO vv own option class
+        args = copy.deepcopy(self.options["stateFittingArgs"])
+        args["bondDimensionAdaptions"] = self.options["linearSystemArgs"]["bondDimensionAdaptions"]
+        out = self.copy()
+        solver = StateFitting(self, out.ttns, [1.0], **args)
+        converged, optVal = solver.run()
+        if not converged:
+            warnings.warn("compress: TTNS sweeps not converged!")
+        return out
+
     @staticmethod
     def linearCombination(vectors: List[TTNSVector], coeffs:Optional[List[Number]]=None) -> TTNSVector:
         # Initial guess: The one with largest coefficient.
@@ -129,10 +143,12 @@ class TTNSVector(AbstractVector):
     @staticmethod
     def orthogonalize_against_set(x:TTNSVector, vectors:List[TTNSVector],
                                   lindep = LINDEP_DEFAULT_VALUE) -> TTNSVector|None:
-        
         listVectors = [vector.ttns for vector in vectors]
-        optVal = orthogonalizeAgainstSet(x.ttns, listVectors, **x.options["orthogonalizationArgs"])
+        solver = orthogonalizeAgainstSet(listVectors, x.ttns, **x.options["orthogonalizationArgs"])
         
+        converged, optVal = solver.run()
+        if not converged:
+            warnings.warn("orthogonalize_against_set: TTNS sweeps not converged!")
         if x.norm()**2 < lindep:
             return None
         else:
@@ -141,8 +157,7 @@ class TTNSVector(AbstractVector):
     @staticmethod
     def solve(H, b:TTNSVector, sigma:Number,
               x0: Optional[TTNSVector]=None,
-              opType = "her") -> TTNSVector:
-        ''' solves (H-sigma)x0 =b '''
+              opType = "her",reverseGF=False) -> TTNSVector:
         if x0 is None:
             # TODO think about best options.
             #   D=1 TTNS?
@@ -150,8 +165,11 @@ class TTNSVector(AbstractVector):
             # the sign does not matter
             x0 = b.copy()
         op = getRenormalizedOp(x0.ttns, H, x0.ttns)
+
+        coeffs = [-1.0,1.0] if not reverseGF else [1.0,-1.0]
+
         if abs(sigma) > 1e-16:
-            LHS = SumOfOperators([op, getRenormalizedOp(x0.ttns, -sigma, x0.ttns)])
+            LHS = SumOfOperators([op, getRenormalizedOp(x0.ttns, sigma, x0.ttns)], coeffs=coeffs)
         else:
             LHS = op
         assert "lhsOpType" not in x0.options["linearSystemArgs"] # or just delete it in a copy of the dict

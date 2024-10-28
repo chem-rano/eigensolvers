@@ -56,6 +56,7 @@ class AbstractVector(ABC):
     
     @abstractmethod
     def normalize(self):
+        """ Normalizes in-place"""
         raise NotImplementedError
         
     @abstractmethod
@@ -64,6 +65,10 @@ class AbstractVector(ABC):
     
     @abstractmethod
     def real(self):
+        raise NotImplementedError
+
+    @abstractmethod
+    def conjugate(self):
         raise NotImplementedError
 
     @abstractmethod
@@ -77,6 +82,12 @@ class AbstractVector(ABC):
     @abstractmethod
     def applyOp(self,other):
         ''' Apply rmatmul as other@self.array '''
+        raise NotImplementedError
+
+    @abstractmethod
+    def compress(self):
+        """ Compress vector if it is compressible.
+        Note: May be a copy or a ref of `self`."""
         raise NotImplementedError
 
     @staticmethod
@@ -94,7 +105,7 @@ class AbstractVector(ABC):
     @staticmethod
     def orthogonalize(xs,lindep = LINDEP_DEFAULT_VALUE):
         raise NotImplementedError
-    
+
     @staticmethod
     def orthogonalize_against_set(x,xs,lindep=LINDEP_DEFAULT_VALUE):
         '''
@@ -108,12 +119,16 @@ class AbstractVector(ABC):
         raise NotImplementedError
     
     @staticmethod
-    def solve(H, b, sigma, x0, opType="her"):
-        ''' Linear equation ((H-sigma*I)x0 =b ) solver
+    def solve(H, b, sigma, x0=None, opType="her",reverseGF=False):
+        ''' Linear equation (sigma*I-H) x =b solver
 
         :param opType: Operator type:
             "gen" for generic operator, "sym" for (complex) symmetric, "her" for hermitian,
             "pos" for positive definite
+
+         param reverseGF
+             False for Green's function (sigma-H)
+             True for reverse Green's function (H-sigma)
         '''
         raise NotImplementedError
 

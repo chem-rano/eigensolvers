@@ -38,8 +38,5 @@ L = 5
 maxit = 200  
 eConv = 1e-10
 
-if status["writeOut"]:fileHeader("out",options,sigma,L, maxit,eConv,printInfo=False)
-if status["writePlot"]:fileHeader("plot",options,sigma,L,maxit,eConv,printInfo=False)
-evlanczos,uvlanczos,status = inexactDiagonalization(mat,guess,sigma,L,maxit,eConv,pick,status)
-if status["writeOut"]:fileFooter("out",printInfo=False)
-if status["writePlot"]:fileFooter("plot",printInfo=False)
+evlanczos,uvlanczos,status = inexactLanczosDiagonalization(mat,guess,sigma,L,maxit,
+        eConv,pick=pick,status=status)
