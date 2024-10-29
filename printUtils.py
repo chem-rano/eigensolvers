@@ -82,6 +82,9 @@ class LanczosPrintUtils:
                 "*"*70+"\n\n"
 
         # ..........................  general infos ..........................
+        nBlock = self.status["nBlock"]
+        lines += f"# Inexact Lanczos with {nBlock} guess vectors"+"\n\n"
+
         formatStyle = "{:10} {:>14} :: {:20}"
         target = convert(self.sigma,self.eShift,self.convertUnit)
         lines += formatStyle.format("target",target,"Target excitation")+"\n"
@@ -189,8 +192,11 @@ class LanczosPrintUtils:
 
     # ........................ OVERlAP MATRIX ........................
         if label == "overlap":
-            outfile.write("OVERLAP MATRIX\n")
-            outfile.write(f"{args[0]}")
+            Smat = args[0]
+            condSmat = np.linalg.cond(Smat)
+            outfile.write("\n"+f"overlap condition number {condSmat:5.3e}")
+            outfile.write("\nOVERLAP MATRIX\n")
+            outfile.write(f"{Smat}")
             outfile.write("\n\n")
     # ........................ HAMILTONIAN MATRIX ......................
         elif label == "hamiltonian":
