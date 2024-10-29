@@ -222,7 +222,7 @@ def basisTransformation(bases: "List[AbstractVector]",coeffs: np.ndarray):
     combBases = []
     if len(ndim)==1:
         if len(coeffs) == 1 and coeffs[0] == 1.0:
-            combBases = bases # TODO this will copy. is this ok?
+            combBases.append(bases)
         else:
             combBases.append(typeClass.linearCombination(bases,coeffs))
     else:

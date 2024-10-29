@@ -258,7 +258,9 @@ def feastDiagonalization(A, Y: list[AbstractVector],
             if residual < eConv:
                 break
 
-        # TODO report change of N_SUBSPACE
+        if N_SUBSPACE != len(Y): print(f"Alert! Got {N_SUBSPACE-len(Y)} \
+                dependent vectors")
+
         N_SUBSPACE = len(Y)
         ref_ev = ev
 
