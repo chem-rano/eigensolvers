@@ -104,7 +104,7 @@ def lowdinOrthoMatrix(S,status,printObj=None):
     return status, uS
     
 def diagonalizeHamiltonian(X,Hmat,printObj=None):
-    ''' Solves eigenvalue problem for Hmat using transformation `X`
+    """ Solves eigenvalue problem for Hmat using transformation `X`
 
     In:
         X -> transformation matrix
@@ -115,9 +115,9 @@ def diagonalizeHamiltonian(X,Hmat,printObj=None):
          ev -> eigenvalues
          uv -> eigenvectors
     Additional: prints matrix representation,
-                eigenvalues in detailed 
-    output file ("iterations_lanczos.out", default)'''
-    # TODO merge with the one in Feast
+                eigenvalues in detailed
+    output file ("iterations_lanczos.out", default)"""
+    # TODO merge with the one in Feast; put in util_funcs
 
     Hmat = X.T.conj()@Hmat@X
     ev, uv = sp.linalg.eigh(Hmat)
