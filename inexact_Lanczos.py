@@ -34,7 +34,7 @@ def _getStatus(status, guessVector, nBlock):
     (v)     Number of phases
 
     keys: ["ref","nBlock","flagAddition",
-    "outerIter","innerIter","cumIter",
+    "outerIter","innerIter","cumIter","iBlock",
     "isConverged","lindep","futileRestarts",
     "startTime","runTime","phase"]
 
@@ -49,6 +49,7 @@ def _getStatus(status, guessVector, nBlock):
     statusUp = {"ref":[np.inf],"nBlock":nBlock,
             "flagAddition":guessVector.hasExactAddition,
             "outerIter":0, "innerIter":0,"cumIter":0,
+            "iBlock":0,
             "isConverged":False,"lindep":False,
             "futileRestarts":0,
             "startTime":time.time(), "runTime":0.0,
@@ -178,7 +179,9 @@ def properFitting(evNew, ev, checkFit, status):
     else:
         if _convergence(evNew,ev) > checkFit:
            properFit = False
-           print(f"Linearcombination inaccurate: After fit: {evNew}. Before fit: {ev}")
+           iBlock = status["iBlock"]
+           print(f"Linearcombination inaccurate for {iBlock}: After fit:\
+                   {evNew}. Before fit: {ev}")
     return properFit
 
 def terminateRestart(energy,eConv,status,num=3):
@@ -332,6 +335,7 @@ def inexactLanczosDiagonalization(H,  v0: Union[AbstractVector,List[AbstractVect
             #
             lindepProblem = False
             for iBlock in range(nBlock):
+                status["iBlock"] = iBlock
                 newOrthVec = typeClass.orthogonalize_against_set(newVectors[iBlock],Ylist)
                 if newOrthVec is None:
                     lindepProblem = True
@@ -408,13 +412,12 @@ def inexactLanczosDiagonalization(H,  v0: Union[AbstractVector,List[AbstractVect
             for iBlock in range(nBlock):
                 evNew.append(Hmat[iBlock,iBlock] / Smat[iBlock,iBlock])
                 if not properFitting(evNew[iBlock],ev[iBlock],checkFit,status):
-                    # TODO add information about block.
                     break
             ##################################################
             if terminateRestart(evNew,eConv,status):
                 break
-            if typeClass is TTNSVector:
-                status["fitmaxD"] = [item.ttns.maxD() for item in Ylist]
+            status["fitmaxD"] = [item.maxD() for item in Ylist]
+            if printObj is not None:
                 printObj.writeFile("fitmaxD",status)
     
     printObj.writeFile("results",ev)

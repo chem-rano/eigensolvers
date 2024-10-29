@@ -54,6 +54,10 @@ class TTNSVector(AbstractVector):
     def dtype(self):
         return np.result_type(*self.ttns.dtypes())
 
+    @property
+    def maxD(self) -> int:
+        return self.ttns.maxD()
+   
     def __len__(self):
         raise NotImplementedError
 

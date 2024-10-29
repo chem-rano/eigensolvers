@@ -30,6 +30,11 @@ class AbstractVector(ABC):
     def dtype(self):
         raise NotImplementedError
    
+    @property
+    @abstractmethod
+    def maxD(self) -> int:
+        raise NotImplementedError
+   
     @abstractmethod
     def __mul__(self,other):
         raise NotImplementedError
