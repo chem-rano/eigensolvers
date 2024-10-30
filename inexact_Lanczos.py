@@ -355,7 +355,7 @@ def inexactLanczosDiagonalization(H,  v0: Union[AbstractVector,List[AbstractVect
             for imember in range(len(Ylist)):
                 evNew.append(Hmat[imember,imember] / Smat[imember,imember])
                 properFit = checkFitting(evNew[imember],ev[imember],checkFit_tol,status)
-                if not properFit: print("Alert:Final eigenvectors are not properlt fitted.")
+                if not properFit: warnings.warn("Alert:Final eigenvectors are not properly fitted.")
 
             status["fitmaxD"] = [item.maxD for item in Ylist]
             if printObj is not None:
