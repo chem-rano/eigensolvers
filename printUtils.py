@@ -23,7 +23,7 @@ def convert(arr,eShift=0.0,unit='au'):
 # ****************************************************************************
 class LanczosPrintUtils:
     """ Print module for file heder, footer, iteration outputs"""
-    def __init__(self,guessVector,sigma,L,maxit,eConv,checkFit_tol, 
+    def __init__(self,guessVector,sigma,L,maxit,eConv,checkFitTol, 
             writeOut,fileRef,eShift,convertUnit,pick,status,
                  outFileName=None, summaryFileName=None):
         if outFileName is None:
@@ -37,7 +37,7 @@ class LanczosPrintUtils:
         self.L = L
         self.maxit = maxit
         self.eConv = eConv
-        self.checkFit_tol = checkFit_tol
+        self.checkFitTol = checkFitTol
         self.writeOut = writeOut
         self.fileRef = fileRef
         self.eShift = eShift
@@ -94,7 +94,7 @@ class LanczosPrintUtils:
                 "Maximum Lanczos iterations")+"\n"
         lines += formatStyle.format("econv",f"{self.eConv:.03g}",\
                 "Eigenvalue convergence")+"\n"
-        lines += formatStyle.format("checkFit_tol",self.checkFit_tol,"Checkfit tolerance")+"\n"
+        lines += formatStyle.format("checkFitTol",self.checkFitTol,"Checkfit tolerance")+"\n"
         pickname = str(self.pick).split(" ")[1]
         lines += "{:10} {:>20}".format("pick",pickname)+"\n"
         lines += formatStyle.format("Guess",guessChoice,\

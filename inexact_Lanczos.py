@@ -118,7 +118,7 @@ def checkConvergence(ev,eConv,status,printObj=None):
     if len(status["ref"]) > 2:status["ref"].pop(0)
     return status
  
-def checkFitting(evNew, ev, checkFit_tol, status):
+def checkFitting(evNew, ev, checkFitTol, status):
     ''' Checks the eigenvalue after fitting
     (at the end of Lanczos iteration)
     In : evNew -> energy after fitting sum of states
@@ -133,7 +133,7 @@ def checkFitting(evNew, ev, checkFit_tol, status):
     if status["flagAddition"]:
         properFit = True
     else:
-        if _convergence(evNew,ev) > checkFit_tol:
+        if _convergence(evNew,ev) > checkFitTol:
            properFit = False
            iBlock = status["iBlock"]
            print(f"Linearcombination inaccurate for {iBlock}: After fit:\
@@ -202,7 +202,7 @@ def analyzeStatus(status,maxit,L):
 #------------------------------------------------------
 
 def inexactLanczosDiagonalization(H,  v0: Union[AbstractVector,List[AbstractVector]],
-                                  sigma, L, maxit, eConv, checkFit_tol=1e-7,
+                                  sigma, L, maxit, eConv, checkFitTol=1e-7,
                                   writeOut=True, fileRef=None, eShift=0.0, convertUnit="au", pick=None, status=None,
                                   outFileName=None, summaryFileName=None):
     '''
@@ -219,7 +219,7 @@ def inexactLanczosDiagonalization(H,  v0: Union[AbstractVector,List[AbstractVect
              L => Krylov space dimension
              maxit => Maximum Lanczos iterations
              eConv => relative eigenvalue convergence tolerance
-             checkFit_tol (optional) => checking tolerance of fitted vectors 
+             checkFitTol (optional) => checking tolerance of fitted vectors 
              eigenvalues
              writeOut (optional) => writing file instruction
              default : write both iteration_lanczos.out & summary_lanczos.out
@@ -262,7 +262,7 @@ def inexactLanczosDiagonalization(H,  v0: Union[AbstractVector,List[AbstractVect
         pick = get_pick_function_close_to_sigma(sigma)
     assert callable(pick)
 
-    printObj = LanczosPrintUtils(Ylist[0],sigma,L,maxit,eConv,checkFit_tol,
+    printObj = LanczosPrintUtils(Ylist[0],sigma,L,maxit,eConv,checkFitTol,
             writeOut,fileRef,eShift,convertUnit,pick,status, outFileName, summaryFileName)
     printObj.fileHeader()
 
@@ -354,7 +354,7 @@ def inexactLanczosDiagonalization(H,  v0: Union[AbstractVector,List[AbstractVect
             evNew = []
             for imember in range(len(Ylist)):
                 evNew.append(Hmat[imember,imember] / Smat[imember,imember])
-                properFit = checkFitting(evNew[imember],ev[imember],checkFit_tol,status)
+                properFit = checkFitting(evNew[imember],ev[imember],checkFitTol,status)
                 if not properFit: warnings.warn("Alert:Final eigenvectors are not properly fitted.")
 
             status["fitmaxD"] = [item.maxD for item in Ylist]
@@ -377,7 +377,7 @@ def inexactLanczosDiagonalization(H,  v0: Union[AbstractVector,List[AbstractVect
             evNew = []
             for iBlock in range(nBlock):
                 evNew.append(Hmat[iBlock,iBlock] / Smat[iBlock,iBlock])
-                properFit = checkFitting(evNew[iBlock],ev[iBlock],checkFit_tol,status)
+                properFit = checkFitting(evNew[iBlock],ev[iBlock],checkFitTol,status)
                 if not properFit:
                     break
             ##################################################
