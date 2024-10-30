@@ -57,6 +57,7 @@ DVRopts = [
     basis.Hermite.getOptions(N=N, HOx0=0, HOw=1, HOm=1),
     basis.Hermite.getOptions(N=N, HOx0=0, HOw=1, HOm=1),
 ]
+raise NotImplementedError("add optimal tree, also in other examples.")
 treeString = """
 0> 3 3 3
     1> 3 3
