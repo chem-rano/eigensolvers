@@ -171,7 +171,6 @@ def feastDiagonalization(A, Y: list[AbstractVector],
     
     for it in range(maxit):
         status["outerIter"] = it
-        printObj.writeFile("iteration",status)
         # initialize Q
         Q = [np.nan for it in range(N_SUBSPACE)]
         for k in range(len(gk)):
@@ -191,7 +190,11 @@ def feastDiagonalization(A, Y: list[AbstractVector],
         Smat = typeClass.overlapMatrix(Q)
         Hmat = typeClass.matrixRepresentation(A, Q)
         
-        status, uS = lowdinOrthoMatrix(Smat,status,printObj=printObj)
+        if printObj is not None:
+            printObj.writeFile("iteration",status)
+            printObj.writeFile("overlap",Smat)
+        
+        status, uS = lowdinOrthoMatrix(Smat,status)
         ev, uv = diagonalizeHamiltonian(uS,Hmat,printObj)
         
         uSH = uS@uv

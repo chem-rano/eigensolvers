@@ -325,7 +325,7 @@ def inexactLanczosDiagonalization(H,  v0: Union[AbstractVector,List[AbstractVect
             # I could also just solve the generalized eigenvalue problem directly
             # But this way I could avoid the above GS orthogonalization or modify it
             #   to ignore linear dependency problems
-            status, uS = lowdinOrthoMatrix(Smat, status, printObj)
+            status, uS = lowdinOrthoMatrix(Smat, status)
             assert not status["lindep"] # should have been taken care of above
             ev, uv = diagonalizeHamiltonian(uS,Hmat,printObj)
             uSH = uS@uv
