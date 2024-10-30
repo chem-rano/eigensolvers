@@ -49,7 +49,7 @@ def _getStatus(status, guessVector, nBlock):
     statusUp = {"ref":[np.inf],"nBlock":nBlock,
             "flagAddition":guessVector.hasExactAddition,
             "outerIter":0, "innerIter":0,"cumIter":0,
-            "iBlock":0,
+            "iBlock":0,"zeroVector":False,
             "isConverged":False,"lindep":False,
             "futileRestarts":0,
             "startTime":time.time(), "runTime":0.0,
@@ -312,9 +312,8 @@ def inexactLanczosDiagonalization(H,  v0: Union[AbstractVector,List[AbstractVect
 
     for outerIter in range(maxit):
         status["outerIter"] = outerIter
-        if typeClass is TTNSVector:
-            status["KSmaxD"] = [Ylist[0].ttns.maxD()]
-            status["fitmaxD"] = None
+        status["KSmaxD"] = [Ylist[0].maxD]
+        status["fitmaxD"] = None
         for innerIter in range(1,L): # starts with 1 because Y0 is used as first basis vector
             status["innerIter"] = innerIter
             status["cumIter"] += 1
@@ -325,9 +324,12 @@ def inexactLanczosDiagonalization(H,  v0: Union[AbstractVector,List[AbstractVect
             for iBlock in range(1,nBlock+1):
                 out, nonzero = generateSubspace(H, Ylist[-iBlock], sigma, eConv)
                 if not nonzero:
-                    # TODO proper return
-                    raise RuntimeError(f"zero vector: ||inv(H-sigma)vec||={typeClass.norm(out):5.3e}")
+                    status["zeroVector"] = True
+                    print(f"Alert: zero vector: ||inv(H-sigma)vec||={typeClass.norm(out):5.3e}")
+                    break
                 newVectors.append(out)
+            if not nonzero: # break Krylov loop too
+                break
             #
             # Orthogonalize and append
             # Note that the new vectors are also orthogonalized against each other.
@@ -347,7 +349,7 @@ def inexactLanczosDiagonalization(H,  v0: Union[AbstractVector,List[AbstractVect
                     #   But I assume that this here rarely happens
                     break
                 Ylist.append(newOrthVec.compress())
-                status["KSmaxD"].append(Ylist[-1].maxD())
+                status["KSmaxD"].append(Ylist[-1].maxD)
                 # Extend matrices
                 Smat = typeClass.extendOverlapMatrix(Ylist, Smat)
                 Hmat = typeClass.extendMatrixRepresentation(H, Ylist, Hmat)
@@ -399,7 +401,7 @@ def inexactLanczosDiagonalization(H,  v0: Union[AbstractVector,List[AbstractVect
                 properFit = checkFitting(evNew[imember],ev[imember],checkFit_tol,status)
                 if not properFit: print("Alert:Final eigenvectors are not properlt fitted.")
 
-            status["fitmaxD"] = [item.maxD() for item in Ylist]
+            status["fitmaxD"] = [item.maxD for item in Ylist]
             if printObj is not None:
                 printObj.writeFile("fitmaxD", status)
             ev = evNew
@@ -425,7 +427,7 @@ def inexactLanczosDiagonalization(H,  v0: Union[AbstractVector,List[AbstractVect
             ##################################################
             if terminateRestart(evNew,eConv,status):
                 break
-            status["fitmaxD"] = [item.maxD() for item in Ylist]
+            status["fitmaxD"] = [item.maxD for item in Ylist]
             if printObj is not None:
                 printObj.writeFile("fitmaxD",status)
     

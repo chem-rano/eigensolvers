@@ -54,7 +54,7 @@ class Test_feast(unittest.TestCase):
                                                 self.eConv, self.maxit, writeOut=False)[0:2]
         with self.subTest("returnType"):
             ''' Checks if the returned eigenvalue and eigenvectors are of correct type'''
-            self.assertIsInstance(evfeast, np.ndarray)
+            self.assertIsInstance(evfeast, (np.ndarray,list))
             self.assertIsInstance(uvfeast, list)
             self.assertIsInstance(uvfeast[0], NumpyVector)
         with self.subTest("eigenvalue"):

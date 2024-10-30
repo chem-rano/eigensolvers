@@ -11,6 +11,7 @@ def convert(arr,eShift=0.0,unit='au'):
     adjusted eShift and unit conversion'''
 
     arrShifted = None
+    if isinstance(arr,list):arr = np.array(arr)
     if unit == 'au':
         arrShifted = arr - eShift
     else:
