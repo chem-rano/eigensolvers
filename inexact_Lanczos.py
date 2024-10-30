@@ -281,7 +281,7 @@ def inexactLanczosDiagonalization(H,  v0: Union[AbstractVector,List[AbstractVect
                 out, nonzero = generateSubspace(H, Ylist[-iBlock], sigma, eConv)
                 if not nonzero:
                     status["zeroVector"] = True
-                    print(f"Alert: zero vector: ||inv(H-sigma)vec||={typeClass.norm(out):5.3e}")
+                    warnings.warn(f"Alert: zero vector: ||inv(H-sigma)vec||={typeClass.norm(out):5.3e}")
                     break
                 newVectors.append(out)
             if not nonzero: # break Krylov loop too
