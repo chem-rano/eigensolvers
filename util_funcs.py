@@ -1,5 +1,5 @@
 import numpy as np
-from scipy import linalg as la
+import scipy as sp
 import sys
 from scipy import special
 import copy
@@ -237,7 +237,7 @@ def lowdinOrtho(oMat, tol= LINDEP_DEFAULT_VALUE):
     :returns info (is all linear independent: True or not), vectors
     returns orthogonalized vectors (vector*S-1/2).
     """
-    evq, uvq = la.eigh(oMat)
+    evq, uvq = sp.linalg.eigh(oMat)
     idx = evq > tol
     evq = evq[idx]
     uvq = uvq[:,idx]
@@ -331,3 +331,46 @@ def get_pick_function_close_to_sigma(toCompare):
         idx = np.argsort(np.abs(eigenvalues - toCompare))
         return idx
     return pick
+
+def lowdinOrthoMatrix(S,status,printObj=None):
+    ''' Calculates transformation matrix from overlap matrix 
+
+    In: lindep (default value is 1e-14, lowdinOrtho())
+        printObj (opional): print object
+
+    Out: status (dict: updated lindep)
+         uS: transformation matrix
+    Additional: prints overlap matrix in detailed output file'''
+    
+    linIndep, uS = lowdinOrtho(S)[1:3]
+    status["lindep"] = not linIndep
+    if printObj is not None:
+        printObj.writeFile("iteration",status)
+        printObj.writeFile("overlap",S)
+        printObj.writeFile("KSmaxD",status)
+
+    return status, uS
+    
+def diagonalizeHamiltonian(X,Hmat,printObj=None):
+    ''' Solves eigenvalue problem for Hmat using transformation `X`
+
+    In:
+        X -> transformation matrix
+        Hmat -> previous matrix representation
+        printObj (opional): print object
+
+    Out:
+         ev -> eigenvalues
+         uv -> eigenvectors
+    Additional: prints matrix representation,
+                eigenvalues in detailed 
+    output file ("iterations_lanczos.out", default)'''
+
+    Hmat = X.T.conj()@Hmat@X
+    ev, uv = sp.linalg.eigh(Hmat)
+        
+    if printObj is not None:
+        printObj.writeFile("hamiltonian",Hmat)
+        printObj.writeFile("eigenvalues",ev)
+
+    return ev,uv

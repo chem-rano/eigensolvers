@@ -134,7 +134,6 @@ class TTNSVector(AbstractVector):
         if coeffs is not None:
             toOpt = vectors[np.argmax(np.abs(coeffs))].copy()
         else:
-            # TODO provide b
             norms = [o.norm() for o in vectors]
             toOpt = vectors[np.argmax(norms)].copy()
         solver = StateFitting([v.ttns for v in vectors], toOpt.ttns, coeffs,

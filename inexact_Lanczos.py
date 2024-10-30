@@ -1,7 +1,8 @@
 import numpy as np
 import scipy as sp
 from typing import List, Union
-from util_funcs import find_nearest, lowdinOrtho, basisTransformation
+from util_funcs import find_nearest, basisTransformation
+from util_funcs import lowdinOrthoMatrix, diagonalizeHamiltonian 
 from printUtils import LanczosPrintUtils
 import warnings
 import time
@@ -87,51 +88,6 @@ def generateSubspace(Hop, vec:List[AbstractVector],sigma,eConv):
     else:
         nonzero = False
     return out, nonzero
-
-def lowdinOrthoMatrix(S,status,printObj=None):
-    ''' Calculates transformation matrix from overlap matrix in Ylist basis
-    In: lindep (default value is 1e-14, lowdinOrtho())
-        printObj (opional): print object
-
-    Out: status (dict: updated lindep)
-         uS: transformation matrix
-    Additional: prints overlap matrix in detailed
-    output file ("iterations_lanczos.out", default)'''
-    
-    linIndep, uS = lowdinOrtho(S)[1:3]
-    status["lindep"] = not linIndep
-    if printObj is not None:
-        printObj.writeFile("iteration",status)
-        printObj.writeFile("overlap",S)
-        printObj.writeFile("KSmaxD",status)
-
-    return status, uS
-    
-def diagonalizeHamiltonian(X,Hmat,printObj=None):
-    ''' Solves eigenvalue problem for Hmat using transformation `X`
-
-    In:
-        X -> transformation matrix
-        Hmat -> previous matrix representation
-        printObj (opional): print object
-
-    Out:
-         ev -> eigenvalues
-         uv -> eigenvectors
-    Additional: prints matrix representation,
-                eigenvalues in detailed 
-    output file ("iterations_lanczos.out", default)'''
-    # TODO merge with the one in Feast
-
-    Hmat = X.T.conj()@Hmat@X
-    ev, uv = sp.linalg.eigh(Hmat)
-        
-    if printObj is not None:
-        printObj.writeFile("hamiltonian",Hmat)
-        printObj.writeFile("eigenvalues",ev)
-
-    return ev,uv
-
 
 def _convergence(value, ref):
     ''' Computes convergence quantity (absolute error or 

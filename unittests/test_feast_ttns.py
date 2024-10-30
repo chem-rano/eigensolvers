@@ -109,25 +109,20 @@ class Test_feast_ttns(unittest.TestCase):
 
     
     def test_feast_ttns(self):
-        evfeast, uvfeast = feastDiagonalization(self.mat,self.guess,self.nc,self.quad,self.rmin,self.rmax,
-                self.eConv,self.maxit,writeOut=self.writeOut)[0:2]
+        evfeast, uvfeast, status = feastDiagonalization(self.mat,self.guess,
+                self.nc,self.quad,self.rmin,self.rmax,self.eConv,self.maxit,
+                writeOut=self.writeOut)
+
         typeClass = uvfeast[0].__class__
-        
-        with self.subTest("Hmat"):
-            ''' Bypassing linear combination works for Hamitonian matrix formation'''
-            uS = transformationMatrix(uvfeast)[0]
-            Hmat1 = diagonalizeHamiltonian(self.mat,uvfeast,uS)[0]
-            qtAq = typeClass.matrixRepresentation(self.mat,uvfeast)
-            Hmat2 = uS.T.conj()@qtAq@uS
-            np.testing.assert_allclose(Hmat1,Hmat2,rtol=1e-5,atol=0)
         
         with self.subTest("backTransform"):
             ''' Checks linear combination'''
             S = typeClass.overlapMatrix(uvfeast[:-1])
             assert len(uvfeast) > 1
-            qtAq = typeClass.matrixRepresentation(self.mat,uvfeast[:-1])
-            uS = transformationMatrix(uvfeast)[0]
-            uv = diagonalizeHamiltonian(self.mat,uvfeast,uS)[2]
+            SmatFull = typeClass.overlapMatrix(uvfeast)
+            uS = lowdinOrthoMatrix(SmatFull,status)[1]
+            HmatFull = typeClass.matrixRepresentation(self.mat,uvfeast)
+            uv = diagonalizeHamiltonian(uS,HmatFull)[1]
             uSH = uS@uv
             bases = basisTransformation(uvfeast,uSH)
             for m in range(len(uvfeast)):
@@ -148,10 +143,10 @@ class Test_feast_ttns(unittest.TestCase):
             ''' XH@S@X = 1'''
             S = typeClass.overlapMatrix(uvfeast)
             assert len(uvfeast) > 1
-            S1 = typeClass.overlapMatrix(uvfeast[:-1])
-            qtAq = typeClass.matrixRepresentation(self.mat,uvfeast[:-1])
-            uS = transformationMatrix(uvfeast)[0]
-            uv = diagonalizeHamiltonian(self.mat,uvfeast,uS)[2]
+            SmatFull = typeClass.overlapMatrix(uvfeast)
+            uS = lowdinOrthoMatrix(SmatFull,status)[1]
+            HmatFull = typeClass.matrixRepresentation(self.mat,uvfeast)
+            uv = diagonalizeHamiltonian(uS,HmatFull)[1]
             uSH = uS@uv
             mat = uSH.T.conj()@S@uSH
             np.testing.assert_allclose(mat,np.eye(mat.shape[0]),atol=1e-5)
