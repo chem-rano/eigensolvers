@@ -7,6 +7,7 @@ from util_funcs import basisTransformation
 from util_funcs import lowdinOrthoMatrix, diagonalizeHamiltonian 
 from numpyVector import NumpyVector
 from abstractVector import AbstractVector
+import warnings
 import time
 import math
 from magic import ipsh
@@ -218,7 +219,8 @@ def feastDiagonalization(A, Y: list[AbstractVector],
             if residual < eConv:
                 break
 
-        if N_SUBSPACE != len(Y): print(f"Alert! Got {N_SUBSPACE-len(Y)} \
+        if N_SUBSPACE != len(Y): 
+            warnings.warn(f"Alert! Got {N_SUBSPACE-len(Y)} \
                 dependent vectors")
 
         N_SUBSPACE = len(Y)
