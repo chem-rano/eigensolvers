@@ -349,18 +349,16 @@ def inexactLanczosDiagonalization(H,  v0: Union[AbstractVector,List[AbstractVect
         if not continueIteration:
             # Finish up and then return
             Ylist = basisTransformation(Ylist,uSH)
+            # check orthogonality of S
             Smat = typeClass.overlapMatrix(Ylist)
-            Hmat= typeClass.matrixRepresentation(H,Ylist)
-            evNew = []
-            for imember in range(len(Ylist)):
-                evNew.append(Hmat[imember,imember] / Smat[imember,imember])
-                properFit = checkFitting(evNew[imember],ev[imember],checkFitTol,status)
-                if not properFit: warnings.warn("Alert:Final eigenvectors are not properly fitted.")
-
+            if not np.allclose(Smat, np.eye(len(Ylist)), rtol=checkFitTol, atol=checkFitTol):
+                warnings.warn("Alert:Final eigenvectors are not properly fitted.")
+                properFit = False
+            else:
+                properFit = True
             status["fitmaxD"] = [item.maxD for item in Ylist]
             if printObj is not None:
                 printObj.writeFile("fitmaxD", status)
-            ev = np.array(evNew)
             break
         else:
             # Simple restart of Lanczos iteration using new eigenvectors
@@ -372,14 +370,15 @@ def inexactLanczosDiagonalization(H,  v0: Union[AbstractVector,List[AbstractVect
                 newGuessList.append(guess)
             Ylist = newGuessList
             Smat = typeClass.overlapMatrix(Ylist)
-            Hmat= typeClass.matrixRepresentation(H,Ylist)
+            Hmat = typeClass.matrixRepresentation(H,Ylist)
             # Check accuracy of basis transformation
-            evNew = []
-            for iBlock in range(nBlock):
-                evNew.append(Hmat[iBlock,iBlock] / Smat[iBlock,iBlock])
-                properFit = checkFitting(evNew[iBlock],ev[iBlock],checkFitTol,status)
-                if not properFit:
-                    break
+            if not np.allclose(Smat, np.eye(len(Ylist)), rtol=checkFitTol, atol=checkFitTol):
+                warnings.warn("Alert:Final eigenvectors are not properly fitted. S=\n{Smat}")
+                properFit = False
+                break
+            else:
+                properFit = True
+            evNew = sp.linalg.eigvalsh(Hmat, Smat)
             ##################################################
             if terminateRestart(evNew,eConv,status):
                 break
