@@ -49,6 +49,10 @@ class NumpyVector(AbstractVector):
     def dtype(self):
         return self.array.dtype
         
+    def maxD(self) -> int:
+        # zero means no virtual bonds, isolated vector
+        return 0
+
     def __mul__(self,other):
         return NumpyVector(self.array*other,self.options)
     

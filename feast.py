@@ -2,11 +2,12 @@ import numpy as np
 import scipy as sp
 from scipy.sparse.linalg import LinearOperator
 from scipy import special
-from scipy import linalg as la
 from util_funcs import select_within_range, quadraturePointsWeights, eigenvalueResidual
-from util_funcs import lowdinOrtho, basisTransformation
+from util_funcs import basisTransformation
+from util_funcs import lowdinOrthoMatrix, diagonalizeHamiltonian 
 from numpyVector import NumpyVector
 from abstractVector import AbstractVector
+import warnings
 import time
 import math
 from magic import ipsh
@@ -119,52 +120,6 @@ def updateQ(Q,im0,Qquad_k,k):
         Q[im0] = typeClass.linearCombination([Q[im0],Qquad_k],[1.0,1.0])
     return Q
        
-def transformationMatrix(vectors,lindep=1e-14,printObj=None):
-    ''' Calculates transformation matrix from 
-    overlap matrix in Q basis
-    In: vectors (list of basis)
-        lindep (default value is 1e-14, lowdinOrtho())
-        printObj (opional): print object 
-    
-    Out: uS: transformation matrix
-    idx : (Boolean array) indices of the returned vectors
-          True if the element is linealy independent'''
-    # TODO merge with the one in Lanczos
-    
-    typeClass = vectors[0].__class__
-    S = typeClass.overlapMatrix(vectors)
-    if printObj is not None:printObj.writeFile("overlap",S)
-    idx, _, uS = lowdinOrtho(S,lindep)
-    return uS, idx
-
-def diagonalizeHamiltonian(Hop,vectors,X,printObj=None):
-    ''' Calculates matrix representation of Hop,
-    forms truncated matrix (Hmat)
-    and finally solves eigenvalue problem for Hmat
-
-    In: Hop -> Operator (either as matrix or linearOperator)
-        vectors -> list of basis
-        X -> matrix to transform into an orthogonal basis
-             (transforms vectors to an orthogonal basis)
-        printObj (opional): print object 
-
-    Out: Hmat -> Matrix represenation
-                 (mainly for unit tests)
-         ev -> eigenvalues
-         uv -> eigenvectors in the basis defined through `X`'''
-    # TODO merge with the one in Lanczos
-
-    typeClass = vectors[0].__class__
-    HvecRepr = typeClass.matrixRepresentation(Hop,vectors)
-    Hmat = X.T.conj()@HvecRepr@X
-    ev, uv = sp.linalg.eigh(Hmat)
-    
-    if printObj is not None:
-        printObj.writeFile("hamiltonian",Hmat)
-        printObj.writeFile("eigenvalues",ev)
-
-    return Hmat,ev,uv
-
 # ***************************************************
 # Part 1: main FEAST function for contour integral
 # ------------------------------
@@ -217,7 +172,6 @@ def feastDiagonalization(A, Y: list[AbstractVector],
     
     for it in range(maxit):
         status["outerIter"] = it
-        printObj.writeFile("iteration",status)
         # initialize Q
         Q = [np.nan for it in range(N_SUBSPACE)]
         for k in range(len(gk)):
@@ -234,8 +188,15 @@ def feastDiagonalization(A, Y: list[AbstractVector],
                 Q = updateQ(Q,im0,Qquad_k,k)
         
         # eigh in Lowdin orthogonal basis
-        uS, idx = transformationMatrix(Q,printObj=printObj)
-        ev, uv = diagonalizeHamiltonian(A,Q,uS,printObj)[1:3]
+        Smat = typeClass.overlapMatrix(Q)
+        Hmat = typeClass.matrixRepresentation(A, Q)
+        
+        if printObj is not None:
+            printObj.writeFile("iteration",status)
+            printObj.writeFile("overlap",Smat)
+        
+        status, uS = lowdinOrthoMatrix(Smat,status)
+        ev, uv = diagonalizeHamiltonian(uS,Hmat,printObj)
         
         uSH = uS@uv
         del uv
@@ -244,7 +205,7 @@ def feastDiagonalization(A, Y: list[AbstractVector],
 
         if it != 0:
             if len(ref_ev) > len(ev):
-                # TODO add unit test for this case
+                # TODO add unit test for this case # not priority
                 # Get elements in ref_ev that are closest to ev
                 indices = np.argmin(np.abs(ref_ev[:, None] - ev[None, :]) , axis=0)
                 ref_ev = ref_ev[indices]
@@ -258,7 +219,10 @@ def feastDiagonalization(A, Y: list[AbstractVector],
             if residual < eConv:
                 break
 
-        # TODO report change of N_SUBSPACE
+        if N_SUBSPACE != len(Y): 
+            warnings.warn(f"Alert! Got {N_SUBSPACE-len(Y)} \
+                dependent vectors")
+
         N_SUBSPACE = len(Y)
         ref_ev = ev
 
@@ -275,7 +239,7 @@ if __name__ == "__main__":
     n = 100
     ev = np.linspace(1,200,n)
     np.random.seed(10)
-    Q = la.qr(np.random.rand(n,n))[0]
+    Q = sp.linalg.qr(np.random.rand(n,n))[0]
     A = Q.T @ np.diag(ev) @ Q
     linOp = LinearOperator((n,n), matvec = lambda x, A=A: A@x)
 
@@ -293,7 +257,7 @@ if __name__ == "__main__":
     Y0    = np.random.random((n,m0)) # eigenvector initial guess
     for i in range(m0):
          Y0[:,i] = np.ones(n) * (i+1)
-    Y1 = la.qr(Y0,mode="economic")[0]
+    Y1 = sp.linalg.qr(Y0,mode="economic")[0]
 
 
     Y = []

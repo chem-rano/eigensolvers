@@ -52,7 +52,7 @@ class Test_lanczos(unittest.TestCase):
         eConv = 1e-18 # stoping from early convergence
         status = inexactLanczosDiagonalization(self.mat,self.guess,self.sigma,
                 self.L,self.maxit,eConv,pick=None,status = self.printChoices)[2]
-        nfutileRestarts = status["futileRestart"]
+        nfutileRestarts = status["futileRestarts"]
         # one or more futile restarts 
         if status["outerIter"] < self.maxit-1:
             self.assertTrue(nfutileRestarts >= 1)

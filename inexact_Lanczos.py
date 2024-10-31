@@ -1,7 +1,8 @@
 import numpy as np
 import scipy as sp
 from typing import List, Union
-from util_funcs import find_nearest, lowdinOrtho, basisTransformation
+from util_funcs import find_nearest, basisTransformation
+from util_funcs import lowdinOrthoMatrix, diagonalizeHamiltonian 
 from printUtils import LanczosPrintUtils
 import warnings
 import time
@@ -17,22 +18,25 @@ import copy
 # -----------------------------------------------------
 # Dividing in to functions for better readability 
 # and convenient testing
-def _getStatus(status, guessVector):
+def _getStatus(status, guessVector, nBlock):
     """ 
     Initialize and update status dictionary
     
     In: status -> status input dictionary
         guessVector -> guess vector
+        nBlock -> Lanczos blocks
     Out: statusUp  -> initialized and updated
 
     Status contains following information
-    (i)    Stage of iteration
-    (ii)   Convergence info
-    (iii)  Run time
+    (i)     Block info (number of blocks)
+    (ii)    Stage of iteration
+    (iii)   Convergence info
+    (iv)    Run time
+    (v)     Number of phases
 
-    keys: ["ref","flagAddition",
-    "outerIter","innerIter","cumIter",
-    "isConverged","lindep","futileRestart",
+    keys: ["ref","nBlock","flagAddition",
+    "outerIter","innerIter","cumIter","iBlock",
+    "isConverged","lindep","futileRestarts",
     "startTime","runTime","phase"]
 
 
@@ -43,11 +47,12 @@ def _getStatus(status, guessVector):
     the current Lanczos iteration
     """
     
-    statusUp = {"ref":[np.inf],
+    statusUp = {"ref":[np.inf],"nBlock":nBlock,
             "flagAddition":guessVector.hasExactAddition,
             "outerIter":0, "innerIter":0,"cumIter":0,
+            "iBlock":0,"zeroVector":False,
             "isConverged":False,"lindep":False,
-            "futileRestart":0,
+            "futileRestarts":0,
             "startTime":time.time(), "runTime":0.0,
             "KSmaxD":[],"fitmaxD":None,
             "phase":1}
@@ -84,51 +89,6 @@ def generateSubspace(Hop, vec:List[AbstractVector],sigma,eConv):
         nonzero = False
     return out, nonzero
 
-def lowdinOrthoMatrix(S,status,printObj=None):
-    ''' Calculates transformation matrix from overlap matrix in Ylist basis
-    In: lindep (default value is 1e-14, lowdinOrtho())
-        printObj (opional): print object
-
-    Out: status (dict: updated lindep)
-         uS: transformation matrix
-    Additional: prints overlap matrix in detailed
-    output file ("iterations_lanczos.out", default)'''
-    
-    linIndep, uS = lowdinOrtho(S)[1:3]
-    status["lindep"] = not linIndep
-    if printObj is not None:
-        printObj.writeFile("iteration",status)
-        printObj.writeFile("overlap",S)
-        printObj.writeFile("KSmaxD",status)
-
-    return status, uS
-    
-def diagonalizeHamiltonian(X,Hmat,printObj=None):
-    """ Solves eigenvalue problem for Hmat using transformation `X`
-
-    In:
-        X -> transformation matrix
-        Hmat -> previous matrix representation
-        printObj (opional): print object
-
-    Out:
-         ev -> eigenvalues
-         uv -> eigenvectors
-    Additional: prints matrix representation,
-                eigenvalues in detailed
-    output file ("iterations_lanczos.out", default)"""
-    # TODO merge with the one in Feast; put in util_funcs
-
-    Hmat = X.T.conj()@Hmat@X
-    ev, uv = sp.linalg.eigh(Hmat)
-        
-    if printObj is not None:
-        printObj.writeFile("hamiltonian",Hmat)
-        printObj.writeFile("eigenvalues",ev)
-
-    return ev,uv
-
-
 def _convergence(value, ref):
     ''' Computes convergence quantity (absolute error or 
     relative error, current one is relative error )'''
@@ -158,7 +118,7 @@ def checkConvergence(ev,eConv,status,printObj=None):
     if len(status["ref"]) > 2:status["ref"].pop(0)
     return status
  
-def properFitting(evNew, ev, checkFit, status):
+def checkFitting(evNew, ev, checkFitTol, status):
     ''' Checks the eigenvalue after fitting
     (at the end of Lanczos iteration)
     In : evNew -> energy after fitting sum of states
@@ -173,31 +133,37 @@ def properFitting(evNew, ev, checkFit, status):
     if status["flagAddition"]:
         properFit = True
     else:
-        if _convergence(evNew,ev) > checkFit:
+        if _convergence(evNew,ev) > checkFitTol:
            properFit = False
-           print(f"Linearcombination inaccurate: After fit: {evNew}. Before fit: {ev}")
+           iBlock = status["iBlock"]
+           print(f"Linearcombination inaccurate for {iBlock}: After fit:\
+                   {evNew}. Before fit: {ev}")
     return properFit
 
 def terminateRestart(energy,eConv,status,num=3):
-    """ If the eigenvalue change is lower than eConv,
-    counted as an ineffective restart 
+    """ This module looks if Lanczos restarts are fruitful or not
+    
+    futileRestarts -> Number of ineffective or futile restarts
+    If the eigenvalue change is lower than eConv,
+    counted as an ineffective or futile restart and adds
+    1 to futileRestarts
 
     In: energy -> Energy after fitting
         eConv -> eigenvalue convergence
         status -> param dictionary
         num (optional) -> Number of futile restarts
-                          Default is 3"""
+                          Default is 3
+    Out: decision (Boolean) -> decision to terminate restart"""
     
     decision = False
     prevEnergy = status["ref"][0]
 
     if status["lindep"]:
         if _convergence(energy,prevEnergy) < max(1e-9,eConv):
-            status["futileRestart"] += 1
-            # TODO what is futileRestart? This needs to be documented
+            status["futileRestarts"] += 1
 
-    if status["futileRestart"] > num:
-        print("Lindep and did not have fruitful restarts")
+    if status["futileRestarts"] > num:
+        warnings.warn("Lindep and did not have fruitful restarts")
         decision = True
 
     return decision
@@ -236,7 +202,7 @@ def analyzeStatus(status,maxit,L):
 #------------------------------------------------------
 
 def inexactLanczosDiagonalization(H,  v0: Union[AbstractVector,List[AbstractVector]],
-                                  sigma, L, maxit, eConv, checkFit=1e-7,
+                                  sigma, L, maxit, eConv, checkFitTol=1e-7,
                                   writeOut=True, fileRef=None, eShift=0.0, convertUnit="au", pick=None, status=None,
                                   outFileName=None, summaryFileName=None):
     '''
@@ -253,7 +219,7 @@ def inexactLanczosDiagonalization(H,  v0: Union[AbstractVector,List[AbstractVect
              L => Krylov space dimension
              maxit => Maximum Lanczos iterations
              eConv => relative eigenvalue convergence tolerance
-             checkFit (optional) => checking tolerance of fitted vectors 
+             checkFitTol (optional) => checking tolerance of fitted vectors 
              eigenvalues
              writeOut (optional) => writing file instruction
              default : write both iteration_lanczos.out & summary_lanczos.out
@@ -291,22 +257,19 @@ def inexactLanczosDiagonalization(H,  v0: Union[AbstractVector,List[AbstractVect
             Smat[0,0] = 1
     Hmat = typeClass.matrixRepresentation(H,Ylist)
 
-    status = _getStatus(status,Ylist[0]) # TODO adapt to nBlock > 0
+    status = _getStatus(status,Ylist[0],nBlock)
     if pick is None:
         pick = get_pick_function_close_to_sigma(sigma)
     assert callable(pick)
 
-    printObj = LanczosPrintUtils(Ylist[0],sigma,L,maxit,eConv,checkFit,
+    printObj = LanczosPrintUtils(Ylist[0],sigma,L,maxit,eConv,checkFitTol,
             writeOut,fileRef,eShift,convertUnit,pick,status, outFileName, summaryFileName)
     printObj.fileHeader()
-    if printObj.writeOut:
-        print(f"# Inexact Lanczos with {nBlock} guess vectors") # TODO in printObjs
 
     for outerIter in range(maxit):
         status["outerIter"] = outerIter
-        if typeClass is TTNSVector:
-            status["KSmaxD"] = [Ylist[0].ttns.maxD()]
-            status["fitmaxD"] = None
+        status["KSmaxD"] = [Ylist[0].maxD]
+        status["fitmaxD"] = None
         for innerIter in range(1,L): # starts with 1 because Y0 is used as first basis vector
             status["innerIter"] = innerIter
             status["cumIter"] += 1
@@ -317,9 +280,12 @@ def inexactLanczosDiagonalization(H,  v0: Union[AbstractVector,List[AbstractVect
             for iBlock in range(1,nBlock+1):
                 out, nonzero = generateSubspace(H, Ylist[-iBlock], sigma, eConv)
                 if not nonzero:
-                    # TODO proper return
-                    raise RuntimeError(f"zero vector: ||inv(H-sigma)vec||={typeClass.norm(out):5.3e}")
+                    status["zeroVector"] = True
+                    warnings.warn(f"Alert: zero vector: ||inv(H-sigma)vec||={typeClass.norm(out):5.3e}")
+                    break
                 newVectors.append(out)
+            if not nonzero: # break Krylov loop too
+                break
             #
             # Orthogonalize and append
             # Note that the new vectors are also orthogonalized against each other.
@@ -327,6 +293,7 @@ def inexactLanczosDiagonalization(H,  v0: Union[AbstractVector,List[AbstractVect
             #
             lindepProblem = False
             for iBlock in range(nBlock):
+                status["iBlock"] = iBlock
                 newOrthVec = typeClass.orthogonalize_against_set(newVectors[iBlock],Ylist)
                 if newOrthVec is None:
                     lindepProblem = True
@@ -338,8 +305,7 @@ def inexactLanczosDiagonalization(H,  v0: Union[AbstractVector,List[AbstractVect
                     #   But I assume that this here rarely happens
                     break
                 Ylist.append(newOrthVec.compress())
-                if typeClass is TTNSVector:
-                    status["KSmaxD"].append(Ylist[-1].ttns.maxD()) # TODO generalize
+                status["KSmaxD"].append(Ylist[-1].maxD)
                 # Extend matrices
                 Smat = typeClass.extendOverlapMatrix(Ylist, Smat)
                 Hmat = typeClass.extendMatrixRepresentation(H, Ylist, Hmat)
@@ -347,10 +313,7 @@ def inexactLanczosDiagonalization(H,  v0: Union[AbstractVector,List[AbstractVect
             if printObj is not None:
                 printObj.writeFile("iteration", status)
                 printObj.writeFile("overlap", Smat)
-                if typeClass is TTNSVector:
-                    printObj.writeFile("KSmaxD", status)
-                # TODO vv add
-                #writeFile("out", status, f"overlap condition number {np.linalg.cond(Smat):5.3e}")
+                printObj.writeFile("KSmaxD", status)
             if lindepProblem:
                 ev = np.array([np.nan] * len(Ylist))
                 del uSH, Hmat, Smat # not up to date
@@ -362,7 +325,7 @@ def inexactLanczosDiagonalization(H,  v0: Union[AbstractVector,List[AbstractVect
             # I could also just solve the generalized eigenvalue problem directly
             # But this way I could avoid the above GS orthogonalization or modify it
             #   to ignore linear dependency problems
-            status, uS = lowdinOrthoMatrix(Smat, status, printObj)
+            status, uS = lowdinOrthoMatrix(Smat, status)
             assert not status["lindep"] # should have been taken care of above
             ev, uv = diagonalizeHamiltonian(uS,Hmat,printObj)
             uSH = uS@uv
@@ -386,9 +349,15 @@ def inexactLanczosDiagonalization(H,  v0: Union[AbstractVector,List[AbstractVect
         if not continueIteration:
             # Finish up and then return
             Ylist = basisTransformation(Ylist,uSH)
-            # TODO give warning if the basis transformation is not accurate
-            if typeClass is TTNSVector:
-                status["fitmaxD"] = [item.ttns.maxD() for item in Ylist]
+            # check orthogonality of S
+            Smat = typeClass.overlapMatrix(Ylist)
+            if not np.allclose(Smat, np.eye(len(Ylist)), rtol=checkFitTol, atol=checkFitTol):
+                warnings.warn("Alert:Final eigenvectors are not properly fitted.")
+                properFit = False
+            else:
+                properFit = True
+            status["fitmaxD"] = [item.maxD for item in Ylist]
+            if printObj is not None:
                 printObj.writeFile("fitmaxD", status)
             break
         else:
@@ -401,19 +370,20 @@ def inexactLanczosDiagonalization(H,  v0: Union[AbstractVector,List[AbstractVect
                 newGuessList.append(guess)
             Ylist = newGuessList
             Smat = typeClass.overlapMatrix(Ylist)
-            Hmat= typeClass.matrixRepresentation(H,Ylist)
+            Hmat = typeClass.matrixRepresentation(H,Ylist)
             # Check accuracy of basis transformation
-            evNew = []
-            for iBlock in range(nBlock):
-                evNew.append(Hmat[iBlock,iBlock] / Smat[iBlock,iBlock])
-                if not properFitting(evNew[iBlock],ev[iBlock],checkFit,status):
-                    # TODO add information about block.
-                    break
+            if not np.allclose(Smat, np.eye(len(Ylist)), rtol=checkFitTol, atol=checkFitTol):
+                warnings.warn("Alert:Final eigenvectors are not properly fitted. S=\n{Smat}")
+                properFit = False
+                break
+            else:
+                properFit = True
+            evNew = sp.linalg.eigvalsh(Hmat, Smat)
             ##################################################
             if terminateRestart(evNew,eConv,status):
                 break
-            if typeClass is TTNSVector:
-                status["fitmaxD"] = [item.ttns.maxD() for item in Ylist]
+            status["fitmaxD"] = [item.maxD for item in Ylist]
+            if printObj is not None:
                 printObj.writeFile("fitmaxD",status)
     
     printObj.writeFile("results",ev)
@@ -435,14 +405,14 @@ if __name__ == "__main__":
 
     options = {"linearSolver":"gcrotmk","linearIter":1000,"linear_tol":1e-04}
     optionDict = {"linearSystemArgs":options}
-    status = {"writeOut": False,"writePlot": False}
+    writeOut = True
     Y0 = NumpyVector(np.random.random((n)),optionDict)
     sigma = target
 
     t1 = time.time()
     pick =  get_pick_function_close_to_sigma(sigma)
     #pick =  get_pick_function_maxOvlp(Y0)
-    lf,xf,status =  inexactLanczosDiagonalization(A, Y0, sigma, L, maxit, eConv, pick=pick, status=status)
+    lf,xf,status =  inexactLanczosDiagonalization(A, Y0, sigma, L, maxit, eConv, pick=pick, writeOut=writeOut)
     t2 = time.time()
 
     print("{:50} :: {: <4}".format("Eigenvalue nearest to sigma",round(find_nearest(lf,sigma)[1],8)))

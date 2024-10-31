@@ -4,7 +4,11 @@ import sys
 import shutil
 import subprocess
 
-subprocess.run("python ttns2_ch3cn.py >> sweepOutputs", shell=True)
+subprocess.run("python ttns2_ch3cn.py > ttns2_ch3cn.out", shell=True)
+subprocess.run("python feast_ttns2_ch3cn.py > feast_ttns2_ch3cn.out", shell=True)
+subprocess.run("python driver_numpyVector.py > driver_numpyVector.out", shell=True)
+subprocess.run("python ttns2_ch3cn_Block.py > ttns2_ch3cn_Block.out", shell=True)
+subprocess.run("python stateFollowingHO.py > stateFollowingHO.out", shell=True)
 
 # Get directory name
 mydir = ["../__pycache__"]
@@ -16,7 +20,8 @@ for item in mydir:
     except OSError as e:
         print("Error: %s - %s." % (e.filename, e.strerror))
 
-myfile = ["ttns_tree.pdf"]
+myfile = ["ttns_tree.pdf","ttns2_ch3cn.out","feast_ttns2_ch3cn.out",
+        "driver_numpyVector.out", "ttns2_ch3cn_Block.out","stateFollowingHO.out"]
 # If file exists, delete it.
 for item in myfile:
     if os.path.isfile(item):

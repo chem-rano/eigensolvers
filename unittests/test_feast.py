@@ -50,8 +50,10 @@ class Test_feast(unittest.TestCase):
         self.uvEigh = uvEigh
 
     def test_feast(self):
-        evfeast, uvfeast = feastDiagonalization(self.mat, self.guess, self.nc, self.quad, self.rmin, self.rmax,
-                                                self.eConv, self.maxit, writeOut=False)[0:2]
+        evfeast, uvfeast, status = feastDiagonalization(self.mat, self.guess, 
+                self.nc, self.quad, self.rmin, self.rmax,self.eConv, self.maxit,
+                writeOut=False)
+
         with self.subTest("returnType"):
             ''' Checks if the returned eigenvalue and eigenvectors are of correct type'''
             self.assertIsInstance(evfeast, np.ndarray)
@@ -67,25 +69,16 @@ class Test_feast(unittest.TestCase):
                 self.assertTrue((ncontour_ev <= nfeast_ev), 'All eigenvalues within contour must be calculated')
             with self.subTest("eigenvalue accuracy"):
                 contour_evs = select_within_range(self.evEigh, self.rmin, self.rmax)[0]
-        with self.subTest("Hmat"):
-            ''' Bypassing linear combination works for Hamitonian matrix formation'''
-            typeClass = uvfeast[0].__class__
-            S = typeClass.overlapMatrix(uvfeast[:-1])
-            qtAq = typeClass.matrixRepresentation(self.mat,uvfeast[:-1])
-            uS = transformationMatrix(uvfeast)[0]
-            typeClass = uvfeast[0].__class__
-            Hmat1 = diagonalizeHamiltonian(self.mat,uvfeast,uS)[0]
-            qtAq = typeClass.matrixRepresentation(self.mat,uvfeast)
-            Hmat2 = uS.T.conj()@qtAq@uS
-            np.testing.assert_allclose(Hmat1,Hmat2,rtol=1e-5,atol=0)
         with self.subTest("back-transform"):
             ''' Checks linear combination'''
             typeClass = uvfeast[0].__class__
             S = typeClass.overlapMatrix(uvfeast[:-1])
             assert len(uvfeast) > 1
-            qtAq = typeClass.matrixRepresentation(self.mat,uvfeast[:-1])
-            uS = transformationMatrix(uvfeast)[0]
-            uv = diagonalizeHamiltonian(self.mat,uvfeast,uS)[2]
+            Hmat = typeClass.matrixRepresentation(self.mat,uvfeast[:-1])
+            SmatFull = typeClass.overlapMatrix(uvfeast)
+            uS = lowdinOrthoMatrix(SmatFull,status)[1]
+            HmatFull = typeClass.matrixRepresentation(self.mat,uvfeast)
+            uv = diagonalizeHamiltonian(uS,HmatFull)[1]
             uSH = uS@uv
             bases = basisTransformation(uvfeast,uSH)
             for m in range(len(uvfeast)):
@@ -102,13 +95,12 @@ class Test_feast(unittest.TestCase):
                 ''' XH@S@X = 1'''
                 typeClass = uvfeast[0].__class__
                 assert len(uvfeast) > 1
-                S1 = typeClass.overlapMatrix(uvfeast[:-1])
-                qtAq = typeClass.matrixRepresentation(self.mat,uvfeast[:-1])
-                uS = transformationMatrix(uvfeast)[0]
-                uv = diagonalizeHamiltonian(self.mat,uvfeast,uS)[2]
+                uS = lowdinOrthoMatrix(SmatFull,status)[1]
+                HmatFull = typeClass.matrixRepresentation(self.mat,uvfeast)
+                uv = diagonalizeHamiltonian(uS,HmatFull)[1]
                 uSH = uS@uv
                 mat = uSH.T.conj()@S@uSH
-            np.testing.assert_allclose(mat,np.eye(mat.shape[0]),atol=1e-5)
+                np.testing.assert_allclose(mat,np.eye(mat.shape[0]),atol=1e-5)
         with self.subTest("eigenvalue"):
             ''' Checks if the calculated eigenvalue is accurate to seventh decimal place'''
             with self.subTest("All contour eigenvalues"):

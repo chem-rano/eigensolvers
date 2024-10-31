@@ -23,6 +23,7 @@ class TTNSVector(AbstractVector):
             `stateFittingArgs` overwrites `sweepAlgorithmArgs` for `StateFitting`
             `orthogonalizationArgs` overwrites `sweepAlgorithmArgs` for `Orthogonalization`
             `linearSystemArgs` overwrites `sweepAlgorithmArgs` for `LinearSystem`.
+            `compressArgs` overwrites ``sweepAlgorithmArgs`` for `compress`.
         See the respective classes in `SweepAlgorithms` for the possible options.
         """
         self.ttns = ttns
@@ -36,9 +37,11 @@ class TTNSVector(AbstractVector):
         self.options["stateFittingArgs"] = options.get("stateFittingArgs", self.options["sweepAlgorithmArgs"])
         self.options["orthogonalizationArgs"] = options.get("orthogonalizationArgs", self.options["sweepAlgorithmArgs"])
         self.options["linearSystemArgs"] = options.get("linearSystemArgs", self.options["sweepAlgorithmArgs"])
+        self.options["compressArgs"] = options.get("compressArgs", self.options["sweepAlgorithmArgs"])
         assert self.options["stateFittingArgs"] is not None
         assert self.options["orthogonalizationArgs"] is not None
         assert self.options["linearSystemArgs"] is not None
+        assert self.options["compressArgs"] is not None
 
     @property
     def hasExactAddition(self):
@@ -54,6 +57,12 @@ class TTNSVector(AbstractVector):
     def dtype(self):
         return np.result_type(*self.ttns.dtypes())
 
+    @property
+    def maxD(self) -> int:
+        """Returns maximum value of virtual bond dimensions of a vectors.
+        It is a wrapper function of ttns.maxD(), used for TTNSVectors"""
+        return self.ttns.maxD()
+   
     def __len__(self):
         raise NotImplementedError
 
@@ -111,12 +120,9 @@ class TTNSVector(AbstractVector):
         raise NotImplementedError
 
     def compress(self):
-        """ Compresses bond dimension of the vector
-        Currently, from fitting bond dimension to
-        linear solver max bond dimension"""
-        # TODO vv own option class
-        args = copy.deepcopy(self.options["stateFittingArgs"])
-        args["bondDimensionAdaptions"] = self.options["linearSystemArgs"]["bondDimensionAdaptions"]
+        """ Compresses bond dimension of TTNS"""
+        
+        args = self.options["compressArgs"]
         out = self.copy()
         solver = StateFitting(self.ttns, out.ttns, [1.0], **args)
         converged, optVal = solver.run()
@@ -152,7 +158,7 @@ class TTNSVector(AbstractVector):
                                          normalize=False,
                                          **options)
         if x.norm()**2 < lindep:
-            # TODO would be better to just return what I have
+            # TODO would be better to just return what I have # not priority
             return None
         else:
             x.normalize()

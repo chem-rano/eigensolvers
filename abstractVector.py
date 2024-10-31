@@ -30,6 +30,12 @@ class AbstractVector(ABC):
     def dtype(self):
         raise NotImplementedError
    
+    @property
+    @abstractmethod
+    def maxD(self) -> int:
+        """Returns maximum value of virtual bond dimensions of a vectors (only used for TTNSs)."""
+        raise NotImplementedError
+   
     @abstractmethod
     def __mul__(self,other):
         raise NotImplementedError

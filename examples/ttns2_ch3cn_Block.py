@@ -57,30 +57,22 @@ DVRopts = [
     basis.Hermite.getOptions(N=N, HOx0=0, HOw=1, HOm=1),
     basis.Hermite.getOptions(N=N, HOx0=0, HOw=1, HOm=1),
 ]
-raise NotImplementedError("add optimal tree, also in other examples.")
 treeString = """
 0> 3 3 3
     1> 3 3
         2> [x1]
-        2> 3 3
-            3> [x5]
-            3> [x6]
+        2> [x5 x6]
+    1> 3 3
+        2> [x7 x8]
+        2> [x9 x10]
     1> 3 3
         2> 3 3
-            3> [x7]
-            3> [x8]
-        2> 3 3
-            3> [x9]
-            3> [x10]
-    1> 3 3
-        2> 3 3 
             3> [x3]
             3> 3 3
-               4> [x2]
-               4> [x4]
-        2> 3 3 
-            3> [x11] 
-            3> [x12]
+                4> [x2]
+                4> [x4]
+        2> 3
+            3> [x11 x12]
     """
 bases = [basis.basisFactory(o) for o in DVRopts]
 nBas = [b.N for b in bases]
@@ -115,6 +107,7 @@ tnsList, energies = eigenStateComputations(tns, Hop,
                                            allowRestart=False,
                                            projectionShift=util.unit2au(8499,"cm-1"))
 print("-------------------------------")
+assert len(tnsList) == N_BLOCK
 ###############
 print("state follow: sigma")
 print("bondAdaptLinear",bondAdaptLinear)
@@ -122,12 +115,11 @@ print("bondAdaptFit",bondAdaptFit)
 
 optionsOrtho = {"nSweep":40, "convTol":1e-2, "bondDimensionAdaptions":bondDimensionAdaptions}
 optsCheck = IterativeLinearSystemOptions(solver="gcrotmk",tol=1e-4,maxIter=500) 
-optionsLinear = {"nSweep":30, "iterativeLinearSystemOptions":optsCheck,"convTol":1e-4,"bondDimensionAdaptions":bondDimensionAdaptions}
+optionsLinear = {"nSweep":30, "iterativeLinearSystemOptions":optsCheck,"convTol":1e-4,"bondDimensionAdaptions":bondDimensionAdaptions, "shiftAndInvertMode":True, "optValUnit":"cm-1","optShift":util.unit2au(zpve,"cm-1")}
 optionsFitting = {"nSweep":1000, "convTol":1e-9,"bondDimensionAdaptions":bondDimensionAdaptions}
 options = {"orthogonalizationArgs":optionsOrtho, "linearSystemArgs":optionsLinear, "stateFittingArgs":optionsFitting}
 guess = [TTNSVector(t,options) for t in tnsList]
 
-tns = TTNSVector(tns,options)
 sigma = util.unit2au((target+zpve),unit="cm-1")
-ev, tnsList, status = inexactLanczosDiagonalization(Hop,tns,sigma,L,maxit,eConv,eShift=zpve,convertUnit="cm-1")
+ev, tnsList, status = inexactLanczosDiagonalization(Hop,guess,sigma,L,maxit,eConv,eShift=zpve,convertUnit="cm-1")
 # -----------------   EOF  -----------------------
