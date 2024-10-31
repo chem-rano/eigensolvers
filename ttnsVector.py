@@ -59,6 +59,8 @@ class TTNSVector(AbstractVector):
 
     @property
     def maxD(self) -> int:
+        """Returns maximum value of virtual bond dimensions of a vectors.
+        It is a wrapper function of ttns.maxD(), used for TTNSVectors"""
         return self.ttns.maxD()
    
     def __len__(self):
