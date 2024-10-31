@@ -33,7 +33,7 @@ class AbstractVector(ABC):
     @property
     @abstractmethod
     def maxD(self) -> int:
-        """Returns maximum value of virtual bond dimensions of a vectors."""
+        """Returns maximum value of virtual bond dimensions of a vectors (only used for TTNSs)."""
         raise NotImplementedError
    
     @abstractmethod
