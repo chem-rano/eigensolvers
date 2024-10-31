@@ -107,6 +107,7 @@ tnsList, energies = eigenStateComputations(tns, Hop,
                                            allowRestart=False,
                                            projectionShift=util.unit2au(8499,"cm-1"))
 print("-------------------------------")
+assert len(tnsList) == N_BLOCK
 ###############
 print("state follow: sigma")
 print("bondAdaptLinear",bondAdaptLinear)
@@ -114,12 +115,11 @@ print("bondAdaptFit",bondAdaptFit)
 
 optionsOrtho = {"nSweep":40, "convTol":1e-2, "bondDimensionAdaptions":bondDimensionAdaptions}
 optsCheck = IterativeLinearSystemOptions(solver="gcrotmk",tol=1e-4,maxIter=500) 
-optionsLinear = {"nSweep":30, "iterativeLinearSystemOptions":optsCheck,"convTol":1e-4,"bondDimensionAdaptions":bondDimensionAdaptions}
+optionsLinear = {"nSweep":30, "iterativeLinearSystemOptions":optsCheck,"convTol":1e-4,"bondDimensionAdaptions":bondDimensionAdaptions, "shiftAndInvertMode":True, "optValUnit":"cm-1","optShift":util.unit2au(zpve,"cm-1")}
 optionsFitting = {"nSweep":1000, "convTol":1e-9,"bondDimensionAdaptions":bondDimensionAdaptions}
 options = {"orthogonalizationArgs":optionsOrtho, "linearSystemArgs":optionsLinear, "stateFittingArgs":optionsFitting}
 guess = [TTNSVector(t,options) for t in tnsList]
 
-tns = TTNSVector(tns,options)
 sigma = util.unit2au((target+zpve),unit="cm-1")
-ev, tnsList, status = inexactLanczosDiagonalization(Hop,tns,sigma,L,maxit,eConv,eShift=zpve,convertUnit="cm-1")
+ev, tnsList, status = inexactLanczosDiagonalization(Hop,guess,sigma,L,maxit,eConv,eShift=zpve,convertUnit="cm-1")
 # -----------------   EOF  -----------------------
