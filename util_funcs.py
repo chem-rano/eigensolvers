@@ -332,23 +332,18 @@ def get_pick_function_close_to_sigma(toCompare):
         return idx
     return pick
 
-def lowdinOrthoMatrix(S,status,printObj=None):
-    ''' Calculates transformation matrix from overlap matrix 
+def lowdinOrthoMatrix(S,status):
+    """ Calculates transformation matrix from overlap matrix 
 
     In: lindep (default value is 1e-14, lowdinOrtho())
         printObj (opional): print object
 
     Out: status (dict: updated lindep)
          uS: transformation matrix
-    Additional: prints overlap matrix in detailed output file'''
+    """
     
     linIndep, uS = lowdinOrtho(S)[1:3]
     status["lindep"] = not linIndep
-    if printObj is not None:
-        printObj.writeFile("iteration",status)
-        printObj.writeFile("overlap",S)
-        printObj.writeFile("KSmaxD",status)
-
     return status, uS
     
 def diagonalizeHamiltonian(X,Hmat,printObj=None):
