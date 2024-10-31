@@ -163,7 +163,7 @@ def terminateRestart(energy,eConv,status,num=3):
             status["futileRestarts"] += 1
 
     if status["futileRestarts"] > num:
-        print("Lindep and did not have fruitful restarts")
+        warnings.warn("Lindep and did not have fruitful restarts")
         decision = True
 
     return decision
