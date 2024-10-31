@@ -99,7 +99,7 @@ class Test_lanczos(unittest.TestCase):
         Sfull = typeClass.overlapMatrix(uvLanczos)
         with self.subTest("returnType"):
             ''' Checks if the returned eigenvalue and eigenvectors are of correct type'''
-            self.assertIsInstance(evLanczos, (np.ndarray,list))
+            self.assertIsInstance(evLanczos, np.ndarray)
             self.assertIsInstance(uvLanczos, list)
             self.assertIsInstance(uvLanczos[0], TTNSVector)
         with self.subTest("orthogonal"):

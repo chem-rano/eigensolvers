@@ -360,7 +360,7 @@ def inexactLanczosDiagonalization(H,  v0: Union[AbstractVector,List[AbstractVect
             status["fitmaxD"] = [item.maxD for item in Ylist]
             if printObj is not None:
                 printObj.writeFile("fitmaxD", status)
-            ev = evNew
+            ev = np.array(evNew)
             break
         else:
             # Simple restart of Lanczos iteration using new eigenvectors
