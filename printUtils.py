@@ -201,6 +201,7 @@ class LanczosPrintUtils:
     # ........................ HAMILTONIAN MATRIX ......................
         elif label == "hamiltonian":
             outfile.write("HAMILTONIAN MATRIX\n")
+            outfile.write(args[1]+"\n")
             hmat = convert(args[0],self.eShift,self.convertUnit)
             outfile.write(f"{hmat}")
             outfile.write("\n\n")

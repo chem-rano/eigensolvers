@@ -361,11 +361,14 @@ def diagonalizeHamiltonian(X,Hmat,printObj=None):
                 eigenvalues in detailed 
     output file ("iterations_lanczos.out", default)'''
 
+    if printObj is not None:
+        printObj.writeFile("hamiltonian",Hmat,"beforeOrthogonalization")
+
     Hmat = X.T.conj()@Hmat@X
     ev, uv = sp.linalg.eigh(Hmat)
         
     if printObj is not None:
-        printObj.writeFile("hamiltonian",Hmat)
+        printObj.writeFile("hamiltonian",Hmat,"afterOrthogonalization")
         printObj.writeFile("eigenvalues",ev)
 
     return ev,uv
