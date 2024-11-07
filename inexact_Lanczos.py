@@ -47,7 +47,7 @@ def _getStatus(status, guessVector, nBlock):
     the current Lanczos iteration
     """
     
-    statusUp = {"ref":[np.inf],"nBlock":nBlock,
+    statusUp = {"ref":[],"residual":np.inf,"nBlock":nBlock,
             "flagAddition":guessVector.hasExactAddition,
             "outerIter":0, "innerIter":0,"cumIter":0,
             "iBlock":0,"zeroVector":False,
@@ -108,13 +108,26 @@ def checkConvergence(ev,eConv,status,printObj=None):
          '''
     
     isConverged = False
-    ev_nearest = ev[0]   # one state for inexact Lanczos
-    if _convergence(ev_nearest,status["ref"][-1]) <= eConv:
-        isConverged = True
+    nBlock = status["nBlock"]
+    nBlockEigenvalues = ev[0:nBlock]   # nBlock states
+
+    if status["innerIter"] != 1:
+        reference = status["ref"][-1] 
+        absDiff = 0.0
+        sumEigenvalue = 0.0
+        for i in range(nBlock):
+            absDiff += abs(reference[i]-nBlockEigenvalues[i])
+            sumEigenvalue += abs(nBlockEigenvalues[i])
+        residual = absDiff/sumEigenvalue
+        status["residual"] = residual
+        if residual <= eConv:
+            isConverged = True
+
     status["isConverged"] = isConverged
     status["runTime"] = time.time() - status["startTime"]
-    if printObj is not None:printObj.writeFile("summary",ev_nearest,status)
-    status["ref"].append(ev_nearest)
+    if printObj is not None:printObj.writeFile("summary",nBlockEigenvalues,\
+            status)
+    status["ref"].append(nBlockEigenvalues)
     if len(status["ref"]) > 2:status["ref"].pop(0)
     return status
  
@@ -156,7 +169,7 @@ def terminateRestart(energy,eConv,status,num=3):
     Out: decision (Boolean) -> decision to terminate restart"""
     
     decision = False
-    prevEnergy = status["ref"][0]
+    prevEnergy = status["ref"][0][0] # check only one eigenvalue among nBlock
 
     if status["lindep"]:
         if _convergence(energy,prevEnergy) < max(1e-9,eConv):

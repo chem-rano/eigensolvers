@@ -151,8 +151,8 @@ class LanczosPrintUtils:
         print(lines)
 
         # ..........................  data description in plot file ..........
-        lines = "it\ti\tnCum\ttarget\tReference\t\tev_nearest\t\tabs_ev"
-        lines += "\t\trel_ev\t\ttime (seconds)\n"
+        lines = "it\ti\tnCum\ttarget\t\tev_nearest\t\t"
+        lines += "residual\t\ttime (seconds)\n"
         sumfile.write(lines)
     
         outfile.flush()
@@ -251,19 +251,16 @@ class LanczosPrintUtils:
             target = convert(self.sigma,self.eShift,self.convertUnit)
             evalue = convert(args[0],unit=self.convertUnit)
             excitation = convert(evalue,eShift=self.eShift)
+            residual = status["residual"]
 
-            ref = util.au2unit(status["ref"][-1],self.convertUnit)
-            abs_diff = np.abs(evalue - ref)
-            rel_ev = abs_diff/np.abs(evalue)
-
-            sumfile.write(f'{it}\t{i}\t{nCum}\t{target}\t')
+            sumfile.write(f'{it}\t{i}\t{nCum}\t{target}\t\t')
             
             # a file of containing references
             if self.fileRef is not None:
                 ev = np.loadtxt(self.fileRef)
                 reference = find_nearest(ev,target)[1]
                 sumfile.write(f'{reference}\t')
-            sumfile.write(f'{excitation}\t{abs_diff}\t{rel_ev}\t')
+            sumfile.write(f'{excitation}\t\t{residual}\t\t')
             sumfile.write(f'{runTime}\n')
         outfile.flush()
         sumfile.flush()
