@@ -386,7 +386,7 @@ def inexactLanczosDiagonalization(H,  v0: Union[AbstractVector,List[AbstractVect
             Hmat = typeClass.matrixRepresentation(H,Ylist)
             # Check accuracy of basis transformation
             if not np.allclose(Smat, np.eye(len(Ylist)), rtol=checkFitTol, atol=checkFitTol):
-                warnings.warn("Alert:Final eigenvectors are not properly fitted. S=\n{Smat}")
+                warnings.warn(f"Alert:Final eigenvectors are not properly fitted. S=\n{Smat}")
                 properFit = False
                 break
             else:
