@@ -13,6 +13,7 @@ from ttnsVector import TTNSVector
 from util_funcs import headerBot
 from util_funcs import get_pick_function_close_to_sigma
 from util_funcs import get_pick_function_maxOvlp
+from util_funcs import eigenvalueResidual
 import copy
 
 # -----------------------------------------------------
@@ -113,12 +114,8 @@ def checkConvergence(ev,eConv,status,printObj=None):
 
     if status["innerIter"] != 1:
         reference = status["ref"][-1] 
-        absDiff = 0.0
-        sumEigenvalue = 0.0
-        for i in range(nBlock):
-            absDiff += abs(reference[i]-nBlockEigenvalues[i])
-            sumEigenvalue += abs(nBlockEigenvalues[i])
-        residual = absDiff/sumEigenvalue
+        residual = eigenvalueResidual(nBlockEigenvalues,reference,
+                insideTarget=False)
         status["residual"] = residual
         if residual <= eConv:
             isConverged = True

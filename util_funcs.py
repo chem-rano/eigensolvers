@@ -246,36 +246,38 @@ def lowdinOrtho(oMat, tol= LINDEP_DEFAULT_VALUE):
     uvqTraf = uvq * evq**(-0.5)
     return idx, info, uvqTraf
 
-def eigenvalueResidual(ev:np.ndarray,prev_ev:np.ndarray,
-                       emin,emax,insideTarget=True):
+def eigenvalueResidual(ev:np.ndarray,reference:np.ndarray,
+                       emin=None,emax=None,insideTarget=True):
     '''
     Eigenvalue residual calculation
-    Residual = [sum abs(prev_ev-ev)]/[sum abs(ev)]
+    Residual = [sum abs(reference-ev)]/[sum abs(ev)]
     for eigenvalues of i and i-1 th iterations
 
     if `insideTarget`: Eigenvalues within the range (emin-emax)
     are only considered
     '''
 
-    diff = 0.0
-    prev_tot = 0.0
+    absDiff = 0.0
+    sumEigenvalue = 0.0
     
     if insideTarget:
-        idx = select_within_range(prev_ev,emin,emax)[1]
+        assert (emin is not None and emax is not None), \
+                "emin and emax can not be None"
+        idx = select_within_range(reference,emin,emax)[1]
         if len(idx) >= 1:
-            prev_ev = prev_ev[idx]
+            reference = reference[idx]
             ev = ev[idx]
-            assert len(prev_ev) == len(ev),"Eigenvalues are not equal in number"
+            assert len(reference) == len(ev),"Eigenvalues are not equal in number"
         else:
-            prev_ev = prev_ev
+            reference = reference
             ev = ev
     
     m0 = len(ev)
     for i in range(m0):
-        diff += abs(prev_ev[i]-ev[i])
-        prev_tot += abs(ev[i])
-    res = diff/prev_tot
-    return res
+        absDiff += abs(reference[i]-ev[i])
+        sumEigenvalue += abs(ev[i])
+    residual = absDiff/sumEigenvalue
+    return residual
 
 # -----------------------------------------------------
 def calculateTarget(eigenvalues, indx, tol=1e-14):
