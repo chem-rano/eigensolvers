@@ -85,9 +85,10 @@ class LanczosPrintUtils:
         nBlock = self.status["nBlock"]
         lines += f"# Inexact Lanczos with {nBlock} guess vectors"+"\n\n"
 
-        formatStyle = "{:10} {:>14} :: {:20}"
+        formatStyle = "{:12} {:>14} :: {:20}"
         target = convert(self.sigma,self.eShift,self.convertUnit)
-        lines += formatStyle.format("target",target,"Target excitation")+"\n"
+        lines += formatStyle.format("target",f"{target:.2f}",\
+                "arget excitation")+"\n"
         lines += formatStyle.format("L",self.L,"Krylov space")+"\n"
         lines += formatStyle.format("maxit",self.maxit,\
                 "Maximum Lanczos iterations")+"\n"
@@ -151,8 +152,13 @@ class LanczosPrintUtils:
         print(lines)
 
         # ..........................  data description in plot file ..........
-        lines = "it\ti\tnCum\ttarget\t\tev_nearest\t\t"
-        lines += "residual\t\ttime (seconds)\n"
+        lines = "{:>4} {:>6} {:>6} {:>12}".format("it","i","nCum","target")
+        if self.fileRef is not None:
+            lines += "{:>18}".format("reference")
+        for iBlock in range(nBlock):
+            lines += "{:>18}".format("EvalueBlock"+str(iBlock+1))
+        lines += "{:>16} {:>16}".format("residual","time(seconds)"+"\n")
+        
         sumfile.write(lines)
     
         outfile.flush()
@@ -244,6 +250,7 @@ class LanczosPrintUtils:
     # ....................... SUMMARY FILE ..............................
         elif label == "summary":
             status = args[1]
+            nBlock = status["nBlock"]
             it = status["outerIter"]
             i = status["innerIter"]
             nCum = status["cumIter"]
@@ -254,15 +261,22 @@ class LanczosPrintUtils:
             excitation = convert(evalue,eShift=self.eShift)
             residual = status["residual"]
 
-            sumfile.write(f'{it}\t{i}\t{nCum}\t{target}\t\t')
+            lines = "{:>4} {:>6} {:>6} {:>12}".format(it,i,nCum,\
+                    f"{target:5.2f}")
             
             # a file of containing references
             if self.fileRef is not None:
                 ev = np.loadtxt(self.fileRef)
                 reference = find_nearest(ev,target)[1]
-                sumfile.write(f'{reference}\t')
-            sumfile.write(f'{excitation}\t\t{residual}\t\t')
-            sumfile.write(f'{runTime}\n')
+                lines += "{:>18}".format(reference)
+            
+            for iBlock in range(nBlock):
+                lines += "{:>18}".format(f"{excitation[iBlock]:.10f}")
+            
+            lines += "{:>16} {:>16}".format(f"{residual:5.4e}",f"{runTime:.2f}"\
+                    +"\n")
+            sumfile.write(lines)
+        
         outfile.flush()
         sumfile.flush()
         return
