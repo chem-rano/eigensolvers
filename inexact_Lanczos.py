@@ -203,6 +203,7 @@ def analyzeStatus(status,maxit,L):
 
 def inexactLanczosDiagonalization(H,  v0: Union[AbstractVector,List[AbstractVector]],
                                   sigma, L, maxit, eConv, checkFitTol=1e-7,
+                                  Hsolve=None,
                                   writeOut=True, fileRef=None, eShift=0.0, convertUnit="au", pick=None, status=None,
                                   outFileName=None, summaryFileName=None):
     '''
@@ -210,7 +211,7 @@ def inexactLanczosDiagonalization(H,  v0: Union[AbstractVector,List[AbstractVect
 
 
     ---Doing inexact Lanczos in canonical orthogonal basis.---
-    Input::  H => diagonalizable input matrix or linearoperator
+    Input::  H => diagonalizable input matrix or LinearOperator
              v0 => eigenvector guess
                     Can be a list of `AbstractVectors`.
                     Then, block Lanczos is performed (Krylov space on each of the guesses).
@@ -219,11 +220,13 @@ def inexactLanczosDiagonalization(H,  v0: Union[AbstractVector,List[AbstractVect
              L => Krylov space dimension
              maxit => Maximum Lanczos iterations
              eConv => relative eigenvalue convergence tolerance
-             checkFitTol (optional) => checking tolerance of fitted vectors 
-             eigenvalues
+             checkFitTol (optional) => checking tolerance of fitted vectors
+                             eigenvalues
+             Hsolve (optional) => As H but only used for the generation of the Lanczos vectors
+                    `H` is then used for diagonalizing the Hamiltonian matrix
              writeOut (optional) => writing file instruction
              default : write both iteration_lanczos.out & summary_lanczos.out
-             fileRef (optional) => file containg references (e.g. DMRG energies)
+             fileRef (optional) => file containing references (e.g. DMRG energies)
                                    used for summary data file
              eShift
              eShift (optional) => shift value for eigenvalues, Hmat elements
@@ -243,6 +246,8 @@ def inexactLanczosDiagonalization(H,  v0: Union[AbstractVector,List[AbstractVect
         v0 = [v0]
     else:
         assert isinstance(v0, (list, tuple, np.ndarray)), f"{v0=} {type(v0)=}"
+    if Hsolve is None:
+        Hsolve = H
     typeClass = type(v0[0])
     nBlock = len(v0)
 
@@ -278,7 +283,7 @@ def inexactLanczosDiagonalization(H,  v0: Union[AbstractVector,List[AbstractVect
             #
             newVectors = []
             for iBlock in range(1,nBlock+1):
-                out, nonzero = generateSubspace(H, Ylist[-iBlock], sigma, eConv)
+                out, nonzero = generateSubspace(Hsolve, Ylist[-iBlock], sigma, eConv)
                 if not nonzero:
                     status["zeroVector"] = True
                     warnings.warn(f"Alert: zero vector: ||inv(H-sigma)vec||={typeClass.norm(out):5.3e}")
