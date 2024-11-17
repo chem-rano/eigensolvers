@@ -216,7 +216,7 @@ def feastDiagonalization(A, Y: list[AbstractVector],
                 ref_ev = ref_ev[indices]
             elif len(ref_ev) < len(ev):
                 raise RuntimeError(f"{ref_ev=} but {ev=}. Enlarged space?")
-            residual = eigenvalueResidual(ev, ref_ev, eMin, eMax)
+            residual = eigenvalueResidual(ev, ref_ev, [eMin, eMax])
             status["runTime"] = time.time() - status["startTime"]
             status["residual"] = residual
             printObj.writeFile("summary",ev,residual,status)

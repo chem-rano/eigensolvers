@@ -247,22 +247,31 @@ def lowdinOrtho(oMat, tol= LINDEP_DEFAULT_VALUE):
     return idx, info, uvqTraf
 
 def eigenvalueResidual(ev:np.ndarray,reference:np.ndarray,
-                       emin=None,emax=None,insideTarget=True):
+                       eigenvalueRange=None):
     '''
     Eigenvalue residual calculation
     Residual = [sum abs(reference-ev)]/[sum abs(ev)]
     for eigenvalues of i and i-1 th iterations
 
-    if `insideTarget`: Eigenvalues within the range (emin-emax)
-    are only considered
+    `eigenvalueRange`: list of eigenvalue minimum and maximum values
+    If provided, Eigenvalues within the range are only considered
     '''
 
     absDiff = 0.0
     sumEigenvalue = 0.0
     
-    if insideTarget:
-        assert (emin is not None and emax is not None), \
-                "emin and emax can not be None"
+    if eigenvalueRange is not None:
+        assert (len(eigenvalueRange) == 2), 'Eigenvalue range list for eigenvalue \
+                residual computation should be two (with max and min limits)'
+        emin = eigenvalueRange[0]
+        emax = eigenvalueRange[1]
+        
+        if emin > emax:
+            warnings.warn("emin is greater than emax. Moving forward with \
+                    swapped values") 
+            emin = eigenvalueRange[1]
+            emax = eigenvalueRange[0]
+
         idx = select_within_range(reference,emin,emax)[1]
         if len(idx) >= 1:
             reference = reference[idx]

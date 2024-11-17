@@ -121,8 +121,7 @@ def checkConvergence(ev,eConv,status,printObj=None):
 
     if status["innerIter"] != 1:
         reference = status["ref"][-1] 
-        residual = eigenvalueResidual(nBlockEigenvalues,reference,
-                insideTarget=False)
+        residual = eigenvalueResidual(nBlockEigenvalues,reference)
         status["residual"] = residual
         if residual <= eConv:
             isConverged = True
