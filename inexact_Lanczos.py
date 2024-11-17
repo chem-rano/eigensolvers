@@ -128,8 +128,8 @@ def checkConvergence(ev,eConv,status,printObj=None):
 
     status["isConverged"] = isConverged
     status["runTime"] = time.time() - status["startTime"]
-    if printObj is not None:printObj.writeFile("summary",nBlockEigenvalues,\
-            status)
+    if printObj is not None:
+        printObj.writeFile("summary",nBlockEigenvalues, status)
     status["ref"].append(nBlockEigenvalues)
     if len(status["ref"]) > 2:status["ref"].pop(0)
     return status
