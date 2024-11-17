@@ -29,23 +29,30 @@ def _getStatus(status, guessVector, nBlock):
     Out: statusUp  -> initialized and updated
 
     Status contains following information
-    (i)     Block info (number of blocks)
-    (ii)    Stage of iteration
-    (iii)   Convergence info
-    (iv)    Run time
-    (v)     Number of phases
+    (i)     Reference for residual calculations,
+            and resdidual
+    (ii)    Block info (number of blocks)
+    (iii)   Vector flagAddition property
+    (iv)    Stage of iteration
+    (v)     zeroVector, convergence, lindep and futile restarts
+            informations
+    (vi)    Run time
+    (vii)   Number of phases
 
-    keys: ["ref","nBlock","flagAddition",
+    keys: ["ref","residual","nBlock","flagAddition",
     "outerIter","innerIter","cumIter","iBlock",
-    "isConverged","lindep","futileRestarts",
+    "zeroVector", "isConverged","lindep","futileRestarts",
     "startTime","runTime","phase"]
 
 
-    "ref" is a list -> always contains maximum two values
+    "ref" is a list of lists-> always contains maximum two lists
+    Each of the lists contains nearest n block eigenvalues
     Nearest eigenvalues are stored as reference for convergence
     check and restart purpose
     First one is for the previous Lanczos iteration & second is for 
     the current Lanczos iteration
+
+    zeroVector is True when linear solution has norm less than 0.001*eConv
     """
     
     statusUp = {"ref":[],"residual":np.inf,"nBlock":nBlock,
@@ -213,7 +220,9 @@ def analyzeStatus(status,maxit,L):
 
 def inexactLanczosDiagonalization(H,  v0: Union[AbstractVector,List[AbstractVector]],
                                   sigma, L, maxit, eConv, checkFitTol=1e-7,
-                                  writeOut=True, fileRef=None, eShift=0.0, convertUnit="au", pick=None, status=None,
+                                  writeOut=True, fileRef=None, eShift=0.0, convertUnit="au",
+                                  guessChoice="Random",
+                                  pick=None, status=None,
                                   outFileName=None, summaryFileName=None):
     '''
     Calculate eigenvalues and eigenvectors using the inexact Lanczos method
@@ -238,12 +247,14 @@ def inexactLanczosDiagonalization(H,  v0: Union[AbstractVector,List[AbstractVect
              eShift
              eShift (optional) => shift value for eigenvalues, Hmat elements
              convertUnit (optional) => convert unit for eigenvalues, Hmat elements
+             guessChoice (optional) => Guess choice (e.g., DMRG, Random TTNS etc.)
              pick (optional) => pick function for eigenstate 
                             Default is get_pick_function_close_to_sigma
              status (optional) => Additional information dictionary
                     (more details see _getStatus doc)
             outFileName (optional): output file name
             summaryFileName (optional): summary file name
+
 
     Output:: ev as inexact Lanczos eigenvalues
              uv as inexact Lanczos eigenvectors
@@ -273,7 +284,8 @@ def inexactLanczosDiagonalization(H,  v0: Union[AbstractVector,List[AbstractVect
     assert callable(pick)
 
     printObj = LanczosPrintUtils(Ylist[0],sigma,L,maxit,eConv,checkFitTol,
-            writeOut,fileRef,eShift,convertUnit,pick,status, outFileName, summaryFileName)
+            writeOut,fileRef,eShift,convertUnit,guessChoice,pick,status, outFileName, 
+            summaryFileName)
     printObj.fileHeader()
 
     for outerIter in range(maxit):

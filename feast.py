@@ -125,7 +125,8 @@ def updateQ(Q,im0,Qquad_k,k):
 # ------------------------------
 def feastDiagonalization(A, Y: list[AbstractVector],
                          nc, quad, eMin, eMax, eConv, maxit, contourEllipseFactor=1.0,
-                         writeOut=True, eShift=0.0, convertUnit="au",
+                         writeOut=True, fileRef=None,eShift=0.0, 
+                         convertUnit="au", guessChoice="Random",
                          outFileName=None, summaryFileName=None):
     """ FEAST diagonalization of A
 
@@ -147,8 +148,10 @@ def feastDiagonalization(A, Y: list[AbstractVector],
         In contourEllipseFactor (optional) ::  Countor shape factor
                 See `calculateQuadrature`
         In writeOut (optional):: Instruction to writing output files 
+        In fileRef (optional) => file containg references (e.g. DMRG energies)
         In eShift (optional)   :: shift value for printing. Assuming `A` is shifted by this value.
         In convertUnit (optional):: unit for printing
+        In guessChoice (optional) => Guess choice (e.g., DMRG, Random TTNS etc.)
         In outFileName (optional): output file name
         In summaryFileName (optional): summary file name
 
@@ -166,8 +169,10 @@ def feastDiagonalization(A, Y: list[AbstractVector],
     pi = np.pi
     
     status = _getStatus(None,Y)
-    printObj = FeastPrintUtils(Y[0], nc, quad, eMin, eMax, eConv, maxit, writeOut, eShift,
-                               convertUnit, status, outFileName, summaryFileName)
+    printObj = FeastPrintUtils(Y, nc, quad, eMin, eMax, eConv, maxit, 
+            writeOut, fileRef, eShift, convertUnit, guessChoice, status, 
+            outFileName, summaryFileName)
+
     printObj.fileHeader()
     
     for it in range(maxit):
