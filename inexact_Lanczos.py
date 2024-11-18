@@ -156,15 +156,15 @@ def checkFitting(evNew, ev, checkFitTol, status):
                    {evNew}. Before fit: {ev}")
     return properFit
 
-def terminateRestart(energy,eConv,status,num=3):
+def terminateRestart(blockEnergies,eConv,status,num=3):
     """ This module looks if Lanczos restarts are fruitful or not
     
     futileRestarts -> Number of ineffective or futile restarts
-    If the eigenvalue change is lower than eConv,
+    If the eigenvalue change is greater than max(1e-9,eConv),
     counted as an ineffective or futile restart and adds
     1 to futileRestarts
 
-    In: energy -> Energy after fitting
+    In: blockEnergies -> nBlock energies after fitting
         eConv -> eigenvalue convergence
         status -> param dictionary
         num (optional) -> Number of futile restarts
@@ -172,10 +172,11 @@ def terminateRestart(energy,eConv,status,num=3):
     Out: decision (Boolean) -> decision to terminate restart"""
     
     decision = False
-    prevEnergy = status["ref"][0][0] # check only one eigenvalue among nBlock
+    prevBlockEnergies = status["ref"][0]
 
     if status["lindep"]:
-        if _convergence(energy,prevEnergy) < max(1e-9,eConv):
+        residual = eigenvalueResidual(blockEnergies,prevBlockEnergies)
+        if residual > max(1e-9,eConv):
             status["futileRestarts"] += 1
 
     if status["futileRestarts"] > num:
