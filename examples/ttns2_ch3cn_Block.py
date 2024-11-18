@@ -113,7 +113,7 @@ guess = [TTNSVector(t,options) for t in tnsList]
 
 sigma = util.unit2au((target+zpve),unit="cm-1")
 ev, tnsList, status = inexactLanczosDiagonalization(Hop,guess,sigma,L,maxit,
-        eConv,eShift=zpve,convertUnit="cm-1",guessChoice="DMRG")
+        eConv,checkFitTol=1e-3,eShift=zpve,convertUnit="cm-1",guessChoice="DMRG")
 print(status)
 
 # ----------------- Residuals --------------------
