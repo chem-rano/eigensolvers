@@ -226,7 +226,7 @@ def analyzeStatus(status,maxit,L):
 
 def inexactLanczosDiagonalization(H,  v0: Union[AbstractVector,List[AbstractVector]],
                                   sigma, L, maxit, eConv, checkFitTol=1e-7,
-                                  writeOut=True, fileRef=None, eShift=0.0, convertUnit="au",
+                                  writeOut=True, eShift=0.0, convertUnit="au",
                                   pick=None, status=None,
                                   outFileName=None, summaryFileName=None):
     '''
@@ -247,8 +247,6 @@ def inexactLanczosDiagonalization(H,  v0: Union[AbstractVector,List[AbstractVect
              eigenvalues
              writeOut (optional) => writing file instruction
              default : write both iteration_lanczos.out & summary_lanczos.out
-             fileRef (optional) => file containg references (e.g. DMRG energies)
-                                   used for summary data file
              eShift (optional) => shift value for eigenvalues, Hmat elements
              convertUnit (optional) => convert unit for eigenvalues, Hmat elements
              pick (optional) => pick function for eigenstate 
@@ -287,7 +285,7 @@ def inexactLanczosDiagonalization(H,  v0: Union[AbstractVector,List[AbstractVect
     assert callable(pick)
 
     printObj = LanczosPrintUtils(Ylist[0],sigma,L,maxit,eConv,checkFitTol,
-            writeOut,fileRef,eShift,convertUnit,pick,status, outFileName, 
+            writeOut,eShift,convertUnit,pick,status, outFileName, 
             summaryFileName)
     printObj.fileHeader()
 

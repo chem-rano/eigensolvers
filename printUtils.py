@@ -23,7 +23,7 @@ def convert(arr,eShift=0.0,unit='au'):
 class LanczosPrintUtils:
     """ Print module for file header, footer, iteration outputs"""
     def __init__(self,guessVector,sigma,L,maxit,eConv,checkFitTol, 
-            writeOut,fileRef,eShift,convertUnit,pick,status,
+            writeOut,eShift,convertUnit,pick,status,
             outFileName=None, summaryFileName=None):
 
         if outFileName is None:
@@ -39,7 +39,6 @@ class LanczosPrintUtils:
         self.eConv = eConv
         self.checkFitTol = checkFitTol
         self.writeOut = writeOut
-        self.fileRef = fileRef
         self.eShift = eShift
         self.convertUnit = convertUnit
         self.pick = pick
@@ -152,8 +151,6 @@ class LanczosPrintUtils:
 
         # ..........................  data description in plot file ..........
         lines = "{:>4} {:>6} {:>6} {:>12}".format("it","i","nCum","target")
-        if self.fileRef is not None:
-            lines += "{:>18}".format("reference")
         for iBlock in range(nBlock):
             lines += "{:>18}".format("EvalueBlock"+str(iBlock+1))
         lines += "{:>16} {:>16}".format("residual","time(seconds)"+"\n")
@@ -265,12 +262,6 @@ class LanczosPrintUtils:
             lines = "{:>4} {:>6} {:>6} {:>12}".format(it,i,nCum,\
                     f"{target:5.2f}")
             
-            # a file of containing references
-            if self.fileRef is not None:
-                ev = np.loadtxt(self.fileRef)
-                reference = find_nearest(ev,target)[1]
-                lines += "{:>18}".format(reference)
-            
             for iBlock in range(nBlock):
                 lines += "{:>18}".format(f"{excitation[iBlock]:.10f}")
             
@@ -288,8 +279,7 @@ class LanczosPrintUtils:
 class FeastPrintUtils:
     """ Print module for file header, footer, iteration outputs"""
     def __init__(self,guessVector,nc,quad,rmin,rmax,eConv,maxit,writeOut,
-            fileRef, eShift,convertUnit,status,
-            outFileName=None, summaryFileName=None):
+            eShift,convertUnit,status,outFileName=None, summaryFileName=None):
         
         if outFileName is None:
             outFileName = "iterations_feast.out"
@@ -306,7 +296,6 @@ class FeastPrintUtils:
         self.eConv = eConv
         self.maxit = maxit
         self.writeOut = writeOut
-        self.fileRef = fileRef
         self.eShift = eShift
         self.convertUnit = convertUnit
         self.status = status
@@ -420,11 +409,6 @@ class FeastPrintUtils:
 
         # ..........................  data description in plot file ..........
         lines = "{:>4} {:>6}".format("it","quad")
-        if self.fileRef is not None:
-            ev = np.loadtxt(self.fileRef)
-            reference = select_within_range(ev,self.eMin,self.eMax)[0]
-            for iref in range(len(reference)):
-                    lines += "{:>16}".format("Reference"+str(iref))
         
         for iSubspace in range(self.subspace):
             lines += "{:>16}".format("Evalue"+str(iSubspace+1))
@@ -501,11 +485,6 @@ class FeastPrintUtils:
             residual = args[1]
 
             lines = "{:>4} {:>6}".format(it,quad)
-            if self.fileRef is not None:
-                ev = np.loadtxt(self.fileRef)
-                reference = select_within_range(ev,self.eMin,self.eMax)[0]
-                for iref in range(len(reference)):
-                    lines += "{:>16}".format(f"{reference[iref]:.08f}")
            
            # NOTE: Case for len(excitation) != subspace
             for iExcitation in range(len(excitation)):
