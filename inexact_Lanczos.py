@@ -45,12 +45,18 @@ def _getStatus(status, guessVector, nBlock):
     "startTime","runTime","phase"]
 
 
-    "ref" is a list of lists-> always contains maximum two lists
-    Each of the lists contains nearest n block eigenvalues
-    Nearest eigenvalues are stored as reference for convergence
-    check and restart purpose
-    First one is for the previous Lanczos iteration & second is for 
-    the current Lanczos iteration
+    "ref" is a list of lists-> always contains maximum two items.
+    Each item of the list contains nearest n block eigenvalues
+    and serves as reference. Purpose of having two items in the 
+    reference list: (i) Latest item (or the second element) is 
+    used for evaluating convergence residual (see in 
+    'checkConvergence' module) and (ii) After evaluating residual
+    for convergence check, the "ref" list is updated with current 
+    nBlock eigenvalues. At end of Krylov iteration, decision is to 
+    be made for terminateRestart for cases with lindep.
+    Second element is already the updated nBlock eigenvalues from
+    current iteration. Here, the first element serves the purpose
+    of reference to check residual of restart.
 
     zeroVector is True when linear solution has norm less than 0.001*eConv
     """
