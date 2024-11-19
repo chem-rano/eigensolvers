@@ -252,8 +252,6 @@ def inexactLanczosDiagonalization(H,  v0: Union[AbstractVector,List[AbstractVect
                     `H` is then used for diagonalizing the Hamiltonian matrix
              writeOut (optional) => writing file instruction
              default : write both iteration_lanczos.out & summary_lanczos.out
-             fileRef (optional) => file containing references (e.g. DMRG energies)
-                                   used for summary data file
              eShift (optional) => shift value for eigenvalues, Hmat elements
              convertUnit (optional) => convert unit for eigenvalues, Hmat elements
              pick (optional) => pick function for eigenstate 
