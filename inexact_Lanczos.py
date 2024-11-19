@@ -166,7 +166,7 @@ def terminateRestart(blockEnergies,eConv,status,num=3):
     """ This module looks if Lanczos restarts are fruitful or not
     
     futileRestarts -> Number of ineffective or futile restarts
-    If the eigenvalue change is greater than max(1e-9,eConv),
+    If the eigenvalue residual change is greater than max(1e-9,eConv),
     counted as an ineffective or futile restart and adds
     1 to futileRestarts
 
