@@ -486,7 +486,7 @@ class FeastPrintUtils:
 
             lines = "{:>4} {:>6}".format(it,quad)
            
-           # NOTE: Case for len(excitation) != subspace
+           # NOTE: Case for len(excitation) != subspace is missing (happens for FEAST).  After orthogonalization, the length of eigenvalues can be different than subspace. The printing of the summary file header needs to be changed there. S
             for iExcitation in range(len(excitation)):
                 lines += "{:>16}".format(f"{excitation[iExcitation]:.08f}")
             
