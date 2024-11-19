@@ -90,7 +90,7 @@ class LanczosPrintUtils:
         formatStyle = "{:12} {:>14} :: {:20}"
         target = convert(self.sigma,self.eShift,self.convertUnit)
         lines += formatStyle.format("target",f"{target:.2f}",\
-                "arget excitation")+"\n"
+                "target excitation")+"\n"
         lines += formatStyle.format("L",self.L,"Krylov space")+"\n"
         lines += formatStyle.format("maxit",self.maxit,\
                 "Maximum Lanczos iterations")+"\n"
