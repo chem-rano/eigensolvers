@@ -229,12 +229,14 @@ def inexactLanczosDiagonalization(H,  v0: Union[AbstractVector,List[AbstractVect
                                   writeOut=True, eShift=0.0, convertUnit="au",
                                   pick=None, status=None,
                                   outFileName=None, summaryFileName=None):
-    '''
-    Calculate eigenvalues and eigenvectors using the inexact Lanczos method
+    """ Calculate eigenvalues and eigenvectors using the inexact Lanczos method
 
 
     ---Doing inexact Lanczos in canonical orthogonal basis.---
-    Input::  H => diagonalizable input matrix or linearoperator
+    
+    Input parameters
+    ----------------
+             H => diagonalizable input matrix or linearoperator
              v0 => eigenvector guess
                     Can be a list of `AbstractVectors`.
                     Then, block Lanczos is performed (Krylov space on each of the guesses).
@@ -257,10 +259,13 @@ def inexactLanczosDiagonalization(H,  v0: Union[AbstractVector,List[AbstractVect
             summaryFileName (optional): summary file name
 
 
-    Output:: ev as inexact Lanczos eigenvalues
-             uv as inexact Lanczos eigenvectors
-             status for convergence information
-    '''
+    Output parameters
+    ----------------
+    ev =>  inexact Lanczos eigenvalues
+    Y  =>  inexact Lanczos eigenvectors
+    status => information dictionary
+    """
+
     if issubclass(type(v0), AbstractVector):
         v0 = [v0]
     else:
