@@ -23,7 +23,7 @@ def convert(arr,eShift=0.0,unit='au'):
 class LanczosPrintUtils:
     """ Print module for file header, footer, iteration outputs"""
     def __init__(self,guessVector,sigma,L,maxit,eConv,checkFitTol, 
-            writeOut,fileRef,eShift,convertUnit,guessChoice,pick,status,
+            writeOut,fileRef,eShift,convertUnit,pick,status,
             outFileName=None, summaryFileName=None):
 
         if outFileName is None:
@@ -44,7 +44,6 @@ class LanczosPrintUtils:
         self.convertUnit = convertUnit
         self.pick = pick
         self.status = status
-        self.guessChoice = guessChoice
         if self.writeOut:
             self.outfile = open(outFileName,"w")
             self.sumfile = open(summaryFileName,"w")
@@ -99,8 +98,6 @@ class LanczosPrintUtils:
         lines += formatStyle.format("checkFitTol",self.checkFitTol,"Checkfit tolerance")+"\n"
         pickname = str(self.pick).split(" ")[1]
         lines += "{:10} {:>20}".format("pick",pickname)+"\n"
-        lines += formatStyle.format("Guess",self.guessChoice,\
-                "Guess vector choice")+"\n"
 
         # ..........................  sweep infos numpyVector.................
         if self.typeClass is NumpyVector:
@@ -291,7 +288,7 @@ class LanczosPrintUtils:
 class FeastPrintUtils:
     """ Print module for file header, footer, iteration outputs"""
     def __init__(self,guessVector,nc,quad,rmin,rmax,eConv,maxit,writeOut,
-            fileRef, eShift,convertUnit,guessChoice,status,
+            fileRef, eShift,convertUnit,status,
             outFileName=None, summaryFileName=None):
         
         if outFileName is None:
@@ -313,7 +310,6 @@ class FeastPrintUtils:
         self.eShift = eShift
         self.convertUnit = convertUnit
         self.status = status
-        self.guessChoice = guessChoice
         if self.writeOut:
             self.outfile = open(outFileName,"w")
             self.sumfile = open(summaryFileName,"w")
@@ -370,8 +366,6 @@ class FeastPrintUtils:
                 "Maximum FEAST iterations")+"\n"
         lines += formatStyle.format("eShift",self.eShift,"shift energy")+"\n"
         lines += formatStyle.format("convertUnit",self.convertUnit,"convertUnit")+"\n"
-        lines += formatStyle.format("Guess",self.guessChoice,\
-                "Guess vector choice")+"\n"
 
         # ..........................  sweep infos numpyVector.................
         if self.typeClass is NumpyVector:

@@ -227,7 +227,6 @@ def analyzeStatus(status,maxit,L):
 def inexactLanczosDiagonalization(H,  v0: Union[AbstractVector,List[AbstractVector]],
                                   sigma, L, maxit, eConv, checkFitTol=1e-7,
                                   writeOut=True, fileRef=None, eShift=0.0, convertUnit="au",
-                                  guessChoice="Random",
                                   pick=None, status=None,
                                   outFileName=None, summaryFileName=None):
     '''
@@ -253,7 +252,6 @@ def inexactLanczosDiagonalization(H,  v0: Union[AbstractVector,List[AbstractVect
              eShift
              eShift (optional) => shift value for eigenvalues, Hmat elements
              convertUnit (optional) => convert unit for eigenvalues, Hmat elements
-             guessChoice (optional) => Guess choice (e.g., DMRG, Random TTNS etc.)
              pick (optional) => pick function for eigenstate 
                             Default is get_pick_function_close_to_sigma
              status (optional) => Additional information dictionary
@@ -290,7 +288,7 @@ def inexactLanczosDiagonalization(H,  v0: Union[AbstractVector,List[AbstractVect
     assert callable(pick)
 
     printObj = LanczosPrintUtils(Ylist[0],sigma,L,maxit,eConv,checkFitTol,
-            writeOut,fileRef,eShift,convertUnit,guessChoice,pick,status, outFileName, 
+            writeOut,fileRef,eShift,convertUnit,pick,status, outFileName, 
             summaryFileName)
     printObj.fileHeader()
 

@@ -126,8 +126,7 @@ def updateQ(Q,im0,Qquad_k,k):
 def feastDiagonalization(A, Y: list[AbstractVector],
                          nc, quad, eMin, eMax, eConv, maxit, contourEllipseFactor=1.0,
                          writeOut=True, fileRef=None,eShift=0.0, 
-                         convertUnit="au", guessChoice="Random",
-                         outFileName=None, summaryFileName=None):
+                         convertUnit="au", outFileName=None, summaryFileName=None):
     """ FEAST diagonalization of A
 
     See Polizzi, PRB, 79, 115112 (2009) 10.1103/PhysRevB.79.115112
@@ -151,7 +150,6 @@ def feastDiagonalization(A, Y: list[AbstractVector],
         In fileRef (optional) => file containg references (e.g. DMRG energies)
         In eShift (optional)   :: shift value for printing. Assuming `A` is shifted by this value.
         In convertUnit (optional):: unit for printing
-        In guessChoice (optional) => Guess choice (e.g., DMRG, Random TTNS etc.)
         In outFileName (optional): output file name
         In summaryFileName (optional): summary file name
 
@@ -170,7 +168,7 @@ def feastDiagonalization(A, Y: list[AbstractVector],
     
     status = _getStatus(None,Y)
     printObj = FeastPrintUtils(Y, nc, quad, eMin, eMax, eConv, maxit, 
-            writeOut, fileRef, eShift, convertUnit, guessChoice, status, 
+            writeOut, fileRef, eShift, convertUnit, status, 
             outFileName, summaryFileName)
 
     printObj.fileHeader()
