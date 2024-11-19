@@ -6,6 +6,7 @@ import copy
 import sys
 import time
 from mpiWrapper import MPI
+# MPI is not yet working for Lanczos
 #MPI.activateMPI()
 import operatornD
 from ttns2.driver import eigenStateComputations
