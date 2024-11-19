@@ -21,10 +21,11 @@ def convert(arr,eShift=0.0,unit='au'):
 #                   Print modules for LANCZOS
 # ****************************************************************************
 class LanczosPrintUtils:
-    """ Print module for file heder, footer, iteration outputs"""
+    """ Print module for file header, footer, iteration outputs"""
     def __init__(self,guessVector,sigma,L,maxit,eConv,checkFitTol, 
-            writeOut,fileRef,eShift,convertUnit,pick,status,
-                 outFileName=None, summaryFileName=None):
+            writeOut,eShift,convertUnit,pick,status,
+            outFileName=None, summaryFileName=None):
+
         if outFileName is None:
             outFileName = "iterations_lanczos.out"
         if summaryFileName is None:
@@ -38,7 +39,6 @@ class LanczosPrintUtils:
         self.eConv = eConv
         self.checkFitTol = checkFitTol
         self.writeOut = writeOut
-        self.fileRef = fileRef
         self.eShift = eShift
         self.convertUnit = convertUnit
         self.pick = pick
@@ -56,7 +56,7 @@ class LanczosPrintUtils:
         if self.sumfile is not None:
             self.sumfile.close()
 
-    def fileHeader(self,guessChoice="Random"):
+    def fileHeader(self):
         """ Prints header with all input informations 
         printInfo prints this header to the screen, recorded in sweepOutputs"""
         if not self.writeOut:
@@ -85,9 +85,10 @@ class LanczosPrintUtils:
         nBlock = self.status["nBlock"]
         lines += f"# Inexact Lanczos with {nBlock} guess vectors"+"\n\n"
 
-        formatStyle = "{:10} {:>14} :: {:20}"
+        formatStyle = "{:12} {:>14} :: {:20}"
         target = convert(self.sigma,self.eShift,self.convertUnit)
-        lines += formatStyle.format("target",target,"Target excitation")+"\n"
+        lines += formatStyle.format("target",f"{target:.2f}",\
+                "target excitation")+"\n"
         lines += formatStyle.format("L",self.L,"Krylov space")+"\n"
         lines += formatStyle.format("maxit",self.maxit,\
                 "Maximum Lanczos iterations")+"\n"
@@ -96,8 +97,6 @@ class LanczosPrintUtils:
         lines += formatStyle.format("checkFitTol",self.checkFitTol,"Checkfit tolerance")+"\n"
         pickname = str(self.pick).split(" ")[1]
         lines += "{:10} {:>20}".format("pick",pickname)+"\n"
-        lines += formatStyle.format("Guess",guessChoice,\
-                "Guess vector choice")+"\n"
 
         # ..........................  sweep infos numpyVector.................
         if self.typeClass is NumpyVector:
@@ -151,8 +150,11 @@ class LanczosPrintUtils:
         print(lines)
 
         # ..........................  data description in plot file ..........
-        lines = "it\ti\tnCum\ttarget\tReference\t\tev_nearest\t\tabs_ev"
-        lines += "\t\trel_ev\t\ttime (seconds)\n"
+        lines = "{:>4} {:>6} {:>6} {:>12}".format("it","i","nCum","target")
+        for iBlock in range(nBlock):
+            lines += "{:>18}".format("EvalueBlock"+str(iBlock+1))
+        lines += "{:>16} {:>16}".format("residual","time(seconds)"+"\n")
+        
         sumfile.write(lines)
     
         outfile.flush()
@@ -184,7 +186,9 @@ class LanczosPrintUtils:
     
     def writeFile(self,label,*args):
         """ A single print function for overlap, Hamitonian matrix,
-        iteration details and final eigenvalues"""
+        iteration details, bond dimensions, summary outputs and 
+        final eigenvalues"""
+
         if not self.writeOut:
             return
         sumfile = self.sumfile
@@ -201,6 +205,7 @@ class LanczosPrintUtils:
     # ........................ HAMILTONIAN MATRIX ......................
         elif label == "hamiltonian":
             outfile.write("HAMILTONIAN MATRIX\n")
+            outfile.write(args[1]+"\n")
             hmat = convert(args[0],self.eShift,self.convertUnit)
             outfile.write(f"{hmat}")
             outfile.write("\n\n")
@@ -243,6 +248,7 @@ class LanczosPrintUtils:
     # ....................... SUMMARY FILE ..............................
         elif label == "summary":
             status = args[1]
+            nBlock = status["nBlock"]
             it = status["outerIter"]
             i = status["innerIter"]
             nCum = status["cumIter"]
@@ -251,20 +257,18 @@ class LanczosPrintUtils:
             target = convert(self.sigma,self.eShift,self.convertUnit)
             evalue = convert(args[0],unit=self.convertUnit)
             excitation = convert(evalue,eShift=self.eShift)
+            residual = status["residual"]
 
-            ref = util.au2unit(status["ref"][-1],self.convertUnit)
-            abs_diff = np.abs(evalue - ref)
-            rel_ev = abs_diff/np.abs(evalue)
-
-            sumfile.write(f'{it}\t{i}\t{nCum}\t{target}\t')
+            lines = "{:>4} {:>6} {:>6} {:>12}".format(it,i,nCum,\
+                    f"{target:5.2f}")
             
-            # a file of containing references
-            if self.fileRef is not None:
-                ev = np.loadtxt(self.fileRef)
-                reference = find_nearest(ev,target)[1]
-                sumfile.write(f'{reference}\t')
-            sumfile.write(f'{excitation}\t{abs_diff}\t{rel_ev}\t')
-            sumfile.write(f'{runTime}\n')
+            for iBlock in range(nBlock):
+                lines += "{:>18}".format(f"{excitation[iBlock]:.10f}")
+            
+            lines += "{:>16} {:>16}".format(f"{residual:5.4e}",f"{runTime:.2f}"\
+                    +"\n")
+            sumfile.write(lines)
+        
         outfile.flush()
         sumfile.flush()
         return
@@ -275,15 +279,16 @@ class LanczosPrintUtils:
 class FeastPrintUtils:
     """ Print module for file header, footer, iteration outputs"""
     def __init__(self,guessVector,nc,quad,rmin,rmax,eConv,maxit,writeOut,
-            eShift,convertUnit,status,
-                 outFileName=None, summaryFileName=None):
+            eShift,convertUnit,status,outFileName=None, summaryFileName=None):
+        
         if outFileName is None:
             outFileName = "iterations_feast.out"
         if summaryFileName is None:
             summaryFileName = "summary_feast.out"
 
         self.typeClass = guessVector.__class__
-        self.options = guessVector.options
+        self.subspace = len(guessVector)
+        self.options = guessVector[0].options
         self.nc = nc
         self.quad = quad
         self.rmin = rmin
@@ -307,7 +312,7 @@ class FeastPrintUtils:
         if self.sumfile is not None:
             self.sumfile.close()
 
-    def fileHeader(self,guessChoice="Random"):
+    def fileHeader(self):
         """ Prints header with all input informations 
         printInfo prints this header to the screen, recorded in sweepOutputs"""
         if not self.writeOut:
@@ -331,7 +336,9 @@ class FeastPrintUtils:
                 "*"*70+"\n\n"
 
         # ..........................  general infos ..........................
-        formatStyle = "{:10} {:>14} :: {:20}"
+        formatStyle = "{:12} {:>14} :: {:20}"
+        lines += formatStyle.format("m0",self.subspace,\
+                "Subspace dimensions")+"\n"
         lines += formatStyle.format("nc",self.nc,"Number of quadrature points")\
                 +"\n"
         lines += formatStyle.format("quad",self.quad,\
@@ -348,8 +355,6 @@ class FeastPrintUtils:
                 "Maximum FEAST iterations")+"\n"
         lines += formatStyle.format("eShift",self.eShift,"shift energy")+"\n"
         lines += formatStyle.format("convertUnit",self.convertUnit,"convertUnit")+"\n"
-        lines += formatStyle.format("Guess",guessChoice,\
-                "Guess vector choice")+"\n"
 
         # ..........................  sweep infos numpyVector.................
         if self.typeClass is NumpyVector:
@@ -403,8 +408,12 @@ class FeastPrintUtils:
         print(lines)
 
         # ..........................  data description in plot file ..........
-        lines = "it\tquad\t\teigenvalues\t\t"
-        lines += "res\t\ttime (seconds)\n"
+        lines = "{:>4} {:>6}".format("it","quad")
+        
+        for iSubspace in range(self.subspace):
+            lines += "{:>16}".format("Evalue"+str(iSubspace+1))
+        lines += "{:>16} {:>16}".format("residual","time(seconds)"+"\n")
+        
         sumfile.write(lines)
         outfile.flush()
         sumfile.flush()
@@ -436,7 +445,7 @@ class FeastPrintUtils:
     
     def writeFile(self,label,*args):
         """ A single print function for overlap, Hamitonian matrix,
-        iteration details and final eigenvalues"""
+        iteration details, summary output and final eigenvalues"""
         if not self.writeOut:
             return
         sumfile = self.sumfile
@@ -473,11 +482,18 @@ class FeastPrintUtils:
 
             evalue = convert(args[0],unit=self.convertUnit)
             excitation = convert(evalue,eShift=self.eShift)
+            residual = args[1]
 
-            res = args[1]
-            sumfile.write(f'{it}\t{quad}\t')
-            sumfile.write(f'{excitation}\t{res}\t')
-            sumfile.write(f'{runTime}\n')
+            lines = "{:>4} {:>6}".format(it,quad)
+           
+           # NOTE: Case for len(excitation) != subspace is missing (happens for FEAST).  After orthogonalization, the length of eigenvalues can be different than subspace. The printing of the summary file header needs to be changed there. S
+            for iExcitation in range(len(excitation)):
+                lines += "{:>16}".format(f"{excitation[iExcitation]:.08f}")
+            
+            lines += "{:>16} {:>16}".format(f"{residual:5.4e}",f"{runTime:.2f}"\
+                    +"\n")
+            sumfile.write(lines)
+            
         outfile.flush()
         sumfile.flush()
         return

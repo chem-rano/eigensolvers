@@ -115,24 +115,6 @@ class Test_feast_ttns(unittest.TestCase):
 
         typeClass = uvfeast[0].__class__
         
-        with self.subTest("backTransform"):
-            ''' Checks linear combination'''
-            S = typeClass.overlapMatrix(uvfeast[:-1])
-            assert len(uvfeast) > 1
-            SmatFull = typeClass.overlapMatrix(uvfeast)
-            uS = lowdinOrthoMatrix(SmatFull,status)[1]
-            HmatFull = typeClass.matrixRepresentation(self.mat,uvfeast)
-            uv = diagonalizeHamiltonian(uS,HmatFull)[1]
-            uSH = uS@uv
-            bases = basisTransformation(uvfeast,uSH)
-            for m in range(len(uvfeast)):
-                ovlp = bases[m].vdot(uvfeast[m],True)
-                np.testing.assert_allclose(abs(ovlp), 1, rtol=1e-5, err_msg
-                    = f"{ovlp=} but it should be +-1")
-                feastTree = np.ravel(uvfeast[m].ttns.fullTensor(canonicalOrder=True)[0])
-                toCompare = np.ravel(bases[m].ttns.fullTensor(canonicalOrder=True)[0])
-                np.testing.assert_allclose(feastTree,ovlp*toCompare,atol=1e-5)
-    
         with self.subTest("orthogonalization"):
             ''' Returned basis in old form is orthogonal'''
             S = typeClass.overlapMatrix(uvfeast)

@@ -13,6 +13,7 @@ from ttnsVector import TTNSVector
 from util_funcs import headerBot
 from util_funcs import get_pick_function_close_to_sigma
 from util_funcs import get_pick_function_maxOvlp
+from util_funcs import eigenvalueResidual
 import copy
 
 # -----------------------------------------------------
@@ -28,26 +29,39 @@ def _getStatus(status, guessVector, nBlock):
     Out: statusUp  -> initialized and updated
 
     Status contains following information
-    (i)     Block info (number of blocks)
-    (ii)    Stage of iteration
-    (iii)   Convergence info
-    (iv)    Run time
-    (v)     Number of phases
+    (i)     Reference for residual calculations,
+            and resdidual
+    (ii)    Block info (number of blocks)
+    (iii)   Vector flagAddition property
+    (iv)    Stage of iteration
+    (v)     zeroVector, convergence, lindep and futile restarts
+            informations
+    (vi)    Run time
+    (vii)   Number of phases
 
-    keys: ["ref","nBlock","flagAddition",
+    keys: ["ref","residual","nBlock","flagAddition",
     "outerIter","innerIter","cumIter","iBlock",
-    "isConverged","lindep","futileRestarts",
+    "zeroVector", "isConverged","lindep","futileRestarts",
     "startTime","runTime","phase"]
 
 
-    "ref" is a list -> always contains maximum two values
-    Nearest eigenvalues are stored as reference for convergence
-    check and restart purpose
-    First one is for the previous Lanczos iteration & second is for 
-    the current Lanczos iteration
+    "ref" is a list of lists-> always contains maximum two items.
+    Each item of the list contains nearest n block eigenvalues
+    and serves as reference. Purpose of having two items in the 
+    reference list: (i) Latest item (or the second element) is 
+    used for evaluating convergence residual (see in 
+    'checkConvergence' module) and (ii) After evaluating residual
+    for convergence check, the "ref" list is updated with current 
+    nBlock eigenvalues. At end of Krylov iteration, decision is to 
+    be made for terminateRestart for cases with lindep.
+    Second element is already the updated nBlock eigenvalues from
+    current iteration. Here, the first element serves the purpose
+    of reference to check residual of restart.
+
+    zeroVector is True when linear solution has norm less than 0.001*eConv
     """
     
-    statusUp = {"ref":[np.inf],"nBlock":nBlock,
+    statusUp = {"ref":[],"residual":np.inf,"nBlock":nBlock,
             "flagAddition":guessVector.hasExactAddition,
             "outerIter":0, "innerIter":0,"cumIter":0,
             "iBlock":0,"zeroVector":False,
@@ -108,13 +122,21 @@ def checkConvergence(ev,eConv,status,printObj=None):
          '''
     
     isConverged = False
-    ev_nearest = ev[0]   # one state for inexact Lanczos
-    if _convergence(ev_nearest,status["ref"][-1]) <= eConv:
-        isConverged = True
+    nBlock = status["nBlock"]
+    nBlockEigenvalues = ev[0:nBlock]   # nBlock states
+
+    if status["innerIter"] != 1:
+        reference = status["ref"][-1] 
+        residual = eigenvalueResidual(nBlockEigenvalues,reference)
+        status["residual"] = residual
+        if residual <= eConv:
+            isConverged = True
+
     status["isConverged"] = isConverged
     status["runTime"] = time.time() - status["startTime"]
-    if printObj is not None:printObj.writeFile("summary",ev_nearest,status)
-    status["ref"].append(ev_nearest)
+    if printObj is not None:
+        printObj.writeFile("summary",nBlockEigenvalues, status)
+    status["ref"].append(nBlockEigenvalues)
     if len(status["ref"]) > 2:status["ref"].pop(0)
     return status
  
@@ -140,15 +162,15 @@ def checkFitting(evNew, ev, checkFitTol, status):
                    {evNew}. Before fit: {ev}")
     return properFit
 
-def terminateRestart(energy,eConv,status,num=3):
+def terminateRestart(blockEnergies,eConv,status,num=3):
     """ This module looks if Lanczos restarts are fruitful or not
     
     futileRestarts -> Number of ineffective or futile restarts
-    If the eigenvalue change is lower than eConv,
+    If the eigenvalue residual change is greater than max(1e-9,eConv),
     counted as an ineffective or futile restart and adds
     1 to futileRestarts
 
-    In: energy -> Energy after fitting
+    In: blockEnergies -> nBlock energies after fitting
         eConv -> eigenvalue convergence
         status -> param dictionary
         num (optional) -> Number of futile restarts
@@ -156,10 +178,11 @@ def terminateRestart(energy,eConv,status,num=3):
     Out: decision (Boolean) -> decision to terminate restart"""
     
     decision = False
-    prevEnergy = status["ref"][0]
+    prevBlockEnergies = status["ref"][0]
 
     if status["lindep"]:
-        if _convergence(energy,prevEnergy) < max(1e-9,eConv):
+        residual = eigenvalueResidual(blockEnergies,prevBlockEnergies)
+        if residual > max(1e-9,eConv):
             status["futileRestarts"] += 1
 
     if status["futileRestarts"] > num:
@@ -203,14 +226,17 @@ def analyzeStatus(status,maxit,L):
 
 def inexactLanczosDiagonalization(H,  v0: Union[AbstractVector,List[AbstractVector]],
                                   sigma, L, maxit, eConv, checkFitTol=1e-7,
-                                  writeOut=True, fileRef=None, eShift=0.0, convertUnit="au", pick=None, status=None,
+                                  writeOut=True, eShift=0.0, convertUnit="au",
+                                  pick=None, status=None,
                                   outFileName=None, summaryFileName=None):
-    '''
-    Calculate eigenvalues and eigenvectors using the inexact Lanczos method
+    """ Calculate eigenvalues and eigenvectors using the inexact Lanczos method
 
 
     ---Doing inexact Lanczos in canonical orthogonal basis.---
-    Input::  H => diagonalizable input matrix or linearoperator
+    
+    Input parameters
+    ----------------
+             H => diagonalizable input matrix or linearoperator
              v0 => eigenvector guess
                     Can be a list of `AbstractVectors`.
                     Then, block Lanczos is performed (Krylov space on each of the guesses).
@@ -223,9 +249,6 @@ def inexactLanczosDiagonalization(H,  v0: Union[AbstractVector,List[AbstractVect
              eigenvalues
              writeOut (optional) => writing file instruction
              default : write both iteration_lanczos.out & summary_lanczos.out
-             fileRef (optional) => file containg references (e.g. DMRG energies)
-                                   used for summary data file
-             eShift
              eShift (optional) => shift value for eigenvalues, Hmat elements
              convertUnit (optional) => convert unit for eigenvalues, Hmat elements
              pick (optional) => pick function for eigenstate 
@@ -235,10 +258,14 @@ def inexactLanczosDiagonalization(H,  v0: Union[AbstractVector,List[AbstractVect
             outFileName (optional): output file name
             summaryFileName (optional): summary file name
 
-    Output:: ev as inexact Lanczos eigenvalues
-             uv as inexact Lanczos eigenvectors
-             status for convergence information
-    '''
+
+    Output parameters
+    ----------------
+    ev =>  inexact Lanczos eigenvalues
+    Y  =>  inexact Lanczos eigenvectors
+    status => information dictionary
+    """
+
     if issubclass(type(v0), AbstractVector):
         v0 = [v0]
     else:
@@ -263,7 +290,8 @@ def inexactLanczosDiagonalization(H,  v0: Union[AbstractVector,List[AbstractVect
     assert callable(pick)
 
     printObj = LanczosPrintUtils(Ylist[0],sigma,L,maxit,eConv,checkFitTol,
-            writeOut,fileRef,eShift,convertUnit,pick,status, outFileName, summaryFileName)
+            writeOut,eShift,convertUnit,pick,status, outFileName, 
+            summaryFileName)
     printObj.fileHeader()
 
     for outerIter in range(maxit):
@@ -373,7 +401,7 @@ def inexactLanczosDiagonalization(H,  v0: Union[AbstractVector,List[AbstractVect
             Hmat = typeClass.matrixRepresentation(H,Ylist)
             # Check accuracy of basis transformation
             if not np.allclose(Smat, np.eye(len(Ylist)), rtol=checkFitTol, atol=checkFitTol):
-                warnings.warn("Alert:Final eigenvectors are not properly fitted. S=\n{Smat}")
+                warnings.warn(f"Alert:Final eigenvectors are not properly fitted. S=\n{Smat}")
                 properFit = False
                 break
             else:

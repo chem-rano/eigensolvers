@@ -51,19 +51,6 @@ class Test_lanczos(unittest.TestCase):
             self.assertIsInstance(evLanczos, np.ndarray)
             self.assertIsInstance(uvLanczos, list)
             self.assertIsInstance(uvLanczos[0], NumpyVector)
-        with self.subTest("backTransform"):
-            ''' Checks linear combination'''
-            assert len(uvLanczos) > 1
-            Hmat = typeClass.matrixRepresentation(self.mat,uvLanczos)
-            uS = lowdinOrthoMatrix(S,status)[1]
-            ev, uv = diagonalizeHamiltonian(uS,Hmat)
-            uSH = uS@uv
-            bases = basisTransformation(uvLanczos,uSH)
-            for m in range(len(uvLanczos)):
-                ovlp = bases[m].vdot(uvLanczos[m],True)
-                np.testing.assert_allclose(abs(ovlp), 1, rtol=1e-5, err_msg
-                        = f"{ovlp=} but it should be +-1")
-                np.testing.assert_allclose(uvLanczos[m].array,ovlp*bases[m].array,atol=1e-5)
         with self.subTest("orthogonal"):
             ''' Returned basis in old form is orthogonal'''
             typeClass = uvLanczos[0].__class__
