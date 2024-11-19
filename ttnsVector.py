@@ -112,7 +112,9 @@ class TTNSVector(AbstractVector):
         return bracket(self.ttns, other.ttns)
 
     def copy(self) -> TTNSVector:
-        return copy.deepcopy(self)
+        # ATTENTION: `options` should not be copied.
+        #  Copying will lead to problems e.g. if the options contain `auxList`
+        return TTNSVector(self.ttns.copy(), self.options)
 
     def applyOp(self, op: AbstractRenormalization) -> TTNSVector:
         warnings.warn("TTNS call to `applyOp`. This should be avoided!")
@@ -214,7 +216,7 @@ class TTNSVector(AbstractVector):
         return _overlapMatrix([v.ttns for v in vectors])
     
     @staticmethod
-    def extendMatrixRepresentation(operator, vectors:List[TTNSVector],opMat:ndarray):
+    def extendMatrixRepresentation(operator, vectors:List[TTNSVector],opMat:np.ndarray):
         ''' Extends the existing operator matrix representation (opMat) 
         with the elements of newly added vector
         (last member of the "vectors" list)
@@ -233,7 +235,7 @@ class TTNSVector(AbstractVector):
         return opMat
  
     @staticmethod
-    def extendOverlapMatrix(vectors:List[TTNSVector],overlap:ndarray):
+    def extendOverlapMatrix(vectors:List[TTNSVector],overlap:np.ndarray):
         ''' Extends the existing overlap matrix (overlap) 
         with the elements of newly added vector 
         (last member of the "vectors" list)
