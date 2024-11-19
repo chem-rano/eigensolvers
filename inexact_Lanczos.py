@@ -249,7 +249,6 @@ def inexactLanczosDiagonalization(H,  v0: Union[AbstractVector,List[AbstractVect
              default : write both iteration_lanczos.out & summary_lanczos.out
              fileRef (optional) => file containg references (e.g. DMRG energies)
                                    used for summary data file
-             eShift
              eShift (optional) => shift value for eigenvalues, Hmat elements
              convertUnit (optional) => convert unit for eigenvalues, Hmat elements
              pick (optional) => pick function for eigenstate 
