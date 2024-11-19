@@ -125,36 +125,46 @@ def updateQ(Q,im0,Qquad_k,k):
 # ------------------------------
 def feastDiagonalization(A, Y: list[AbstractVector],
                          nc, quad, eMin, eMax, eConv, maxit, contourEllipseFactor=1.0,
-                         writeOut=True, eShift=0.0, convertUnit="au",
-                         outFileName=None, summaryFileName=None):
+                         writeOut=True, eShift=0.0, 
+                         convertUnit="au", outFileName=None, summaryFileName=None):
     """ FEAST diagonalization of A
 
     See Polizzi, PRB, 79, 115112 (2009) 10.1103/PhysRevB.79.115112
     and Baiardi, Kelemen, Reiher, JCTC, 18, 1415 (2021) 10.1021/acs.jctc.1c00984
 
-        In A       ::  matrix or linearoperator or SOP operator
-                    Note: Must be Hermitian. Otherwise, `calculateQuadrature` needs to be adapted.
-        In Y       ::  Initial guess of vectors.
-        In nc      ::  number of quadrature points
-        In quad    ::  quadrature points distribution
-                       Avaiable options - "legendre", "hermite", "trapezoidal"
-        In eMin    ::  eigenvalue lower limit
-        In eMax    ::  eigenvalue upper limit
-        In eConv   ::  eigenvalue residual convergence tolerance
-                Residual is calculated through Sum |E - Eprev| / sum(abs(E)
-                    where E (Eprev) is the eigenvalue vector of the current (previous) iteration
-        In maxit   ::  maximum feast iterations
-        In contourEllipseFactor (optional) ::  Countor shape factor
-                See `calculateQuadrature`
-        In writeOut (optional):: Instruction to writing output files 
-        In eShift (optional)   :: shift value for printing. Assuming `A` is shifted by this value.
-        In convertUnit (optional):: unit for printing
-        In outFileName (optional): output file name
-        In summaryFileName (optional): summary file name
+    Input parameters
+    ----------------
+    A => matrix or linearoperator or SOP operator
+         Note: Must be Hermitian. 
+         Otherwise, `calculateQuadrature` needs to be adapted.
+    Y => Initial guess of vectors.
+    nc => number of quadrature points
+    quad => quadrature points distribution
+            Avaiable options - "legendre", "hermite", "trapezoidal"
+    eMin => eigenvalue lower limit
+    eMax => eigenvalue upper limit
+    eConv => eigenvalue residual convergence tolerance
+             Residual is calculated through 
+             Sum |E - Eprev| / sum(abs(E),
+             where E (Eprev) is the eigenvalue vector of the current 
+             (previous) iteration.
+    maxit => maximum feast iterations
+    contourEllipseFactor (optional) => Countor shape factor
+                                       See `calculateQuadrature`
+    writeOut (optional) => Instruction to writing output files
+    eShift (optional) => shift value for printing. 
+                         Assuming `A` is shifted by this value.
+    convertUnit (optional) => unit for printing
+    outFileName (optional) => output file name
+    summaryFileName (optional) => summary file name
 
-        Out ev   ::  feast eigenvalues
-        Out Y    ::  feast eigenvectors
+    Output parameters
+    ----------------
+    ev =>  feast eigenvalues
+    Y  =>  feast eigenvectors
+    status => information dictionary
     """
+
     typeClass = type(Y[0])
     N_SUBSPACE = len(Y)
     assert eMax > eMin
@@ -166,8 +176,10 @@ def feastDiagonalization(A, Y: list[AbstractVector],
     pi = np.pi
     
     status = _getStatus(None,Y)
-    printObj = FeastPrintUtils(Y[0], nc, quad, eMin, eMax, eConv, maxit, writeOut, eShift,
-                               convertUnit, status, outFileName, summaryFileName)
+    printObj = FeastPrintUtils(Y, nc, quad, eMin, eMax, eConv, maxit, 
+            writeOut, eShift, convertUnit, status, 
+            outFileName, summaryFileName)
+
     printObj.fileHeader()
     
     for it in range(maxit):
@@ -211,7 +223,7 @@ def feastDiagonalization(A, Y: list[AbstractVector],
                 ref_ev = ref_ev[indices]
             elif len(ref_ev) < len(ev):
                 raise RuntimeError(f"{ref_ev=} but {ev=}. Enlarged space?")
-            residual = eigenvalueResidual(ev, ref_ev, eMin, eMax)
+            residual = eigenvalueResidual(ev, ref_ev, [eMin, eMax])
             status["runTime"] = time.time() - status["startTime"]
             status["residual"] = residual
             printObj.writeFile("summary",ev,residual,status)

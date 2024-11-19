@@ -48,7 +48,8 @@ class NumpyVector(AbstractVector):
     @property
     def dtype(self):
         return self.array.dtype
-        
+     
+    @property
     def maxD(self) -> int:
         # zero means no virtual bonds, isolated vector
         return 0
