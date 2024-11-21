@@ -387,7 +387,9 @@ def inexactLanczosDiagonalization(H,  v0: Union[AbstractVector,List[AbstractVect
                 if not os.path.exists(saveDir):
                     os.makedirs(saveDir)
                 for iBlock in range(nBlock):
-                    additionalInformation = {"status":status} # iteration info 
+                    additionalInformation = {"status":status,
+                            "eigencoefficients":uSH[:,iBlock],
+                            "eigenvalue":ev[iBlock]} 
                     nCum = status["cumIter"]
                     filename = saveDir + "/tns_"+str(nCum)+str(iBlock)+".h5"
                     Ylist[idx[iBlock]].ttns.saveToHDF5(filename,
