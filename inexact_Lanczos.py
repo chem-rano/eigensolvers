@@ -15,6 +15,7 @@ from util_funcs import get_pick_function_close_to_sigma
 from util_funcs import get_pick_function_maxOvlp
 from util_funcs import eigenvalueResidual
 import copy
+import os
 
 # -----------------------------------------------------
 # Dividing in to functions for better readability 
@@ -229,7 +230,8 @@ def inexactLanczosDiagonalization(H,  v0: Union[AbstractVector,List[AbstractVect
                                   Hsolve=None,
                                   pick=None, status=None,
                                   writeOut=True, eShift=0.0, convertUnit="au",
-                                  outFileName=None, summaryFileName=None):
+                                  outFileName=None, summaryFileName=None,
+                                  saveTNSsEachIteration=True, saveDir="saveTNSs"):
     """ Calculate eigenvalues and eigenvectors using the inexact Lanczos method
 
 
@@ -260,6 +262,9 @@ def inexactLanczosDiagonalization(H,  v0: Union[AbstractVector,List[AbstractVect
                     (more details see _getStatus doc)
             outFileName (optional): output file name
             summaryFileName (optional): summary file name
+            saveTNSsEachIteration (optional): save nBlock Krylov vectors 
+            at each cumulative iteration
+            saveDir (optional): directory for saving Krylov vectors
 
 
     Output parameters
@@ -337,11 +342,14 @@ def inexactLanczosDiagonalization(H,  v0: Union[AbstractVector,List[AbstractVect
                     # As extension, in principle I can continue with the remaining block iterations.
                     #   But I assume that this here rarely happens
                     break
+                
+
                 Ylist.append(newOrthVec.compress())
                 status["KSmaxD"].append(Ylist[-1].maxD)
                 # Extend matrices
                 Smat = typeClass.extendOverlapMatrix(Ylist, Smat)
                 Hmat = typeClass.extendMatrixRepresentation(H, Ylist, Hmat)
+            
             # Overlap info
             if printObj is not None:
                 printObj.writeFile("iteration", status)
@@ -374,6 +382,17 @@ def inexactLanczosDiagonalization(H,  v0: Union[AbstractVector,List[AbstractVect
             status = checkConvergence(ev,eConv,status,printObj)
             continueIteration = analyzeStatus(status,maxit,L)
             
+            # save nBlock Krylov vectors
+            if saveTNSsEachIteration:
+                if not os.path.exists(saveDir):
+                    os.makedirs(saveDir)
+                for iBlock in range(nBlock):
+                    additionalInformation = {"status":status} # iteration info 
+                    nCum = status["cumIter"]
+                    filename = saveDir + "/tns_"+str(nCum)+str(iBlock)+".h5"
+                    Ylist[idx[iBlock]].ttns.saveToHDF5(filename,
+                            additionalInformation=additionalInformation)
+
             if not continueIteration:
                 break
         if lindepProblem:
@@ -418,7 +437,7 @@ def inexactLanczosDiagonalization(H,  v0: Union[AbstractVector,List[AbstractVect
             status["fitmaxD"] = [item.maxD for item in Ylist]
             if printObj is not None:
                 printObj.writeFile("fitmaxD",status)
-    
+
     printObj.writeFile("results",ev)
     printObj.fileFooter()
     
