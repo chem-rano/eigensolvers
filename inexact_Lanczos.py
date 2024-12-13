@@ -386,13 +386,12 @@ def inexactLanczosDiagonalization(H,  v0: Union[AbstractVector,List[AbstractVect
             if saveTNSsEachIteration:
                 if not os.path.exists(saveDir):
                     os.makedirs(saveDir)
-                for iBlock in range(nBlock):
+                for ivector in range(len(Ylist)):
                     additionalInformation = {"status":status,
-                            "eigencoefficients":uSH[:,iBlock],
-                            "eigenvalue":ev[iBlock]} 
+                            "eigencoefficients":uSH,"eigenvalues":ev} 
                     nCum = status["cumIter"]
-                    filename = saveDir + "/tns_"+str(nCum)+str(iBlock)+".h5"
-                    Ylist[idx[iBlock]].ttns.saveToHDF5(filename,
+                    filename = f"{saveDir}/tns_{nCum}_{ivector}.h5"
+                    Ylist[ivector].ttns.saveToHDF5(filename,
                             additionalInformation=additionalInformation)
 
             if not continueIteration:
@@ -406,7 +405,7 @@ def inexactLanczosDiagonalization(H,  v0: Union[AbstractVector,List[AbstractVect
             # check orthogonality of S
             Smat = typeClass.overlapMatrix(Ylist)
             if not np.allclose(Smat, np.eye(len(Ylist)), rtol=checkFitTol, atol=checkFitTol):
-                warnings.warn("Alert:Final eigenvectors are not properly fitted.")
+                warnings.warn(f"Alert:Final eigenvectors are not properly fitted. S=\n{Smat}")
                 properFit = False
             else:
                 properFit = True
