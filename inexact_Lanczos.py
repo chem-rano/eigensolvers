@@ -382,7 +382,7 @@ def inexactLanczosDiagonalization(H,  v0: Union[AbstractVector,List[AbstractVect
             status = checkConvergence(ev,eConv,status,printObj)
             continueIteration = analyzeStatus(status,maxit,L)
             
-            # save nBlock Krylov vectors
+            # save all Krylov vectors
             if saveTNSsEachIteration:
                 if not os.path.exists(saveDir):
                     os.makedirs(saveDir)
