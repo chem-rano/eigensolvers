@@ -17,9 +17,9 @@ from inexact_Lanczos import inexactLanczosDiagonalization
 from ttnsVector import TTNSVector
 from ttns2.diagonalization import IterativeLinearSystemOptions
 from ttns2.driver import computeResidual
+from ttns2.state import loadTTNSFromHdf5
 
 
-timeStarting = time.time()
 #######################################################
 MAX_D = 10 
 N_BLOCK = 2
@@ -98,15 +98,11 @@ tnsList, energies = eigenStateComputations(tns, Hop,
 print("-------------------------------")
 assert(len(tnsList)==N_BLOCK)
 ###############
-print("state follow: sigma")
-print("bondAdaptLinear",bondAdaptLinear)
-print("bondAdaptFit",bondAdaptFit)
-
 optionsOrtho = {"nSweep":40, "convTol":1e-2, "bondDimensionAdaptions":bondAdaptOrtho}
-optsCheck = IterativeLinearSystemOptions(solver="gcrotmk",tol=1e-2,maxIter=50) 
-optionsLinear = {"nSweep":30, "iterativeLinearSystemOptions":optsCheck,"convTol":5e-2,
-        "bondDimensionAdaptions":bondAdaptLinear, "shiftAndInvertMode":True, "optValUnit":"cm-1",
-        "optShift":util.unit2au(zpve,"cm-1")}
+optsCheck = IterativeLinearSystemOptions(solver="gcrotmk",tol=1e-2,maxIter=10)
+optionsLinear = {"nSweep":5, "iterativeLinearSystemOptions":optsCheck,"convTol":5e-2,
+        "bondDimensionAdaptions":bondAdaptLinear,"shiftAndInvertMode":True, 
+        "optValUnit":"cm-1","optShift":util.unit2au(zpve,"cm-1")}
 optionsFitting = {"nSweep":1000, "convTol":1e-9,"bondDimensionAdaptions":bondAdaptFit}
 options = {"orthogonalizationArgs":optionsOrtho, "linearSystemArgs":optionsLinear, "stateFittingArgs":optionsFitting}
 guess = [TTNSVector(t,options) for t in tnsList]
@@ -115,6 +111,18 @@ sigma = util.unit2au((target+zpve),unit="cm-1")
 ev, tnsList, status = inexactLanczosDiagonalization(Hop,guess,sigma,L,maxit,
         eConv,checkFitTol=1e-3,eShift=zpve,convertUnit="cm-1",guessChoice="DMRG")
 print(status)
+
+# ----------------- Saving Lanczos tress ---------
+directory = "finalLanczosTNSs/"
+if not os.path.exists(directory):
+    os.makedirs(directory)
+
+nvectors = len(tnsList)
+for ivec in range(nvectors):
+    filename = directory + "lanczosSolution"+str(ivec)+".h5"
+    Info = {"energy": ev[ivec],"converged":status["isConverged"],
+        "L":L,"target":target,"MAX_D":MAX_D,"N_BLOCK":N_BLOCK} 
+    tnsList[ivec].ttns.saveToHDF5(filename,additionalInformation=Info)
 
 # ----------------- Residuals --------------------
 outfile = open("iterations_lanczos.out","a") 
@@ -128,7 +136,8 @@ residual_norm = np.empty((ntotal),dtype=float)
 for i in range(ntotal):
     psi = tnsList[i].normalize()
     Enew = TTNSVector.matrixRepresentation(Hop,[psi])[0,0]
-    residual = computeResidual(psi.ttns,Hop,Enew)
+    residual = computeResidual(psi.ttns,Hop,Enew,
+            nSweep=15,convTol=1e-2)
     residual_norm[i] = util.au2unit(residual.norm(),"cm-1")
 
     Enew = util.au2unit(Enew, "cm-1")-zpve
