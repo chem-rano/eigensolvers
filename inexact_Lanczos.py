@@ -15,6 +15,7 @@ from util_funcs import get_pick_function_close_to_sigma
 from util_funcs import get_pick_function_maxOvlp
 from util_funcs import eigenvalueResidual
 import copy
+import os
 
 # -----------------------------------------------------
 # Dividing in to functions for better readability 
@@ -229,7 +230,9 @@ def inexactLanczosDiagonalization(H,  v0: Union[AbstractVector,List[AbstractVect
                                   Hsolve=None,
                                   pick=None, status=None,
                                   writeOut=True, eShift=0.0, convertUnit="au",
-                                  outFileName=None, summaryFileName=None):
+                                  outFileName=None, summaryFileName=None,
+                                  saveTNSsEachIteration=True, saveDir="saveTNSs",
+                                  restart=False):
     """ Calculate eigenvalues and eigenvectors using the inexact Lanczos method
 
 
@@ -260,6 +263,10 @@ def inexactLanczosDiagonalization(H,  v0: Union[AbstractVector,List[AbstractVect
                     (more details see _getStatus doc)
             outFileName (optional): output file name
             summaryFileName (optional): summary file name
+            saveTNSsEachIteration (optional): save nBlock Krylov vectors 
+            at each cumulative iteration
+            saveDir (optional): directory for saving Krylov vectors
+            restart (optional): restart Lanczos calculation
 
 
     Output parameters
@@ -268,42 +275,75 @@ def inexactLanczosDiagonalization(H,  v0: Union[AbstractVector,List[AbstractVect
     Y  =>  inexact Lanczos eigenvectors
     status => information dictionary
     """
-
-    if issubclass(type(v0), AbstractVector):
-        v0 = [v0]
-    else:
-        assert isinstance(v0, (list, tuple, np.ndarray)), f"{v0=} {type(v0)=}"
-    if Hsolve is None:
-        Hsolve = H
-    typeClass = type(v0[0])
-    nBlock = len(v0)
-
-    Ylist = v0.copy() # Krylov subspace lists.
-    Smat = typeClass.overlapMatrix(Ylist)
-    if not np.allclose(Smat, np.eye(nBlock), rtol=1e-3, atol=1e-3):
-        if nBlock > 1:
-            raise RuntimeError(f"Input vectors not orthogonalized: {Smat=}")
+    # ......... For fresh start ................
+    freshStart = not restart
+    if freshStart:
+        if issubclass(type(v0), AbstractVector):
+            v0 = [v0]
         else:
-            # gracefully do this. I do not want to do it for nBlock as GS orthogonalization modifies the block space
-            Ylist[0].normalize()
-            Smat[0,0] = 1
-    Hmat = typeClass.matrixRepresentation(H,Ylist)
+            assert isinstance(v0, (list, tuple, np.ndarray)), f"{v0=} {type(v0)=}"
+    
+        typeClass = type(v0[0])
+        if Hsolve is None:
+            Hsolve = H
+        nBlock = len(v0)
+        Ylist = v0.copy() # Krylov subspace lists.
+        Smat = typeClass.overlapMatrix(Ylist)
+        if not np.allclose(Smat, np.eye(nBlock), rtol=1e-3, atol=1e-3):
+            if nBlock > 1:
+                raise RuntimeError(f"Input vectors not orthogonalized: {Smat=}")
+            else:
+                # gracefully do this. I do not want to do it for nBlock as GS orthogonalization modifies the block space
+                Ylist[0].normalize()
+                Smat[0,0] = 1
+        Hmat = typeClass.matrixRepresentation(H,Ylist)
+        if pick is None:
+            pick = get_pick_function_close_to_sigma(sigma)
+        assert callable(pick)
+    
+        status = _getStatus(status,Ylist[0],nBlock)
+        startOuter = 0
+        startInner = 1
+        printObj = LanczosPrintUtils(Ylist[0],sigma,L,maxit,eConv,checkFitTol,
+                writeOut,eShift,convertUnit,pick,status, 
+                outFileName, summaryFileName)
 
-    status = _getStatus(status,Ylist[0],nBlock)
-    if pick is None:
-        pick = get_pick_function_close_to_sigma(sigma)
-    assert callable(pick)
+        printObj.fileHeader()
 
-    printObj = LanczosPrintUtils(Ylist[0],sigma,L,maxit,eConv,checkFitTol,
-            writeOut,eShift,convertUnit,pick,status, outFileName, 
-            summaryFileName)
-    printObj.fileHeader()
+    else:
+        assert status["isConverged"] is not True
+        Ylist = v0.copy() # Krylov subspace lists.
+        typeClass = type(Ylist[0])
+        Smat = typeClass.overlapMatrix(Ylist)
+        Hmat = typeClass.matrixRepresentation(H,Ylist)
+        
+        if pick is None:
+            pick = get_pick_function_close_to_sigma(sigma)
+        assert callable(pick)
+    
+        if Hsolve is None:
+            Hsolve = H
+       
+        startOuter = status["outerIter"]
+        startInner = status["innerIter"]+1
+        # does not enter Krylov loop-makes vector for next outer iteration
+        # can be avoid if continueIteration is in status
+        if startInner >= L: continueIteration = True 
+        nBlock = status["nBlock"]
+        printObj = LanczosPrintUtils(Ylist[0],sigma,L,maxit,eConv,checkFitTol,
+                writeOut,eShift,convertUnit,pick,status, 
+                outFileName, summaryFileName)
 
-    for outerIter in range(maxit):
+        # printing header is better for param check in restarts
+        printObj.fileHeader()
+
+
+    for outerIter in range(startOuter,maxit):
         status["outerIter"] = outerIter
-        status["KSmaxD"] = [Ylist[0].maxD]
+        status["KSmaxD"] = [item.maxD for item in Ylist]
         status["fitmaxD"] = None
-        for innerIter in range(1,L): # starts with 1 because Y0 is used as first basis vector
+        if outerIter > startOuter: startInner = 1 # full Krylov loops afterwards
+        for innerIter in range(startInner,L): # starts with 1 because Y0 is used as first basis vector
             status["innerIter"] = innerIter
             status["cumIter"] += 1
             #
@@ -337,11 +377,14 @@ def inexactLanczosDiagonalization(H,  v0: Union[AbstractVector,List[AbstractVect
                     # As extension, in principle I can continue with the remaining block iterations.
                     #   But I assume that this here rarely happens
                     break
+                
+
                 Ylist.append(newOrthVec.compress())
                 status["KSmaxD"].append(Ylist[-1].maxD)
                 # Extend matrices
                 Smat = typeClass.extendOverlapMatrix(Ylist, Smat)
                 Hmat = typeClass.extendMatrixRepresentation(H, Ylist, Hmat)
+            
             # Overlap info
             if printObj is not None:
                 printObj.writeFile("iteration", status)
@@ -374,6 +417,18 @@ def inexactLanczosDiagonalization(H,  v0: Union[AbstractVector,List[AbstractVect
             status = checkConvergence(ev,eConv,status,printObj)
             continueIteration = analyzeStatus(status,maxit,L)
             
+            # save all Krylov vectors
+            if saveTNSsEachIteration:
+                if not os.path.exists(saveDir):
+                    os.makedirs(saveDir)
+                for ivector in range(len(Ylist)):
+                    additionalInformation = {"status":status,
+                            "eigencoefficients":uSH,"eigenvalues":ev} 
+                    nCum = status["cumIter"]
+                    filename = f"{saveDir}/tns_{nCum}_{ivector}.h5"
+                    Ylist[ivector].ttns.saveToHDF5(filename,
+                            additionalInformation=additionalInformation)
+
             if not continueIteration:
                 break
         if lindepProblem:
@@ -385,7 +440,7 @@ def inexactLanczosDiagonalization(H,  v0: Union[AbstractVector,List[AbstractVect
             # check orthogonality of S
             Smat = typeClass.overlapMatrix(Ylist)
             if not np.allclose(Smat, np.eye(len(Ylist)), rtol=checkFitTol, atol=checkFitTol):
-                warnings.warn("Alert:Final eigenvectors are not properly fitted.")
+                warnings.warn(f"Alert:Final eigenvectors are not properly fitted. S=\n{Smat}")
                 properFit = False
             else:
                 properFit = True
@@ -418,7 +473,7 @@ def inexactLanczosDiagonalization(H,  v0: Union[AbstractVector,List[AbstractVect
             status["fitmaxD"] = [item.maxD for item in Ylist]
             if printObj is not None:
                 printObj.writeFile("fitmaxD",status)
-    
+
     printObj.writeFile("results",ev)
     printObj.fileFooter()
     
