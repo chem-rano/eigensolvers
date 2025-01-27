@@ -28,9 +28,11 @@ for i in range(batchsize):
 rootEnergies = util.au2unit(np.array(rootEnergies),"cm-1")-zpve
 # -------------------------------------------------------
 overlap_file = open(f"RefinedStateCorrespondence.out","w")
+overlap_file.write("*"*12+"Best match according to overlap"+"*"*12+"\n")
 formatStyle = "{:>10} {:>20} {:>14} {:>18} {:>12}"
 lines = formatStyle.format("root-Index","refinedState-Index","energy-root","energy-refinedState","overlap")+"\n"
 overlap_file.write(lines)
+
 final_refinedStates = []
 final_refinedEnergies = []
 
@@ -62,6 +64,37 @@ for i in range(batchsize):
     final_refinedStates.append(maxOvlp_idx)
     final_refinedEnergies.append(maxOvlp_stateE)
     lines = formatStyle.format(i,maxOvlp_idx,f"{rootEnergies[i]:.6f}",f"{maxOvlp_stateE:.6f}",f"{maxOvlp:.4f}")+"\n"
+    overlap_file.write(lines)
+
+final_refinedEnergies, final_refinedStates= zip(*sorted(zip(final_refinedEnergies, final_refinedStates)))
+overlap_file.write(f"\n\nSorted refined-states energies: ")
+overlap_file.write(f"{final_refinedEnergies}\n")
+overlap_file.write(f"Sorted refined-states indices: ")
+overlap_file.write(f"{final_refinedStates}\n")
+
+os.chdir("../")
+cwd = os.getcwd()
+for idx in final_refinedStates:
+    filename = f"{cwd}/finalLanczosTNSs/lanczosSolution{idx}.h5"
+    overlap_file.write(filename+"\n")
+os.chdir("rootMatch/")
+
+# -------------------------------------------------------------------------
+overlap_file.write("\n"+"*"*12+"First nBlock vectors overlap"+"*"*12+"\n")
+# first nBlock refined states
+final_refinedStates = []
+final_refinedEnergies = []
+
+for i in range(batchsize):
+    rootState = rootStates[i]
+    filename = f"../finalLanczosTNSs/lanczosSolution{i}.h5"
+    refinedState = loadTTNSFromHdf5(filename)[0]
+    refinedStateEnergy = util.au2unit(loadTTNSFromHdf5(filename)[1]["energy"],"cm-1")-zpve
+    overlap = bracket(rootState,refinedState)
+    final_refinedStates.append(i)
+    final_refinedEnergies.append(refinedStateEnergy)
+            
+    lines = formatStyle.format(i,i,f"{rootEnergies[i]:.6f}",f"{refinedStateEnergy:.6f}",f"{overlap:.4f}")+"\n"
     overlap_file.write(lines)
 
 final_refinedEnergies, final_refinedStates= zip(*sorted(zip(final_refinedEnergies, final_refinedStates)))
