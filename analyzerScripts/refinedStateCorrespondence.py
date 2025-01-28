@@ -87,14 +87,24 @@ final_refinedEnergies = []
 
 for i in range(batchsize):
     rootState = rootStates[i]
-    filename = f"../finalLanczosTNSs/lanczosSolution{i}.h5"
-    refinedState = loadTTNSFromHdf5(filename)[0]
-    refinedStateEnergy = util.au2unit(loadTTNSFromHdf5(filename)[1]["energy"],"cm-1")-zpve
-    overlap = bracket(rootState,refinedState)
-    final_refinedStates.append(i)
-    final_refinedEnergies.append(refinedStateEnergy)
+    maxOvlp = 0.0
+    maxOvlp_idx = None
+    maxOvlp_stateE = np.inf
+    for j in range(batchsize):
+        if j in final_refinedStates:
+            continue
+        filename = f"../finalLanczosTNSs/lanczosSolution{j}.h5"
+        refinedState = loadTTNSFromHdf5(filename)[0]
+        refinedStateEnergy = util.au2unit(loadTTNSFromHdf5(filename)[1]["energy"],"cm-1")-zpve
+        overlap = bracket(rootState,refinedState)
+        if abs(overlap) > maxOvlp:
+            maxOvlp = abs(overlap)
+            maxOvlp_idx = j
+            maxOvlp_stateE = refinedStateEnergy
+    final_refinedStates.append(maxOvlp_idx)
+    final_refinedEnergies.append(maxOvlp_stateE)
             
-    lines = formatStyle.format(i,i,f"{rootEnergies[i]:.6f}",f"{refinedStateEnergy:.6f}",f"{overlap:.4f}")+"\n"
+    lines = formatStyle.format(i,maxOvlp_idx,f"{rootEnergies[i]:.6f}",f"{maxOvlp_stateE:.6f}",f"{maxOvlp:.4f}")+"\n"
     overlap_file.write(lines)
 
 final_refinedEnergies, final_refinedStates= zip(*sorted(zip(final_refinedEnergies, final_refinedStates)))
