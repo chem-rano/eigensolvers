@@ -45,12 +45,14 @@ def _getStatus(status, guessVector, nBlock):
     "startTime","runTime","phase"]
 
 
-    "ref" is a list of lists-> always contains maximum two items.
+    "ref" is a list of np.arrays -> always contains maximum two items.
     Each item of the list contains nearest n block eigenvalues
     and serves as reference. Purpose of having two items in the 
     reference list: (i) Latest item (or the second element) is 
     used for evaluating convergence residual (see in 
-    'checkConvergence' module) and (ii) After evaluating residual
+    'checkConvergence' module), reference is initialized with
+    an array of np.inf of nBlock elements [and it is alright with
+    eigenvalueResidual] and (ii) After evaluating residual
     for convergence check, the "ref" list is updated with current 
     nBlock eigenvalues. At end of Krylov iteration, decision is to 
     be made for terminateRestart for cases with lindep.
@@ -61,7 +63,7 @@ def _getStatus(status, guessVector, nBlock):
     zeroVector is True when linear solution has norm less than 0.001*eConv
     """
     
-    statusUp = {"ref":[],"residual":np.inf,"nBlock":nBlock,
+    statusUp = {"ref":[np.full(nBlock,np.inf)],"residual":np.inf,"nBlock":nBlock,
             "flagAddition":guessVector.hasExactAddition,
             "outerIter":0, "innerIter":0,"cumIter":0,
             "iBlock":0,"zeroVector":False,
@@ -125,12 +127,11 @@ def checkConvergence(ev,eConv,status,printObj=None):
     nBlock = status["nBlock"]
     nBlockEigenvalues = ev[0:nBlock]   # nBlock states
 
-    if status["innerIter"] != 1:
-        reference = status["ref"][-1] 
-        residual = eigenvalueResidual(nBlockEigenvalues,reference)
-        status["residual"] = residual
-        if residual <= eConv:
-            isConverged = True
+    reference = status["ref"][-1] 
+    residual = eigenvalueResidual(nBlockEigenvalues,reference)
+    status["residual"] = residual
+    if residual <= eConv:
+        isConverged = True
 
     status["isConverged"] = isConverged
     status["runTime"] = time.time() - status["startTime"]
@@ -385,7 +386,7 @@ def inexactLanczosDiagonalization(H,  v0: Union[AbstractVector,List[AbstractVect
             # check orthogonality of S
             Smat = typeClass.overlapMatrix(Ylist)
             if not np.allclose(Smat, np.eye(len(Ylist)), rtol=checkFitTol, atol=checkFitTol):
-                warnings.warn("Alert:Final eigenvectors are not properly fitted.")
+                warnings.warn(f"Alert:Final eigenvectors are not properly fitted. S=\n{Smat}")
                 properFit = False
             else:
                 properFit = True
