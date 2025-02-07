@@ -46,12 +46,12 @@ def _getStatus(status, guessVector, nBlock):
     "startTime","runTime","phase"]
 
 
-    "ref" is a list of lists-> always contains maximum two items.
+    "ref" is a list of np.arrays -> always contains maximum two items.
     Each item of the list contains nearest n block eigenvalues
-    and serves as reference. Purpose of having two items in the 
-    reference list: (i) Latest item (or the second element) is 
-    used for evaluating convergence residual (see in 
-    'checkConvergence' module) and (ii) After evaluating residual
+    and serves as reference. Purpose of having two 
+    items in the reference list: (i) Latest item (or the second element) 
+    is used for evaluating convergence residual (see in 
+    'checkConvergence' module), and (ii) After evaluating residual
     for convergence check, the "ref" list is updated with current 
     nBlock eigenvalues. At end of Krylov iteration, decision is to 
     be made for terminateRestart for cases with lindep.
@@ -126,7 +126,8 @@ def checkConvergence(ev,eConv,status,printObj=None):
     nBlock = status["nBlock"]
     nBlockEigenvalues = ev[0:nBlock]   # nBlock states
 
-    if status["innerIter"] != 1:
+    # Residual calculation and check for all except cumIter = 1
+    if status["cumIter"] > 1:
         reference = status["ref"][-1] 
         residual = eigenvalueResidual(nBlockEigenvalues,reference)
         status["residual"] = residual
@@ -342,14 +343,11 @@ def inexactLanczosDiagonalization(H,  v0: Union[AbstractVector,List[AbstractVect
                     # As extension, in principle I can continue with the remaining block iterations.
                     #   But I assume that this here rarely happens
                     break
-                
-
                 Ylist.append(newOrthVec.compress())
                 status["KSmaxD"].append(Ylist[-1].maxD)
                 # Extend matrices
                 Smat = typeClass.extendOverlapMatrix(Ylist, Smat)
                 Hmat = typeClass.extendMatrixRepresentation(H, Ylist, Hmat)
-            
             # Overlap info
             if printObj is not None:
                 printObj.writeFile("iteration", status)
@@ -438,7 +436,7 @@ def inexactLanczosDiagonalization(H,  v0: Union[AbstractVector,List[AbstractVect
             status["fitmaxD"] = [item.maxD for item in Ylist]
             if printObj is not None:
                 printObj.writeFile("fitmaxD",status)
-
+    
     printObj.writeFile("results",ev)
     printObj.fileFooter()
     
