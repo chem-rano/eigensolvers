@@ -3,11 +3,15 @@ import os
 import util
 import warnings
 
+# -------------------------------------------------------------------
+# This script does sorting of overlap data 
+# and is written as per MR's folder arrangement
+
 # ---------------- Load data to be sorted from overlap file ---------
 imin, imax = 1, 1000
 jmin, jmax = 1, 1000
 dirSplits = os.getcwd().split("/")
-print(dirSplits)
+dirSplits = ["","overlapCorrected"] #NOTE for demo
 
 if dirSplits[-1] == "overlapCorrected":
     both = False
@@ -38,7 +42,8 @@ for i in range(imin,imax):
     for j in range(jmin,jmax):
         try:
             if not both: 
-                oldFile = f"{s1}../overlap/{s2}Overlap{i}.out"
+                #oldFile = f"{s1}../overlap/{s2}Overlap{i}.out"
+                oldFile = f"demo/Overlap{i}.out"
                 newFile = f"Overlap_it{i}_vec0.out"
             elif both:
                 oldFile = f"{s1}../allOthers/{s2}Overlap_it{i}_vec{j}.out"
