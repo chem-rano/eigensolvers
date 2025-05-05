@@ -5,22 +5,38 @@ import util
 import warnings
 from ttns2.driver import bracket
 import sys
+import time
 
 # ---------------- Function1: Reference TTNSs & energies -----------
-def collect_ref(ref_dict={"ref_energy":None,"ref_coeffs":None}):
+def collect_ref(ref_dict):
     ''' Collects reference energies and wavefunctions from the information 
-    obtained from ref_dict
-    Inputs:   ref_dict: Contains maximum 3 informations
+    give in the "ref_dict" dictionary
+    Additionally, this function scrutizes reference information to be correct 
+    to some extent
+    Inputs:   ref_dict: Contains maximum 5 keys
               (a) path_to_ref : File location of the reference wavefunctions
               (b) ref_energy (optional): reference energy 
-              (c) ref_coeffs optional): coeffecients for orthogonalied references
-    Outputs: sorted energies, wavefunctions'''
+              (c) energy_unit (optional): reference energy unit
+              (d) zpve (optional): zero-point energy
+              (e) ref_coeffs (optional): coeffecients for orthogonalized references
+    Outputs: sorted refernce energies, reference wavefunctions'''
     
+    # Without speficying reference wavefunctions
     try:
         path = ref_dict["path_to_ref"]
     except KeyError:
         print("Key path_to_ref not found. Program terminated.")
         sys.exit(1)
+    
+    #ref_dict with defaults 
+    default_dict = {"ref_energy":None,"ref_coeffs":None, "energy_unit":"au","zpve":0.0}
+    for key in default_dict:
+        if key not in ref_dict: 
+            ref_dict[key] = default_dict[key]
+    
+    # In case of orthogonalized reference, without specifying energies
+    if ref_dict["ref_coeffs"] is not None and ref_dict["ref_energy"] is None:
+        sys.exit("Orthogonalized reference energy file is not found")
     
     # collect wavefunction ane energies (if applicable)
     energies = []
@@ -36,41 +52,44 @@ def collect_ref(ref_dict={"ref_energy":None,"ref_coeffs":None}):
             break
     assert iref < 10000,"Wavefunction collection loop does not break"
     
-    # case of orthogonalized refernce wavefunctions
+    # case of nonorthogonalized reference wavefunctions
     if ref_dict["ref_coeffs"] is None:
         if ref_dict["ref_energy"] is None:
+            energies, wavefunctions = zip(*sorted(zip(energies, wavefunctions)))
+    
+        elif ref_dict["ref_energy"] is not None: 
+            energiesIn = np.array(ref_dict["ref_energy"]) + ref_dict["zpve"]
+            if ref_dict["energy_unit"] != "au":
+                energiesIn = util.unit2au(np.array(ref_dict["ref_energy"]),ref_dict["energy_unit"])
             indices = np.arange(0,len(energies),dtype=int)
             energies, indices = zip(*sorted(zip(energies, indices)))
-            wavefunctions = wavefunctions[indices]
-    
-        elif ref_dict["ref_energy"] is not None: 
-            energiesIn = ref_dict["ref_energy"]
-            p = np.random.randint(0,len(energiesIn))
-            checker = (loadTTNSFromHdf5(f"{path}/states/tns_{p:05d}.h5")[1]["energy"]== energies[p])
-            checker = checker and (len(wavefunctions) == len(energiesIn))
-            if checker:
-                energies = energiesIn
-            else:   # user given wrong energy file
-                energies = energies
-    
-    # case of nonorthogonalized reference wavefunctions
-    elif ref_dict["ref_coeffs"] is not None:
-        if ref_dict["ref_energy"] is None:
-            sys.exit("Orthogonalized reference energy file is not found") 
+            equal = (list(energiesIn) == energies)
 
-        elif ref_dict["ref_energy"] is not None: 
-            energies = ref_dict["ref_energy"]
-            assert len(wavefunctions) == len(energies)
-        
+            if not equal: # user given wrong/ unsorted energy file
+                energies, wavefunctions = zip(*sorted(zip(energies, wavefunctions)))
+    
+    # case of orthogonalized refernce wavefunctions
+    elif ref_dict["ref_coeffs"] is not None:
+        energies = ref_dict["ref_energy"]
+        assert len(wavefunctions) == len(energies)
+       
+        if True: # test when going to a new case
             d = np.random.randint(0,len(energies))
-            overlapd = 0.0
-            num_ref = len(wavefunctions)
             ref_coeffs = ref_dict["ref_coeffs"]
+            num_ref = len(wavefunctions)
+            overlapd = np.array(0, dtype=wavefunctions[0].rootNode.dtype)
+            is_real = np.isreal(ref_coeffs).all()
+            t1 = time.time()
             for i in range(num_ref):
                 for j in range(num_ref):
-                    overlapd += complex(ref_coeffs[i,d])*ref_coeffs[j,d]*bracket(wavefunctions[i], wavefunctions[j]) 
-            assert overlapd == 1.0,"Self overlap of reference is not 1.0"
-        
+                    if is_real:
+                        overlapd += ref_coeffs[i,d]*ref_coeffs[j,d]*bracket(wavefunctions[i], wavefunctions[j])
+                    else:
+                        overlapd += complex(ref_coeffs[i,d])*ref_coeffs[j,d]*bracket(wavefunctions[i], wavefunctions[j]) 
+                    print(i,j,overlapd)
+        print(overlapd,"Self overlap of reference is d (overlapd.real should be 1.0)")
+        print(time.time() -t1) #NOTE
+        print("collect_ref is done")
     return energies, wavefunctions
 # ---------------- Function2: collect Krylov statetors ----------------
 def assemble_krylov_statetors(cum_it,path_to_KS):
@@ -144,9 +163,9 @@ def overlap_nonortho_ref(cum_it,Ylist,istate,refWF,path_nonortho_overlap):
     num_ref = len(refWF)
     mstates = len(Ylist)
     if path_nonortho_overlap is None:
-        total = 0.0
-        overlap = np.empty(num_ref,dtype=float)
-        overlap2 = np.empty(num_ref,dtype=float)
+        total = np.array(0, dtype=Ylist[0].rootNode.dtype)
+        overlap = np.empty(num_ref,dtype=Ylist[0].rootNode.dtype)
+        overlap2 = np.empty(num_ref,dtype=Ylist[0].rootNode.dtype)
         for num in range(num_ref):
             for k in range(mstates):
                 overlap[num] += bracket(refWF[num], Ylist[k])*coeffs[k,state]
@@ -213,17 +232,17 @@ def calculate_and_write_overlap(start_cum,max_cum,path_to_KS,states_selected,ref
             overlap, overlap2, total = overlap_nonortho_ref(it,Ylist,istate,refWF,path_nonortho_overlap)
             
             if ref_dict["ref_coeffs"] is not None:
-                totalC = 0.0
-                overlapC = np.empty(num_ref,dtype=float)
-                overlap2C = np.empty(num_ref,dtype=float)
+                totalC = np.array(0, dtype=Ylist[0].rootNode.dtype)
+                overlapC = np.empty(num_ref,dtype=Ylist[0].rootNode.dtype)
+                overlap2C = np.empty(num_ref,dtype=Ylist[0].rootNode.dtype)
                 ref_coeffs = ref_dict["ref_coeffs"]
                 is_real = np.isreal(ref_coeffs).all()
                 for num in range(num_ref):
                     for ic in range(num_ref):
                         if is_real:
-                            overlapC[num] += ref_coeffs[ic,num] * overlap[num] #NOTE coeffs
+                            overlapC[num] += ref_coeffs[ic,num] * overlap[ic] #NOTE coeffs
                         else:
-                            overlapC[num] += complex(ref_coeffs[ic,num]) * overlap[num]
+                            overlapC[num] += complex(ref_coeffs[ic,num]) * overlap[ic]
                 overlap2C[num] = overlapC[num]*overlapC[num]
                 total += overlap2C[num]
 
