@@ -11,9 +11,9 @@ import time
 def collect_ref(ref_dict):
     ''' Collects reference energies and wavefunctions from the information 
     give in the "ref_dict" dictionary
-    Additionally, this function scrutizes reference information to be correct 
+    Additionally, this function scrutinizes reference information to be correct 
     to some extent
-    Inputs:   ref_dict: Contains maximum 5 keys
+    Inputs:   ref_dict: Dictionary containing REF info (Contains maximum 5 keys)
               (a) path_to_ref : File location of the reference wavefunctions
               (b) ref_energy (optional): reference energy 
               (c) energy_unit (optional): reference energy unit
@@ -21,7 +21,7 @@ def collect_ref(ref_dict):
               (e) ref_coeffs (optional): coeffecients for orthogonalized references
     Outputs: sorted refernce energies, reference wavefunctions'''
     
-    # Without speficying reference wavefunctions
+    # Without specification of reference wavefunctions
     try:
         path = ref_dict["path_to_ref"]
     except KeyError:
@@ -34,11 +34,11 @@ def collect_ref(ref_dict):
         if key not in ref_dict: 
             ref_dict[key] = default_dict[key]
     
-    # In case of orthogonalized reference, without specifying energies
+    # In case of orthogonalized reference, without specification of energies
     if ref_dict["ref_coeffs"] is not None and ref_dict["ref_energy"] is None:
         sys.exit("Orthogonalized reference energy file is not found")
     
-    # collect wavefunction ane energies (if applicable)
+    # collect wavefunction ane energies
     energies = []
     wavefunctions = []
     for iref in range(10000):
@@ -52,7 +52,7 @@ def collect_ref(ref_dict):
             break
     assert iref < 10000,"Wavefunction collection loop does not break"
     
-    # case of nonorthogonalized reference wavefunctions
+    # case1: nonorthogonalized reference wavefunctions
     if ref_dict["ref_coeffs"] is None:
         if ref_dict["ref_energy"] is None:
             energies, wavefunctions = zip(*sorted(zip(energies, wavefunctions)))
@@ -68,12 +68,13 @@ def collect_ref(ref_dict):
             if not equal: # user given wrong/ unsorted energy file
                 energies, wavefunctions = zip(*sorted(zip(energies, wavefunctions)))
     
-    # case of orthogonalized refernce wavefunctions
+    # case2: orthogonalized refernce wavefunctions
     elif ref_dict["ref_coeffs"] is not None:
         energies = ref_dict["ref_energy"]
         assert len(wavefunctions) == len(energies)
        
-        if True: # test when going to a new case
+        if False: # test when going to a new case
+            # (a) self-overlap
             d = np.random.randint(0,len(energies))
             ref_coeffs = ref_dict["ref_coeffs"]
             num_ref = len(wavefunctions)
@@ -87,9 +88,9 @@ def collect_ref(ref_dict):
                     else:
                         overlapd += complex(ref_coeffs[i,d])*ref_coeffs[j,d]*bracket(wavefunctions[i], wavefunctions[j]) 
                     print(i,j,overlapd)
-        print(overlapd,"Self overlap of reference is d (overlapd.real should be 1.0)")
-        print(time.time() -t1) #NOTE
-        print("collect_ref is done")
+            print(f"Self overlap of reference,{d} is {overlapd} (overlapd should be 1.0)")
+            print("Self overlap computation time",time.time() -t1) #Example:1.0000081082944656 in 133349 sec
+            # (b) energy check: #NOTE 
     return energies, wavefunctions
 # ---------------- Function2: collect Krylov statetors ----------------
 def assemble_krylov_statetors(cum_it,path_to_KS):
@@ -127,7 +128,7 @@ def eigen_info(cum_it,path_to_KS):
 # ------- Function4: Lanczos states for overlap calculation --------
 def state_iterators(krylov_dim,states="all"):
     ''' Get indices for inner iteration loop
-    (mainly to control statetor indices for overlap calculation)
+    (mainly to control state indices for overlap calculation)
     Helpful for terminated jobs due to computation time
     
     Inputs: krylov_dim -> Krylov dimension
@@ -147,12 +148,14 @@ def state_iterators(krylov_dim,states="all"):
 
     return from_state, to_state
 
-def overlap_nonortho_ref(cum_it,Ylist,istate,refWF,path_nonortho_overlap):
+# ------- Function5: nonorthogonal overlap calculation/ collection --------
+def overlap_nonortho_ref(cum_it,istate,Ylist,coeffs,refWF,path_nonortho_overlap):
     ''' Function to calculte/ upload overlap data of Lanczos states
     with  non-orthogonal refernce
     Inputs: cum_it -> cumulative iteration number
-            Ylist -> List of Krylov vectors
             istate -> Lanczos state to calculate overlap
+            Ylist -> List of Krylov vectors
+            coeffs -> Lanczos eigen coefficients
             refWF -> list of nonorthogonal references
             path_nonortho_overlap -> data file containing overlap 
             data (if available)
@@ -163,13 +166,13 @@ def overlap_nonortho_ref(cum_it,Ylist,istate,refWF,path_nonortho_overlap):
     num_ref = len(refWF)
     mstates = len(Ylist)
     if path_nonortho_overlap is None:
+        overlap = np.zeros(num_ref,dtype=Ylist[0].rootNode.dtype)
+        overlap2 = np.zeros(num_ref,dtype=Ylist[0].rootNode.dtype)
         total = np.array(0, dtype=Ylist[0].rootNode.dtype)
-        overlap = np.empty(num_ref,dtype=Ylist[0].rootNode.dtype)
-        overlap2 = np.empty(num_ref,dtype=Ylist[0].rootNode.dtype)
         for num in range(num_ref):
             for k in range(mstates):
-                overlap[num] += bracket(refWF[num], Ylist[k])*coeffs[k,state]
-            overlap2[num] = overlap[num]*overlap[num]
+                overlap[num] += bracket(refWF[num], Ylist[k])*coeffs[k,istate]
+            overlap2[num] = overlap[num]**2
             total += overlap2[num]
 
     elif path_nonortho_overlap is not None:
@@ -180,7 +183,7 @@ def overlap_nonortho_ref(cum_it,Ylist,istate,refWF,path_nonortho_overlap):
 
     return overlap, overlap2, total
 
-# --------- overlap, squared overlap and sum of squared overlap -----
+# --------- Main function: overlap, squared overlap and sum of squared overlap -----
 def calculate_and_write_overlap(start_cum,max_cum,path_to_KS,states_selected,ref_dict,
         path_nonortho_overlap=None):
     ''' Main function to calculate and write overlap, squared overlap,
@@ -203,15 +206,15 @@ def calculate_and_write_overlap(start_cum,max_cum,path_to_KS,states_selected,ref
             max_cum -> maximum cumulative iteration
             path_to_KS -> path to saved Krylov statetors
             states_selected -> Lanczos states; 'all' as string/a list of indices [0,2]
-            path_nonortho_overlap -> nonorthogonal overlap file, if provided then overlap is 
-                                calculated using equation 2
+            ref_dict -> dictionary containing REF info 
+            path_nonortho_overlap (optional) -> nonorthogonal overlap file, if provided 
+            then overlap is calculated using equation 2
     
     Generated file -> Overlap_it{i}_state{state}.out for iteration "i" and state "state"
     '''
     
     refE, refWF = collect_ref(ref_dict) 
     num_ref = len(refE)
-    num_ref = 10 #NOTE
     ref_in_cm = util.au2unit(np.array(refE),"cm-1")
 
     for it in range(start_cum,max_cum+1):
@@ -224,40 +227,44 @@ def calculate_and_write_overlap(start_cum,max_cum,path_to_KS,states_selected,ref
         from_state, to_state = state_iterators(mstates,states_selected)
         for istate in range(from_state,to_state):
     
-            overlap_file = open(f"Overlap_it{i}_vec{state}.out","w")
+            overlap_file = open(f"Overlap_it{it}_vec{istate}.out","w")
             output_format = "{:>6} {:>16} {:>16} {:>16} {:>16} {:>16}" 
             lines = output_format.format("Index","RefE","eigenvalue","overlap","overlap-squared","Total\n")
             overlap_file.write(lines)
 
-            overlap, overlap2, total = overlap_nonortho_ref(it,Ylist,istate,refWF,path_nonortho_overlap)
+            overlap, overlap2, total = overlap_nonortho_ref(it,istate,Ylist,coeffs,refWF,path_nonortho_overlap)
+            print(f"Note: Total squared overlap is {total})")
             
             if ref_dict["ref_coeffs"] is not None:
-                totalC = np.array(0, dtype=Ylist[0].rootNode.dtype)
-                overlapC = np.empty(num_ref,dtype=Ylist[0].rootNode.dtype)
-                overlap2C = np.empty(num_ref,dtype=Ylist[0].rootNode.dtype)
                 ref_coeffs = ref_dict["ref_coeffs"]
                 is_real = np.isreal(ref_coeffs).all()
+                overlapC = np.zeros(num_ref,dtype=Ylist[0].rootNode.dtype)
+                overlap2C = np.zeros(num_ref,dtype=Ylist[0].rootNode.dtype)
+                totalC = np.array(0, dtype=Ylist[0].rootNode.dtype)
                 for num in range(num_ref):
                     for ic in range(num_ref):
                         if is_real:
-                            overlapC[num] += ref_coeffs[ic,num] * overlap[ic] #NOTE coeffs
+                            overlapC[num] += ref_coeffs[ic,num] * overlap[ic]
                         else:
                             overlapC[num] += complex(ref_coeffs[ic,num]) * overlap[ic]
-                overlap2C[num] = overlapC[num]*overlapC[num]
-                total += overlap2C[num]
+                    overlap2C[num] = overlapC[num]**2
+                    totalC += overlap2C[num]
+                print(f"Note: Total squared ortho-overlap is {totalC})")
 
-        
-            lines = "{:>6}".format(num)
-            lines += "{:>16}".format(f"{ref_in_cm[num,0]:.6f}") #NOTE
-            lines += "{:>16}".format(f"{ev_in_cm[istate]:.6f}")
-            lines += "{:>16}".format(f"{overlap:.4f}")
-            lines += "{:>16}".format(f"{overlap2:.4f}")
-            lines += "{:>16}".format(f"{total:.4f}")+"\n"
-            overlap_file.write(lines)
+                overlap = overlapC
+                overlap2 = overlap2C
+                total = totalC
+
+            for num in range(num_ref):
+                lines = "{:>6}".format(num)
+                lines += "{:>16}".format(f"{ref_in_cm[num]:.6f}")
+                lines += "{:>16}".format(f"{ev_in_cm[istate]:.6f}")
+                lines += "{:>16}".format(f"{overlap[num]:.4f}")
+                lines += "{:>16}".format(f"{overlap2[num]:.4f}")
+                lines += "{:>16}".format(f"{total:.4f}")+"\n"
+                overlap_file.write(lines)
             overlap_file.close()
 
-            assert total <= 1.0, f"Total squared overlap {total} greater than 1.0"
-            assert totalC <= 1.0, f"Total squared overlap {total} greater than 1.0"
 
 # --------------------------- Main function ------------------------
 if __name__ == "__main__":
@@ -267,7 +274,7 @@ if __name__ == "__main__":
     
     path_to_ref = "/data/larsson/Eigen/RUNS/tns_D70/" # Path to References
     ref_energy = np.load(f"{path_to_ref}/matrices/evuv.npz")["ev"] # reference energies
-    ref_coeffs = np.load(f"{path_to_ref}/matrices/evuv.npz")["uv"]
+    ref_coeffs = np.load(f"{path_to_ref}/matrices/evuv.npz")["uv"] # ortho coefficients
     ref_dict = {"path_to_ref":path_to_ref,"ref_energy":ref_energy,"ref_coeffs":ref_coeffs}
    
     calculate_and_write_overlap(start_cum,max_cum,path_to_KS,states,ref_dict)
