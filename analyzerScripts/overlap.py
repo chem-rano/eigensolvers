@@ -145,6 +145,8 @@ def state_iterators(krylov_dim,states="all"):
     
     if to_state == from_state:
         to_state = to_state + 1 # range to cover
+    elif to_state > krylov_dim:
+        to_state = krylov_dim 
 
     return from_state, to_state
 
@@ -176,7 +178,7 @@ def overlap_nonortho_ref(cum_it,istate,Ylist,coeffs,refWF,path_nonortho_overlap)
             total += overlap2[num]
 
     elif path_nonortho_overlap is not None:
-        filename = f"{path_nonortho_overlap}/Overlap_it{cum_it}_vec{istate}.dat"
+        filename = f"{path_nonortho_overlap}/Overlap_it{cum_it}_vec{istate}.out"
         overlap = np.loadtxt(filename,usecols=(3),skiprows=1,dtype=float)
         overlap2 = np.loadtxt(filename,usecols=(4),skiprows=1,dtype=float)
         total = np.loadtxt(filename,usecols=(5),skiprows=1,dtype=float)[-1]
@@ -277,5 +279,5 @@ if __name__ == "__main__":
     ref_coeffs = np.load(f"{path_to_ref}/matrices/evuv.npz")["uv"] # ortho coefficients
     ref_dict = {"path_to_ref":path_to_ref,"ref_energy":ref_energy,"ref_coeffs":ref_coeffs}
    
-    calculate_and_write_overlap(start_cum,max_cum,path_to_KS,states,ref_dict)
+    calculate_and_write_overlap(start_cum,max_cum,path_to_KS,states,ref_dict,path_nonortho_overlap=None)
 # ---------------  EOF ----------------------------------------------
