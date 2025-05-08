@@ -43,8 +43,9 @@ for i in range(imin,imax):
         try:
             if not both: 
                 #oldFile = f"{s1}../overlap/{s2}Overlap{i}.out"
+                #newFile = f"Overlap_it{i}_vec0.out"
                 oldFile = f"demo/Overlap{i}.out"
-                newFile = f"Overlap_it{i}_vec0.out"
+                newFile = f"demo/Overlap{i}_sorted.out"
             elif both:
                 oldFile = f"{s1}../allOthers/{s2}Overlap_it{i}_vec{j}.out"
                 newFile = f"Overlap_it{i}_vec{j}.out"

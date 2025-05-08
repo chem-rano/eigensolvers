@@ -23,7 +23,7 @@ for itree in range(numRef):
     energy = loadTTNSFromHdf5(filename)[1]["energy"]
     actualE[itree] = energy
 # ------------------ get corresponding energy -----------------
-print("Eigenvalue (cm-1)\tClosest 5 eigenvalues (cm-1)")
+print("Eigenvalue (cm-1)\tClosest 4 eigenvalues (cm-1)")
 outfile = open(f"AccordanceREF{D}.dat","w")
 outfile.write("{:>10} {:>24} {:>10} {:>24}".format("Index(file)","Eigenvalue(file)",\
         "Index(WF)","Eigenvalue(WF)")+"\n")
@@ -49,8 +49,8 @@ for num in range(numRef):
         seqMatch = num
 
     np.set_printoptions(formatter={'float_kind': lambda x: "{:.12f}".format(x)})
-    closest5 = np.array(util.au2unit(actualE[sorted_indices[:4]],"cm-1"))
-    print(refEIncm,f"{closest5}") # to monitor
+    closest4 = np.array(util.au2unit(actualE[sorted_indices[:4]],"cm-1"))
+    print(refEIncm,f"{closest4}") # to monitor
 
 outfile.write(f"\nTotal consequtive states matching: {seqMatch}")
 outfile.write(f"\nTotal mismatch: {mismatch}")
