@@ -141,13 +141,11 @@ def state_iterators(krylov_dim,states="all"):
         to_state = krylov_dim
     else:
         from_state = states[0] 
-        to_state = states[1]
-    
-    if to_state == from_state:
-        to_state = to_state + 1 # range to cover
-    elif to_state > krylov_dim:
-        to_state = krylov_dim 
+        to_state = states[1] + 1
 
+        if to_state > krylov_dim:
+            to_state = krylov_dim
+    
     return from_state, to_state
 
 # ------- Function5: nonorthogonal overlap calculation/ collection --------
@@ -170,18 +168,27 @@ def overlap_nonortho_ref(cum_it,istate,Ylist,coeffs,refWF,path_nonortho_overlap)
     if path_nonortho_overlap is None:
         overlap = np.zeros(num_ref,dtype=Ylist[0].rootNode.dtype)
         overlap2 = np.zeros(num_ref,dtype=Ylist[0].rootNode.dtype)
-        total = np.array(0, dtype=Ylist[0].rootNode.dtype)
+        total = np.zeros(num_ref, dtype=Ylist[0].rootNode.dtype)
+
+        sum_overlap2 = np.array(0, dtype=Ylist[0].rootNode.dtype)
         for num in range(num_ref):
             for k in range(mstates):
                 overlap[num] += bracket(refWF[num], Ylist[k])*coeffs[k,istate]
             overlap2[num] = overlap[num]**2
-            total += overlap2[num]
+            sum_overlap2 += overlap2[num]
+            total[num] = sum_overlap2
 
     elif path_nonortho_overlap is not None:
         filename = f"{path_nonortho_overlap}/Overlap_it{cum_it}_vec{istate}.out"
         overlap = np.loadtxt(filename,usecols=(3),skiprows=1,dtype=float)
         overlap2 = np.loadtxt(filename,usecols=(4),skiprows=1,dtype=float)
-        total = np.loadtxt(filename,usecols=(5),skiprows=1,dtype=float)[-1]
+        
+        num_ref = len(overlap)
+        total = np.zeros(num_ref, dtype=overlap2[0].dtype)
+        sum_overlap2 = np.array(0, dtype=Ylist[0].rootNode.dtype)
+        for num in range(num_ref):
+            sum_overlap2 += overlap2[num]
+            total[num] = sum_overlap2 
 
     return overlap, overlap2, total
 
@@ -235,14 +242,17 @@ def calculate_and_write_overlap(start_cum,max_cum,path_to_KS,states_selected,ref
             overlap_file.write(lines)
 
             overlap, overlap2, total = overlap_nonortho_ref(it,istate,Ylist,coeffs,refWF,path_nonortho_overlap)
-            print(f"Note: Total squared overlap is {total})")
+            print(f"Note: Total squared overlap is {total[-1]})")
+            num_ref = len(overlap) # some are truncated # ref_coeffs are sorted
             
             if ref_dict["ref_coeffs"] is not None:
                 ref_coeffs = ref_dict["ref_coeffs"]
                 is_real = np.isreal(ref_coeffs).all()
                 overlapC = np.zeros(num_ref,dtype=Ylist[0].rootNode.dtype)
                 overlap2C = np.zeros(num_ref,dtype=Ylist[0].rootNode.dtype)
-                totalC = np.array(0, dtype=Ylist[0].rootNode.dtype)
+                totalC = np.zeros(num_ref, dtype=Ylist[0].rootNode.dtype)
+
+                sum_overlap2C = np.array(0, dtype=Ylist[0].rootNode.dtype)
                 for num in range(num_ref):
                     for ic in range(num_ref):
                         if is_real:
@@ -250,8 +260,9 @@ def calculate_and_write_overlap(start_cum,max_cum,path_to_KS,states_selected,ref
                         else:
                             overlapC[num] += complex(ref_coeffs[ic,num]) * overlap[ic]
                     overlap2C[num] = overlapC[num]**2
-                    totalC += overlap2C[num]
-                print(f"Note: Total squared ortho-overlap is {totalC})")
+                    sum_overlap2C += overlap2C[num]
+                    totalC[num] = sum_overlap2C
+                print(f"Note: Total squared ortho-overlap is {totalC[-1]})")
 
                 overlap = overlapC
                 overlap2 = overlap2C
@@ -263,21 +274,21 @@ def calculate_and_write_overlap(start_cum,max_cum,path_to_KS,states_selected,ref
                 lines += "{:>16}".format(f"{ev_in_cm[istate]:.6f}")
                 lines += "{:>16}".format(f"{overlap[num]:.4f}")
                 lines += "{:>16}".format(f"{overlap2[num]:.4f}")
-                lines += "{:>16}".format(f"{total:.4f}")+"\n"
+                lines += "{:>16}".format(f"{total[num]:.4f}")+"\n"
                 overlap_file.write(lines)
             overlap_file.close()
 
 
 # --------------------------- Main function ------------------------
 if __name__ == "__main__":
-    start_cum, max_cum = 1, 3 # cumulative iterations
+    start_cum, max_cum = 1, 3 # cumulative iterations, same number for single iteration
     path_to_KS = "demo/saveTNSs/" # path to saved Krylov statetors
-    states = 'all'     # Lanczos states; 'all' as string/a list of indices [0,2]
+    states = 'all'     # Lanczos states; 'all' as string/a list of indices [0,2]; same number for single state
     
     path_to_ref = "/data/larsson/Eigen/RUNS/tns_D70/" # Path to References
     ref_energy = np.load(f"{path_to_ref}/matrices/evuv.npz")["ev"] # reference energies
     ref_coeffs = np.load(f"{path_to_ref}/matrices/evuv.npz")["uv"] # ortho coefficients
     ref_dict = {"path_to_ref":path_to_ref,"ref_energy":ref_energy,"ref_coeffs":ref_coeffs}
    
-    calculate_and_write_overlap(start_cum,max_cum,path_to_KS,states,ref_dict,path_nonortho_overlap=None)
+    calculate_and_write_overlap(start_cum,max_cum,path_to_KS,states,ref_dict,path_nonortho_overlap="check_overlap/nonortho/")
 # ---------------  EOF ----------------------------------------------
