@@ -1,0 +1,3 @@
+# TTNS: USE PYSCF einsum without TBLIS
+Check of nonorthogonal overlap is successful
+Check of orthogonal overlap is successful

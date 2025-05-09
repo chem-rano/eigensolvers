@@ -1,0 +1,21 @@
+This is specifically for checking overlap data of Eigen ion.
+
+# -----------------------------------------------------------------------
+Contains overlap folders
+(A) unsorted/    :: Generated from old overlap code
+(B) sorted/     :: (i) sorted with correct_overlapOrder.py -> nornorthogonal Ref
+(C) nonortho/  :: Generated from overlap.py -> nornorthogonal Ref
+(D) ortho/      :: Generated from overlap.py -> orthogonal Ref
+(E) ortho_using_saved_overlap/ :: Generated from overlap.py using saved overlap (iii)
+# -----------------------------------------------------------------------
+Contains three scripts
+
+(i) check_accordanceREF.py :: Test for accordanceREF.py -> Successful
+Two codes sorted reference in two ways. Agreement confirms the order is correct.
+Result is stored in check_accordanceREF.out.
+
+(ii) check_correct_overlapOrder.py :: Test for correct_overlapOrder.py -> Successful
+Result is stored in check_correct_overlapOrder.out.
+(iii) check_overlap.py :: Test for overlap.py -> In progress
+It checks files from folders (listed above): B == C & D == E
+# -----------------------------------------------------------------------

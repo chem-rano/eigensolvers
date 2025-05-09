@@ -1,0 +1,106 @@
+#!/bin/bash
+#SBATCH --job-name eigen
+#SBATCH -o jobname_SLURM.out
+##SBATCH --partition=pi.larsson
+#SBATCH --partition=test
+#SBATCH --time=01:00:00
+##SBATCH --partition=short
+##SBATCH --time=06:00:00
+##SBATCH --partition=medium
+##SBATCH --time=1-00:00:00
+##SBATCH --partition=long
+##SBATCH --partition=bigmem
+##SBATCH --time=3-00:00:00
+#SBATCH --cpus-per-task=56
+##SBATCH --partition=cenvalarc.compute
+##SBATCH --partition=cenvalarc.bigmem
+##SBATCH --time=3-00:00:00
+##SBATCH --cpus-per-task=64
+#SBATCH --nodes=1
+#SBATCH --ntasks-per-node=1
+#SBATCH --mem=250G
+#SBATCH --mail-type END,FAIL
+# change this vvv
+##SBATCH --mail-user madhumitarano@ucmerced.edu
+#vv no restart after node failure
+#SBATCH --no-requeue
+
+# hrl: from pinnaclesrc
+export MKL_THREADING_LAYER=GNU # avoid omp bug # default INTEL
+export PYTHONPATH="/home/larsson/opt/py310/pyscf/pyscf/lib/:$PYTHONPATH"
+export PYTHONPATH="/home/larsson/opt/py310/pyscf/:$PYTHONPATH"
+export PYSCF_EXT_PATH="/home/larsson/opt/py310/pyscf_extensions/"
+export PYTHONPATH="/home/larsson/opt/py310/pyutil:$PYTHONPATH"
+export PYTHONPATH="/home/madhumitarano/data/eigensolvers/:$PYTHONPATH"
+export PYTHONPATH="/home/larsson/opt/py310/lagom:$PYTHONPATH"
+
+conda deactivate 
+module purge
+source /home/larsson/.load_modules
+
+thisDir=`pwd`
+SCRATCHDIR="/localscratch/${USER}/${SLURM_JOBID}_${SLURM_JOB_NAME}"
+#SCRATCHDIR="/scratch/${USER}/${SLURM_JOBID}_${SLURM_JOB_NAME}"
+export PYSCF_TMPDIR=$SCRATCHDIR
+mkdir -p $SCRATCHDIR
+
+
+echo "===================================================="
+echo "        Job ID is:        $SLURM_JOBID"
+echo "        Job name is:      $SLURM_JOB_NAME"
+echo "        Hostname is:      "`hostname`
+echo "        This dir is:      $thisDir"
+echo "        CPUs per Task is: $SLURM_CPUS_PER_TASK"
+echo "        loadedmodules:    $LOADEDMODULES"
+export MKL_NUM_THREADS=$SLURM_CPUS_PER_TASK
+export OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK
+echo "===================================================="
+early(){
+    echo "??????????????????????????"
+    echo "?? JOB TERMINATED EARLY ??"
+    echo "??????????????????????????"
+    rm -rf $SCRATCHDIR
+}
+trap 'early' 1 2 9 15
+
+echo "removing previous slurm output"
+rm -f slurm*.out
+
+
+
+
+export PYTHONUNBUFFERED=1
+export MKL_THREADING_LAYER=GNU 
+
+echo "GEN MACHINEFILE"
+#MACHINEFILE="nodes.$SLURM_JOB_ID"
+MACHINEFILE="NODELIST"
+srun -l /bin/hostname | sort -n | awk '{print $2}' > $MACHINEFILE
+
+echo "MPITYPE $SLURM_MPI_TYPE"
+echo "TASKS: $SLURM_NTASKS"
+echo "MPIRUN"
+which mpirun
+which srun
+echo "LIST:"
+
+srun --mpi=list
+
+
+echo "===================================================="
+echo "= starting at `date`"
+echo "===================================================="
+
+which python
+which mpirun
+
+#mpirun /home/larsson/opt/mamba/miniforge/envs/py310MPIintel/bin/python3 -u check_accordanceREF.py >& check_accordanceREF.out
+#mpirun /home/larsson/opt/mamba/miniforge/envs/py310MPIintel/bin/python3 -u check_correct_overlapOrder.py >& check_correct_overlapOrder.out
+mpirun /home/larsson/opt/mamba/miniforge/envs/py310MPIintel/bin/python3 -u check_overlap.py >& check_overlap.out 
+
+rm -rf $SCRATCHDIR
+
+
+echo "===================================================="
+echo "= done at `date`"
+echo "===================================================="
