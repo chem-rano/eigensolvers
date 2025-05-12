@@ -9,7 +9,7 @@ import warnings
 
 # ---------------- Load data to be sorted from overlap file ---------
 imin, imax = 1, 1000
-jmin, jmax = 1, 1000
+jmin, jmax = 0, 1000
 dirSplits = os.getcwd().split("/")
 dirSplits = ["","overlapCorrected"] #NOTE for demo
 
@@ -32,6 +32,7 @@ elif dirSplits[-2] == "allOthersCorrected" and dirSplits[-1] =="ref150":
     s1,s2 = "../","ref150/"
     D = 150
 
+both = True; jmin, jmax = 0, 1000; D = 70 # NOTE for demo only
 # ---------------- Reference TTNSs order-----------------------------
 refOrderFile = f"/home/madhumitarano/data/PR39/Eigen/forPaper/EigenRefOrder/AccordanceREF{D}.dat"
 correctOrder = list(np.genfromtxt(refOrderFile,skip_header=1,skip_footer=2,usecols=(2),dtype=int))
@@ -42,13 +43,13 @@ for i in range(imin,imax):
     for j in range(jmin,jmax):
         try:
             if not both: 
-                #oldFile = f"{s1}../overlap/{s2}Overlap{i}.out"
-                #newFile = f"Overlap_it{i}_vec0.out"
-                oldFile = f"demo/Overlap{i}.out"
-                newFile = f"demo/Overlap{i}_sorted.out"
+                oldFile = f"{s1}../overlap/{s2}Overlap{i}.out"
+                newFile = f"Overlap_it{i}_vec0.out"
             elif both:
-                oldFile = f"{s1}../allOthers/{s2}Overlap_it{i}_vec{j}.out"
-                newFile = f"Overlap_it{i}_vec{j}.out"
+                #oldFile = f"{s1}../allOthers/{s2}Overlap_it{i}_vec{j}.out"
+                #newFile = f"Overlap_it{i}_vec{j}.out"
+                oldFile = f"check_overlap/unsorted/Overlap_it{i}_vec{j}.out" #NOTE for demo only
+                newFile = f"check_overlap/sorted/Overlap_it{i}_vec{j}.out" #NOTE for demo only
             print(oldFile,newFile)
 
             files = open(oldFile);files.close() # loadtxt not raising fileNotFound Error
