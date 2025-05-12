@@ -282,7 +282,7 @@ def calculate_and_write_overlap(start_cum,max_cum,path_to_KS,states_selected,ref
 # --------------------------- Main function ------------------------
 if __name__ == "__main__":
     start_cum, max_cum = 1, 3 # cumulative iterations, same number for single iteration
-    path_to_KS = "demo/saveTNSs/" # path to saved Krylov states
+    path_to_KS = "demo/saveTNSs/" # path to saved Krylov vectors
     states = 'all'     # Lanczos states; 'all' as string/a list of indices [0,2]; same number for single state
     
     path_to_ref = "/data/larsson/Eigen/RUNS/tns_D70/" # Path to References
