@@ -94,12 +94,12 @@ def collect_ref(ref_dict):
             # (b) energy check: #NOTE 
     return energies, wavefunctions
 # ---------------- Function2: collect Krylov statetors ----------------
-def assemble_krylov_statetors(cum_it,path_to_KS):
-    ''' This function assembles all Krylov statetors at a particular cumulative
-    iteration, cum_it and returns Krylov statetors as a list
+def assemble_krylov_vectors(cum_it,path_to_KS):
+    ''' This function assembles all Krylov vectors at a particular cumulative
+    iteration, cum_it and returns Krylov vectors as a list
     Inputs: cum_it -> cumulative iteration number
             path_to_KS -> file location to saved Krylov statetors
-    Outputs: Ylist -> list of Krylov statetors'''
+    Outputs: Ylist -> list of Krylov vectors'''
 
     Ylist = [] 
     for l in range(10000): # 10000 sufficiently large
@@ -228,7 +228,7 @@ def calculate_and_write_overlap(start_cum,max_cum,path_to_KS,states_selected,ref
     ref_in_cm = util.au2unit(np.array(refE),"cm-1")
 
     for it in range(start_cum,max_cum+1):
-        Ylist = assemble_krylov_statetors(it,path_to_KS)
+        Ylist = assemble_krylov_vectors(it,path_to_KS)
         eigenvalues, coeffs = eigen_info(it,path_to_KS)
         ev_in_cm = util.au2unit(np.array(eigenvalues),"cm-1")
         mstates = coeffs.shape[1]
