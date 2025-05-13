@@ -154,7 +154,7 @@ def state_iterators(krylov_dim,states="all"):
 # ------- Function5: nonorthogonal overlap calculation/ collection --------
 def overlap_nonortho_ref(cum_it,istate,Ylist,coeffs,refWF,path_nonortho_overlap):
     ''' Function to calculte/ upload overlap data of Lanczos states
-    with  non-orthogonal refernce
+    with  non-orthogonal reference
     Inputs: cum_it -> cumulative iteration number
             istate -> Lanczos state to calculate overlap
             Ylist -> List of Krylov vectors
@@ -164,7 +164,7 @@ def overlap_nonortho_ref(cum_it,istate,Ylist,coeffs,refWF,path_nonortho_overlap)
             data (if available)
     Outputs: overlap -> overlap values as 1D numpy array
              overlap2 -> squared overalp values as 1D numpy array
-             total -> total squared overlap'''
+             total -> total squared overlap as 1D numpy array'''
 
     num_ref = len(refWF)
     mstates = len(Ylist)
@@ -202,22 +202,22 @@ def calculate_and_write_overlap(start_cum,max_cum,path_to_KS,states_selected,ref
     and sum of squared overlap
     
     -------------  Equations ------------------
-    ovlp_pq = <Ref_p|psi_q> = <Ref_p|\sum_k(cp_kq*phi_k)>
+    ovlp_pq = <Ref_p|psi_q> = <Ref_p|\sum_k(c_kq*phi_k)>
     If more accurate references are available through orthogonalization of {|Ref>}
-    That is |RefO_p> = \sum_l(cr_lp*|Ref_l>)
-    Then ovlpO_pq = <RefO_p|psi_q> = <RefO_p|\sum_k(cp_kq*phi_k)>
-                                   = \sum_l(cr*_lp)<Ref_l|\sum_k(cp_kq*phi_k)> ... (1)
+    That is |RefO_p> = \sum_l((c'_lp)^*)|Ref_l>)
+    Then ovlpO_pq = <RefO_p|psi_q> = <RefO_p|\sum_k(c_kq*phi_k)>
+                                   = \sum_l((c'_lp)^*)<Ref_l|\sum_k(c_kq*phi_k)> ... (1)
 
     Special case of having overlap data for nonorthogonal refererence
     That means, ovlp is available then relation to get ovlpO is:
     ovlpO_pq = <RefO_p|psi_q> 
-             = <\sum_l(cr_lp)Ref_l|psi_q>
-             = \sum_l(cr*_lp)ovlp_lq .............. (2)
+             = <\sum_l((c'_lp)^*)Ref_l|psi_q>
+             = \sum_l((c'_lp)^*)ovlp_lq .............. (2)
     -------------------------------------------
     Inputs: start_cum -> starting cumulative iteration 
             max_cum -> maximum cumulative iteration
             path_to_KS -> path to saved Krylov statetors
-            states_selected -> Lanczos states; 'all' as string/a list of indices [0,2]
+            states_selected -> Lanczos states; 'all' as string/a list of indices e.g., [0,2]
             ref_dict -> dictionary containing REF info 
             path_nonortho_overlap (optional) -> nonorthogonal overlap file, if provided 
             then overlap is calculated using equation 2
@@ -246,7 +246,7 @@ def calculate_and_write_overlap(start_cum,max_cum,path_to_KS,states_selected,ref
 
             overlap, overlap2, total = overlap_nonortho_ref(it,istate,Ylist,coeffs,refWF,path_nonortho_overlap)
             print(f"Note: Total squared overlap is {total[-1]})")
-            num_ref = len(overlap) # some are truncated # ref_coeffs are sorted
+            num_ref = len(overlap) # some overlap files are truncated # ref_coeffs are sorted
             
             if ref_dict["ref_coeffs"] is not None:
                 ref_coeffs = ref_dict["ref_coeffs"]
