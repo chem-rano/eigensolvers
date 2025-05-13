@@ -10,16 +10,17 @@ import time
 # ---------------- Function1: Reference TTNSs & energies -----------
 def collect_ref(ref_dict):
     ''' Collects reference energies and wavefunctions from the information 
-    give in the "ref_dict" dictionary
+    given in the "ref_dict" dictionary
     Additionally, this function scrutinizes reference information to be correct 
     to some extent
-    Inputs:   ref_dict: Dictionary containing REF info (Contains maximum 5 keys)
-              (a) path_to_ref : File location of the reference wavefunctions
+    Inputs:   ref_dict: Dictionary containing REF info (contains maximum 5 keys)
+              (a) path_to_ref : file location of the reference wavefunctions
               (b) ref_energy (optional): reference energy 
               (c) energy_unit (optional): reference energy unit
               (d) zpve (optional): zero-point energy
               (e) ref_coeffs (optional): coeffecients for orthogonalized references
-    Outputs: sorted refernce energies, reference wavefunctions'''
+    Note: ref_energy & zpve must be in same unit i.e., in energy_unit
+    Outputs: sorted reference energies, reference wavefunctions'''
     
     # Without specification of reference wavefunctions
     try:
@@ -38,7 +39,7 @@ def collect_ref(ref_dict):
     if ref_dict["ref_coeffs"] is not None and ref_dict["ref_energy"] is None:
         sys.exit("Orthogonalized reference energy file is not found")
     
-    # collect wavefunction ane energies
+    # collect wavefunction and energies
     energies = []
     wavefunctions = []
     for iref in range(10000):
