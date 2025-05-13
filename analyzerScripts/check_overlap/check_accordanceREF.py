@@ -7,9 +7,9 @@ from ttns2.state import loadTTNSFromHdf5
 # -------------------------------------------------------------------
 # This is to check overlap order obtained from accordanceREF.py 
 # It is not a mainstream test module related to eigensolvers codes,
-# that is, it it being kept at "analyzerScripts/"
+# that is why, it it being kept at "analyzerScripts/"
 # Manual check is okay for eigenvalue to closest eigenvalue in output 
-#(run.out) of accordanceREF.py 
+# (run.out) of accordanceREF.py 
 
 
 # ---------------- Reference TTNSs order-----------------------------
