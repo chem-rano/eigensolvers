@@ -117,7 +117,7 @@ def assemble_krylov_vectors(cum_it,path_to_KS):
 def eigen_info(cum_it,path_to_KS):
     '''Collects eigen informations, eigenvalues and coefficients
     Inputs: cum_it -> cumulative iteration number
-            path_to_KS -> file location to saved Krylov statetors
+            path_to_KS -> file location to saved Krylov vectors 
     Outputs: eigenvalues -> Lanczos eigenvalues
              coeff -> Lanczos eigen coefficients'''
 
@@ -134,8 +134,10 @@ def state_iterators(krylov_dim,states="all"):
     
     Inputs: krylov_dim -> Krylov dimension
             states (optional) -> str/ a list of index range
-    Outputs: from_state -> beginning statetor index
-             to_state -> end statetor index'''
+            Example (str) - only option: 'all'  (all Lanczos states)
+            Example (list) - [3,large interger] : states from 3 to Krylov dim
+    Outputs: from_state -> beginning state index
+             to_state -> end state index'''
 
     if states == "all":
         from_state = 0
