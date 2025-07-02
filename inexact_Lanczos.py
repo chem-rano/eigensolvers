@@ -123,7 +123,7 @@ def checkConvergence(ev,eConv,status,printObj=None):
     
     isConverged = False
     nBlock = status["nBlock"]
-    nBlockEigenvalues = ev[0:nBlock]   # nBlock states
+    nBlockEigenvalues = np.sort(ev[0:nBlock])   # nBlock states, sort them to avoid root flipping
 
     # Residual calculation and check for all except cumIter = 1
     if status["cumIter"] > 1:
