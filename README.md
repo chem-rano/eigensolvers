@@ -19,7 +19,7 @@ Due to the larger separation in the eigenvalues, this part of the spectrum is ea
 To achieve a widely separated spectrum near $\sigma$, one straightforward way is to convert the matrix to the desired substracted form ($\sigma$**I** - **H**) and solve an inverted form of it ($($\sigma$**I** - **H**)^{-1}$).
 
 F(**H**)**v** is calculated by iteratively solving the linear system ($\sigma$**I**-**H**)**w** = **v**. 
-These vectors **w**$_1$, $**w**_2$ etc. can be calculated approximately i.e., in this way, the iterative solver becomes less computationally expensive [1].
+These vectors **w**$_1$, **w<sup>_2</sup>** etc. can be calculated approximately i.e., in this way, the iterative solver becomes less computationally expensive [1].
 The eigenvalue problem in **w** basis is then solved to obtain eigenvalues and corresponding eigenvectors.
 
 Another way of targeting eigenvalue $\sigma$ is through contour integration.
