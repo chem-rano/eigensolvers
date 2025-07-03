@@ -26,7 +26,7 @@ Rather than targeting a specific eigenvalue, it is aimed to find the eigenvalue 
 For example, $$Hx=\lambda Bx$$ is the problem to solve with $H$ is the real symmetric or Hermitian matrix and $B$ is positive semi-definite.
 Then in FEAST [2] the eigenvalues within contour [$\lambda\_{min},\lambda\_{max}$] is iterativey solved.
 
-# Prerequisites (recommended version):
+# Prerequisites (recommended version)
 1. Python (3.10.14)
 2. SciPy (1.10.1)
 3. NumPy (1.26.4)
@@ -40,7 +40,7 @@ User is recommended to run following unit tests in folder, "unittests" before Nu
 # Working examples
 Example (driver_numpyVector.py) can be found at folder, "examples".
 
-# Input arguments 
+# Input arguments
 A. Inexact Lanczos eigensolver
 1. A 		 : 	NUMPY.NDARRAY/ LinearOperator
 			Diagonalizable matrix
@@ -69,7 +69,12 @@ After successful test and running of example driver file there will following ou
 parameter details in file header, overlap matrix, Hamiltonian matrix before and after diagonalization, eigenvalues. )
 2. summary_lanczos.out (Summary information at each cumulative iteration along with parameter details in file header.)
 
-# Contributors :
+# Contributors
 1. Dr. Madhumita Rano
 2. Prof. Henrik R. Larsson (https://github.com/hrlGroup)
 
+# References
+[1] Shi-Wei Huang and Tucker Carrington Jr. “A new iterative method for calculating energy levels and
+wave functions”. In: The Journal of Chemical Physics 112.20 (2000), pp. 8765–8771.
+[2] Eric Polizzi. “Density-matrix-based algorithm for solving eigenvalue problems”. In: Physical Review B
+79.11 (2009), p. 115112.
