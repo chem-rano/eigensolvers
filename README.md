@@ -16,10 +16,10 @@ For a higher eigenvalue spectrum with many-fold degeneracies (relevant to higher
 matrix, **H**, it is better to solve the transformed form, **F(H)**. 
 This transformation is often called spectral transform and it is chosen to broaden the gap between desired eigenvalues (i.e., $\sigma$). 
 Due to the larger separation in the eigenvalues, this part of the spectrum is easy to converge and hence fewer iterations are needed as compared to actual **H**.
-To achieve a widely separated spectrum near $\sigma$, one straightforward way is to convert the matrix to the desired substracted form ($\sigma$**I** - **H**) and solve an inverted form of it (($\sigma$**I** - **H**)$^{-1}$).
+To achieve a widely separated spectrum near $\sigma$, one straightforward way is to convert the matrix to the desired substracted form ($\sigma$**I** - **H**) and solve an inverted form of it ($($\sigma$**I** - **H**)^{-1}$).
 
 F(**H**)**v** is calculated by iteratively solving the linear system ($\sigma$**I**-**H**)**w** = **v**. 
-These vectors **w**$_1$, **w**$_2$ etc. can be calculated approximately i.e., in this way, the iterative solver becomes less computationally expensive [1].
+These vectors **w**$_1$, $**w**_2$ etc. can be calculated approximately i.e., in this way, the iterative solver becomes less computationally expensive [1].
 The eigenvalue problem in **w** basis is then solved to obtain eigenvalues and corresponding eigenvectors.
 
 Another way of targeting eigenvalue $\sigma$ is through contour integration.
@@ -55,24 +55,24 @@ A. Inexact Lanczos eigensolver
 7. checkFitTol 
 (optional) 	: checking tolerance of fitting
 8. Hsolve
-9. (optional) 	: As H but only used for the generation of the Lanczos vectors
+ (optional) 	: As H but only used for the generation of the Lanczos vectors
                   `H` is then used for diagonalizing the Hamiltonian matrix
-10. writeOut
+9. writeOut
 (optional) 	: writing file instruction
              	  default : write both iteration_lanczos.out & summary_lanczos.out
-11. eShift 
+10. eShift 
 (optional) 	: shift value for eigenvalues, Hmat elements
-12. convertUnit 
+11. convertUnit 
 (optional) 	: convert unit for eigenvalues, Hmat elements
-13. pick 
+12. pick 
 (optional) 	: pick function for eigenstate
                   Default is get_pick_function_close_to_sigma
-14. status 
+13. status 
 (optional) 	: Additional information dictionary
                   (more details see _getStatus doc)
-15. outFileName 
+14. outFileName 
 (optional)	: output file name
-16. summaryFileName
+15. summaryFileName
 (optional)	: summary file name
 
 # Output files
