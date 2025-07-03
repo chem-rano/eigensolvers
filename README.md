@@ -3,20 +3,20 @@ Targeted eigensolvers find an eigenstate (or a set eigenstates) of the eigenvalu
 Here, two targeted eigensolvers, namely, inexact Lanczos [1] and FEAST [2] have been implemented.
 These implementations are general with respect to eigenvector class. Types of eigenvector class are
 NumpyVector (numpy arrays), TTNSVector (Tree Tensor Network), and so on. In this version, NumpyVector
-class is available to work with. While TTNSVector has been used for this research work (https://arxiv.org/abs/2506.22574),
+class is available to work with. While TTNSVector has been used for a recent research work [3],
 it is based on in-house TTNS code and is not accessible for testing. 
 Note: FEAST implementation is under development. For further details, 
 these two sources (https://github.com/certik/feast, https://github.com/brendanedwardgavin/feastjl, )are advised to check out. 
 
 # Theoretical background
-Suppose \textbf{H} is a NxN symmetric matrix whose eigenvectors and eigenvectors are to be calculated. 
+Suppose **H** is a NxN symmetric matrix whose eigenvectors and eigenvectors are to be calculated. 
 In many cases, whole eigen spectra are not required. Let's assume, we specifically want some eigenvectors near eigenvalue $\sigma$.
 
 For a higher eigenvalue spectrum with many-fold degeneracies (relevant to higher energy spectra), instead of solving the actual
-matrix, \textbf{H}, it is better to solve the transformed form, \textbf{F(H)}. 
+matrix, **H**, it is better to solve the transformed form, **F(H)**. 
 This transformation is often called spectral transform and it is chosen to broaden the gap between desired eigenvalues (i.e., $\sigma$). 
-Due to the larger separation in the eigenvalues, this part of the spectrum is easy to converge and hence fewer iterations are needed as compared to actual \textbf{H}.
-To achieve a widely separated spectrum near $\sigma$, one straightforward way is to convert the matrix to the desired substracted form ($\sigma \textbf{I}$ - \textbf{H}) and solve an inverted form of it (\textbf{($\sigma$I - H)}$^{-1}$).
+Due to the larger separation in the eigenvalues, this part of the spectrum is easy to converge and hence fewer iterations are needed as compared to actual **H**.
+To achieve a widely separated spectrum near $\sigma$, one straightforward way is to convert the matrix to the desired substracted form ($\sigma **I**$ - **H**) and solve an inverted form of it (**($\sigma$I - H)**$^{-1}$).
 
 F(\textbf{H})\textbf{v} is calculated by iteratively solving the linear system ($\sigma$\textbf{I}-\textbf{H})\textbf{w} = \textbf{v}. These vectors \textbf{w$_1$}, \textbf{w$_2$} etc. can be calculated approximately i.e., in this way, the iterative solver becomes less computationally expensive\cite{huang2000new}.
 The eigenvalue problem in \textbf{w} basis is then solved to obtain eigenvalues and corresponding eigenvectors.
@@ -85,7 +85,9 @@ parameter details in file header, overlap matrix, Hamiltonian matrix before and 
 2. Prof. Henrik R. Larsson (https://github.com/hrlGroup)
 
 # References
-1. Shi-Wei Huang and Tucker Carrington Jr. “A new iterative method for calculating energy levels and
-wave functions”. In: The Journal of Chemical Physics 112.20 (2000), pp. 8765–8771.
-2. Eric Polizzi. “Density-matrix-based algorithm for solving eigenvalue problems”. In: Physical Review B
+1. Shi-Wei Huang and Tucker Carrington Jr., “A new iterative method for calculating energy levels and
+wave functions”, The Journal of Chemical Physics 112.20 (2000), pp. 8765–8771.
+2. Eric Polizzi., “Density-matrix-based algorithm for solving eigenvalue problems”, Physical Review B
 79.11 (2009), p. 115112.
+3. Madhumita Rano and Henrik R. Larsson, Computing excited eigenstates using inexact Lanczos methods and tree tensor network states, 
+arXiv preprint arXiv:2506.22574, 2025. 
