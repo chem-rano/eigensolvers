@@ -16,16 +16,16 @@ For a higher eigenvalue spectrum with many-fold degeneracies (relevant to higher
 matrix, **H**, it is better to solve the transformed form, **F(H)**. 
 This transformation is often called spectral transform and it is chosen to broaden the gap between desired eigenvalues (i.e., $\sigma$). 
 Due to the larger separation in the eigenvalues, this part of the spectrum is easy to converge and hence fewer iterations are needed as compared to actual **H**.
-To achieve a widely separated spectrum near $\sigma$, one straightforward way is to convert the matrix to the desired substracted form ($\sigma$**I** - **H**) and solve an inverted form of it ($($\sigma$**I** - **H**)^{-1}$).
+To achieve a widely separated spectrum near $\sigma$, one straightforward way is to convert the matrix to the desired substracted form ($\sigma$**I** - **H**) and solve an inverted form of it $\sigma$**I**-**H**<sub>-1</sub>.
 
 F(**H**)**v** is calculated by iteratively solving the linear system ($\sigma$**I**-**H**)**w** = **v**. 
-These vectors **w**$_1$, **w<sup>_2</sup>** etc. can be calculated approximately i.e., in this way, the iterative solver becomes less computationally expensive [1].
+These vectors **w<sub>1</sub>**, **w<sub>2</sub>** etc. can be calculated approximately i.e., in this way, the iterative solver becomes less computationally expensive [1].
 The eigenvalue problem in **w** basis is then solved to obtain eigenvalues and corresponding eigenvectors.
 
 Another way of targeting eigenvalue $\sigma$ is through contour integration.
 Rather than targeting a specific eigenvalue, it is aimed to find the eigenvalue within a specified range or the contour.
 For example, $$Hx=\lambda Bx$$ is the problem to solve with $H$ is the real symmetric or Hermitian matrix and $B$ is positive semi-definite.
-Then in FEAST [2] the eigenvalues within contour [$\lambda\_{min},\lambda\_{max}$] is iterativey solved.
+Then in FEAST [2] the eigenvalues within contour [$\lambda$<sub>min/sub>,$\lambda$<sub>max/sub>] is iterativey solved.
 
 # Prerequisites (recommended version)
 1. Python (3.10.14)
