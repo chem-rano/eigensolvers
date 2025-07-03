@@ -74,7 +74,7 @@ parameter details in file header, overlap matrix, Hamiltonian matrix before and 
 2. Prof. Henrik R. Larsson (https://github.com/hrlGroup)
 
 # References
-[1] Shi-Wei Huang and Tucker Carrington Jr. “A new iterative method for calculating energy levels and
+1. Shi-Wei Huang and Tucker Carrington Jr. “A new iterative method for calculating energy levels and
 wave functions”. In: The Journal of Chemical Physics 112.20 (2000), pp. 8765–8771.
-[2] Eric Polizzi. “Density-matrix-based algorithm for solving eigenvalue problems”. In: Physical Review B
+2. Eric Polizzi. “Density-matrix-based algorithm for solving eigenvalue problems”. In: Physical Review B
 79.11 (2009), p. 115112.
