@@ -25,7 +25,7 @@ The eigenvalue problem in **w** basis is then solved to obtain eigenvalues and c
 Another way of targeting eigenvalue $\sigma$ is through contour integration.
 Rather than targeting a specific eigenvalue, it is aimed to find the eigenvalue within a specified range or the contour.
 For example, $$Hx=\lambda Bx$$ is the problem to solve with $H$ is the real symmetric or Hermitian matrix and $B$ is positive semi-definite.
-Then in FEAST [2] the eigenvalues within contour [&lambda<sub>min</sub>,&lambda<sub>max</sub>] is iterativey solved.
+Then in FEAST [2] the eigenvalues within contour [$$\lambda$$<sub>min</sub>,$$\lambda$$<sub>max</sub>] is iterativey solved.
 
 # Prerequisites (recommended version)
 1. Python (3.10.14)
