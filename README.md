@@ -16,9 +16,10 @@ For a higher eigenvalue spectrum with many-fold degeneracies (relevant to higher
 matrix, **H**, it is better to solve the transformed form, **F(H)**. 
 This transformation is often called spectral transform and it is chosen to broaden the gap between desired eigenvalues (i.e., $\sigma$). 
 Due to the larger separation in the eigenvalues, this part of the spectrum is easy to converge and hence fewer iterations are needed as compared to actual **H**.
-To achieve a widely separated spectrum near $\sigma$, one straightforward way is to convert the matrix to the desired substracted form ($\sigma **I**$ - **H**) and solve an inverted form of it (($\sigma$i**I** - **H**)$^{-1}$).
+To achieve a widely separated spectrum near $\sigma$, one straightforward way is to convert the matrix to the desired substracted form ($\sigma$**I** - **H**) and solve an inverted form of it (($\sigma$**I** - **H**)$^{-1}$).
 
-F(**H**)**v** is calculated by iteratively solving the linear system ($\sigma$**I**-**H**)**w** = **v**. These vectors **w**$_1$, **w**$_2$ etc. can be calculated approximately i.e., in this way, the iterative solver becomes less computationally expensive [1].
+F(**H**)**v** is calculated by iteratively solving the linear system ($\sigma$**I**-**H**)**w** = **v**. 
+These vectors **w**$_1$, **w**$_2$ etc. can be calculated approximately i.e., in this way, the iterative solver becomes less computationally expensive [1].
 The eigenvalue problem in **w** basis is then solved to obtain eigenvalues and corresponding eigenvectors.
 
 Another way of targeting eigenvalue $\sigma$ is through contour integration.
@@ -42,7 +43,7 @@ Example (driver_numpyVector.py) can be found at folder, "examples".
 
 # Input arguments
 A. Inexact Lanczos eigensolver
-H  		: diagonalizable input matrix or linearoperator
+H  	: diagonalizable input matrix or linearoperator
 v0 		: eigenvector guess
      		  Can be a list of `AbstractVectors`.
      		  Then, block Lanczos is performed (Krylov space on each of the guesses).
