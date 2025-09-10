@@ -1,31 +1,21 @@
 # Description
-Targeted eigensolvers find an eigenstate (or a set eigenstates) of the eigenvalue problem in a specified range of eigenvalue.
-Here, two targeted eigensolvers, namely, inexact Lanczos [1] and FEAST [2] have been implemented.
-These implementations are general with respect to eigenvector class. Types of eigenvector class are
-NumpyVector (numpy arrays), TTNSVector (Tree Tensor Network), and so on. In this version, NumpyVector
-class is available to work with. While TTNSVector has been used for a recent research work [3],
-it is based on in-house TTNS code and is not accessible for testing. 
-Note: FEAST implementation is under development. For further details, 
-these two sources (https://github.com/certik/feast, https://github.com/brendanedwardgavin/feastjl, )are advised to check out. 
+Targeted eigensolvers to find an eigenstate (or a set of eigenstates) in a specified range.
+The main implementation is an inexact Lanczos approach[1,3]. 
+Another, preliminary and not fully tested implementation is the FEAST approach[2].
+These implementations are implemented in a general way that allows both numpy arrays (NumpyVector wrapper) and tensor network states (TTNSVector wrapper). Currently, the latter it is based on in-house code, which will be released separately soon.
+Note: **This is work in progress**. 
 
 # Theoretical background
-Suppose **H** is a NxN symmetric matrix whose eigenvectors and eigenvectors are to be calculated. 
-In many cases, whole eigen spectra are not required. Let's assume, we specifically want some eigenvectors near eigenvalue $\sigma$.
-
-For a higher eigenvalue spectrum with many-fold degeneracies (relevant to higher energy spectra), instead of solving the actual
-matrix, **H**, it is better to solve the transformed form, **F(H)**. 
-This transformation is often called spectral transform and it is chosen to broaden the gap between desired eigenvalues (i.e., $\sigma$). 
-Due to the larger separation in the eigenvalues, this part of the spectrum is easy to converge and hence fewer iterations are needed as compared to actual **H**.
-To achieve a widely separated spectrum near $\sigma$, one straightforward way is to convert the matrix to the desired substracted form ($\sigma$**I** - **H**) and solve an inverted form of it ($\sigma$**I**-**H**)<sup>-1</sup>.
-
-F(**H**)**v** is calculated by iteratively solving the linear system ($\sigma$**I**-**H**)**w** = **v**. 
-These vectors **w<sub>1</sub>**, **w<sub>2</sub>** etc. can be calculated approximately i.e., in this way, the iterative solver becomes less computationally expensive [1].
-The eigenvalue problem in **w** basis is then solved to obtain eigenvalues and corresponding eigenvectors.
-
-Another way of targeting eigenvalue $\sigma$ is through contour integration.
-Rather than targeting a specific eigenvalue, it is aimed to find the eigenvalue within a specified range or the contour.
-For example, $$Hx=\lambda Bx$$ is the problem to solve with $H$ is the real symmetric or Hermitian matrix and $B$ is positive semi-definite.
-Then in FEAST [2] the eigenvalues within contour of target range is iterativey solved.
+Suppose **H** is a hermitian matrix whose eigenvectors and eigenvectors are to be calculated. 
+In many cases, the whole eigen spectrum is not required. Let's assume, we specifically want some eigenvectors near the  eigenvalue $\sigma$.
+In this case, instead of solving the actual matrix, **H**, it is often better to solve the transformed form, **F(H)**. 
+This transformation is often called spectral transform and it is chosen to broaden the gap between desired eigenvalues (i.e., $\sigma$) and other eigenvalues. 
+Due to the larger separation in the eigenvalues, this part of the spectrum is then easier to converge and hence fewer iterations are needed, compared to actual **H**.
+To achieve a widely separated spectrum near $\sigma$, one straightforward way is the shift-and-inveer approach, which uses $F(H)=(\sigma -H)^{-1}$.
+F(**H**)**v** is calculated by iteratively and approximately by solving the linear system ($\sigma$**I**-**H**)**w** = **v**. 
+The eigenvalue problem in the **w** basis is then solved to obtain eigenvalues and corresponding eigenvectors, resulting in the inexact Lanczos approach.
+In the FEAST approach, the eigenvalues are computed through contour integration.
+Rather than targeting a specific eigenvalue, it is aimed to find eigenvalues within a specified range.
 
 # Prerequisites (recommended version)
 1. Python (3.10.14)
@@ -42,7 +32,7 @@ User is recommended to run following unit tests in folder, "unittests" before Nu
 Example (driver_numpyVector.py) can be found at folder, "examples".
 
 # Input arguments
-A. Inexact Lanczos eigensolver
+Inexact Lanczos eigensolver
 1. H  		: diagonalizable input matrix or linearoperator
 2. v0 		: eigenvector guess
      		  Can be a list of `AbstractVectors`.
@@ -55,7 +45,7 @@ A. Inexact Lanczos eigensolver
 7. checkFitTol 
 (optional) 	: checking tolerance of fitting
 8. Hsolve
- (optional) 	: As H but only used for the generation of the Lanczos vectors
+ (optional) 	: As H but only used for the generation of the Lanczos vectors.
                   `H` is then used for diagonalizing the Hamiltonian matrix
 9. writeOut
 (optional) 	: writing file instruction
