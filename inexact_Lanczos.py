@@ -15,6 +15,7 @@ from util_funcs import get_pick_function_close_to_sigma
 from util_funcs import get_pick_function_maxOvlp
 from util_funcs import eigenvalueResidual
 import copy
+import os
 
 # -----------------------------------------------------
 # Dividing in to functions for better readability 
@@ -230,7 +231,8 @@ def inexactLanczosDiagonalization(H,  v0: Union[AbstractVector,List[AbstractVect
                                   Hsolve=None,
                                   pick=None, status=None,
                                   writeOut=True, eShift=0.0, convertUnit="au",
-                                  outFileName=None, summaryFileName=None):
+                                  outFileName=None, summaryFileName=None,
+                                  saveTNSsEachIteration=True, saveDir="saveTNSs"):
     """ Calculate eigenvalues and eigenvectors using the inexact Lanczos method
 
 
@@ -261,6 +263,9 @@ def inexactLanczosDiagonalization(H,  v0: Union[AbstractVector,List[AbstractVect
                     (more details see _getStatus doc)
             outFileName (optional): output file name
             summaryFileName (optional): summary file name
+            saveTNSsEachIteration (optional): save nBlock Krylov vectors 
+            at each cumulative iteration
+            saveDir (optional): directory for saving Krylov vectors
 
 
     Output parameters
@@ -375,6 +380,18 @@ def inexactLanczosDiagonalization(H,  v0: Union[AbstractVector,List[AbstractVect
             status = checkConvergence(ev,eConv,status,printObj)
             continueIteration = analyzeStatus(status,maxit,L)
             
+            # save all Krylov vectors
+            if saveTNSsEachIteration:
+                if not os.path.exists(saveDir):
+                    os.makedirs(saveDir)
+                for ivector in range(len(Ylist)):
+                    additionalInformation = {"status":status,
+                            "eigencoefficients":uSH,"eigenvalues":ev} 
+                    nCum = status["cumIter"]
+                    filename = f"{saveDir}/tns_{nCum}_{ivector}.h5"
+                    Ylist[ivector].ttns.saveToHDF5(filename,
+                            additionalInformation=additionalInformation)
+
             if not continueIteration:
                 break
         if lindepProblem:
