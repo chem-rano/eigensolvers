@@ -37,10 +37,8 @@ else:# Default small matrix
     
 Q = sp.linalg.qr(np.random.rand(n,n))[0]
 A = Q.T @ np.diag(ev) @ Q
-status = {"writeOut": False,"writePlot": False, "actualEvalues":ev, "stateFollowing":"maxOvlp"}
 Y0 = NumpyVector(np.random.random((n)),optionDict)
 sigma = target
 
-lf,xf,status = inexactLanczosDiagonalization(A,Y0,sigma,L,maxit,eConv,pick=None,status=status)
-del status["actualEvalues"]
+lf,xf,status = inexactLanczosDiagonalization(A,Y0,sigma,L,maxit,eConv,pick=None,status=None,writeOut=True)
 print(status)
